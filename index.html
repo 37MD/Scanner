@@ -23,27 +23,193 @@
   <script type="text/babel">
     const { useState, useRef, useMemo, useEffect } = React;
 
-    // ─── INDICES ─────────────────────────────────────────────────────────────
+    // ─── ALL 169 INDICES FROM CSV ────────────────────────────────────────────────
     const ALL_INDICES = [
-      { name: "Nifty 50", symbol: "^NSEI", exchange: "NSE", category: "Broad Market" },
-      { name: "Nifty Next 50", symbol: "^NIFTYNXT50", exchange: "NSE", category: "Broad Market" },
-      { name: "NIFTY 500", symbol: "^CNX500", exchange: "NSE", category: "Broad Market" },
-      { name: "NIFTY Midcap 100", symbol: "^NSMIDCP100", exchange: "NSE", category: "Broad Market" },
-      { name: "NIFTY Smallcap 100", symbol: "^CNXSC", exchange: "NSE", category: "Broad Market" },
-      { name: "Nifty Bank", symbol: "^NSEBANK", exchange: "NSE", category: "Sector" },
-      { name: "Nifty IT", symbol: "^CNXIT", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY Auto", symbol: "^CNXAUTO", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY Pharma", symbol: "^CNXPHARMA", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY FMCG", symbol: "^CNXFMCG", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY Metal", symbol: "^CNXMETAL", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY Realty", symbol: "^CNXREALTY", exchange: "NSE", category: "Sector" },
-      { name: "NIFTY Energy", symbol: "^CNXENERGY", exchange: "NSE", category: "Sector" },
-      { name: "Sensex", symbol: "^BSESN", exchange: "BSE", category: "Broad Market" },
-      { name: "BSE MidCap", symbol: "BSE-MID150.BO", exchange: "BSE", category: "Broad Market" },
-      { name: "BSE SmallCap", symbol: null, exchange: "BSE", category: "Broad Market" },
-      { name: "Nifty 50 Equal Weight", symbol: "^NIFTY50EW", exchange: "NSE", category: "Strategy" },
-      { name: "Nifty100 Qualty30", symbol: "^NIFTY100QU30", exchange: "NSE", category: "Strategy" },
-      { name: "India VIX", symbol: "^INDIAVIX", exchange: "NSE", category: "Volatility" }
+      // ── BSE Broad Market ─────────────────────────────────────────────────────
+      { name:"Sensex",                                    symbol:"^BSESN",           exchange:"BSE", category:"Broad Market" },
+      { name:"Sensex Next 50 Index",                      symbol:"BSE-SNXT50.BO",    exchange:"BSE", category:"Broad Market" },
+      { name:"BSE Sensex 50",                             symbol:"^SENSEX50",        exchange:"BSE", category:"Broad Market" },
+      { name:"BSE Sensex 60",                             symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE Sensex Next 30",                        symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE Sensex Sixty 65:35",                    symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 100",                                   symbol:"BSE-100.BO",       exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 200",                                   symbol:"BSE-200.BO",       exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 500",                                   symbol:"BSE-500.BO",       exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 150 MidCap",                            symbol:"BSE-MID150.BO",    exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 250 Large Mid",                         symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 250 Small Cap",                         symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE 400 Mid Small",                         symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE MidCap Select Index",                   symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE SmallCap Select Index",                 symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE Focused Midcap",                        symbol:null,               exchange:"BSE", category:"Broad Market" },
+      { name:"BSE India 150",                             symbol:null,               exchange:"BSE", category:"Broad Market" },
+      // ── BSE Sector ────────────────────────────────────────────────────────────
+      { name:"BSE BANKEX",                                symbol:"BANKEX.BO",        exchange:"BSE", category:"Banking" },
+      { name:"BSE Private Banks Index",                   symbol:null,               exchange:"BSE", category:"Banking" },
+      { name:"BSE Finance",                               symbol:"BSE-FIN.BO",       exchange:"BSE", category:"Finance" },
+      { name:"BSE IT",                                    symbol:"BSE-IT.BO",        exchange:"BSE", category:"Technology" },
+      { name:"BSE TECk",                                  symbol:"BSE-TECK.BO",      exchange:"BSE", category:"Technology" },
+      { name:"BSE Focused IT",                            symbol:null,               exchange:"BSE", category:"Technology" },
+      { name:"BSE Auto",                                  symbol:"BSE-AUTO.BO",      exchange:"BSE", category:"Auto" },
+      { name:"BSE Healthcare",                            symbol:"BSE-HC.BO",        exchange:"BSE", category:"Pharma" },
+      { name:"BSE FMCG",                                  symbol:"BSE-FMCG.BO",      exchange:"BSE", category:"FMCG" },
+      { name:"BSE Metals",                                symbol:"BSE-METAL.BO",     exchange:"BSE", category:"Metal" },
+      { name:"BSE Realty",                                symbol:"BSE-REALTY.BO",    exchange:"BSE", category:"Realty" },
+      { name:"BSE Energy",                                symbol:"BSE-ENERGY.BO",    exchange:"BSE", category:"Energy" },
+      { name:"BSE Power",                                 symbol:"BSE-POWER.BO",     exchange:"BSE", category:"Energy" },
+      { name:"BSE Oil and Gas",                           symbol:"BSE-ONG.BO",       exchange:"BSE", category:"Energy" },
+      { name:"BSE Consumer Durables",                     symbol:"BSE-CD.BO",        exchange:"BSE", category:"Consumption" },
+      { name:"Consumer Discretionary Goods & Services",   symbol:null,               exchange:"BSE", category:"Consumption" },
+      { name:"BSE Capital Goods",                         symbol:"BSE-CG.BO",        exchange:"BSE", category:"Capital Goods" },
+      { name:"BSE Capital Goods Industrial Solutions",    symbol:null,               exchange:"BSE", category:"Capital Goods" },
+      { name:"BSE Industrials",                           symbol:null,               exchange:"BSE", category:"Capital Goods" },
+      { name:"BSE India Infrastructure Index",            symbol:null,               exchange:"BSE", category:"Infrastructure" },
+      { name:"BSE Utilities",                             symbol:null,               exchange:"BSE", category:"Energy" },
+      { name:"BSE Basic Materials",                       symbol:null,               exchange:"BSE", category:"Metal" },
+      { name:"BSE Telecom",                               symbol:null,               exchange:"BSE", category:"Telecom" },
+      { name:"BSE Service Sector",                        symbol:null,               exchange:"BSE", category:"Services" },
+      { name:"BSE India Mfg",                             symbol:null,               exchange:"BSE", category:"Manufacturing" },
+      // ── BSE PSU / Thematic ───────────────────────────────────────────────────
+      { name:"BSE PSU",                                   symbol:"BSE-PSU.BO",       exchange:"BSE", category:"PSU" },
+      { name:"BSE CPSE",                                  symbol:null,               exchange:"BSE", category:"PSU" },
+      { name:"BSE Bharat 22 Index",                       symbol:null,               exchange:"BSE", category:"PSU" },
+      // ── BSE Strategy / Factor ─────────────────────────────────────────────────
+      { name:"BSE 100 ESG",                               symbol:null,               exchange:"BSE", category:"ESG" },
+      { name:"BSE DSI",                                   symbol:null,               exchange:"BSE", category:"ESG" },
+      { name:"BSE Enhanced Value Index",                  symbol:null,               exchange:"BSE", category:"Strategy" },
+      { name:"BSE Momentum Index",                        symbol:null,               exchange:"BSE", category:"Strategy" },
+      { name:"BSELVI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
+      { name:"BSEQUI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
+      { name:"DFRGRI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
+      // ── BSE IPO ───────────────────────────────────────────────────────────────
+      { name:"BSE IPO",                                   symbol:null,               exchange:"BSE", category:"IPO" },
+      { name:"BSE SME IPO",                               symbol:null,               exchange:"BSE", category:"IPO" },
+      { name:"BSE Select IPO",                            symbol:null,               exchange:"BSE", category:"IPO" },
+      // ── BSE Dollar Series ─────────────────────────────────────────────────────
+      { name:"BSE Dollex 100",                            symbol:null,               exchange:"BSE", category:"Dollar Series" },
+      { name:"BSE Dollex 200",                            symbol:null,               exchange:"BSE", category:"Dollar Series" },
+      { name:"BSE Dollex 30",                             symbol:null,               exchange:"BSE", category:"Dollar Series" },
+
+      // ── NSE Broad Market ──────────────────────────────────────────────────────
+      { name:"Nifty 50",                                  symbol:"^NSEI",            exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Next 50",                             symbol:"^NIFTYNXT50",      exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY 100",                                 symbol:"^CNX100",          exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY 200",                                 symbol:"^CNX200",          exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY 500",                                 symbol:"^CNX500",          exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY Midcap 100",                          symbol:"^NSMIDCP100",      exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY Midcap 150",                          symbol:"^CNXMIDCAP150",    exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Mid Cap 50",                          symbol:"^CNXMIDCAP50",     exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Midcap Select",                       symbol:"^NIFTYMIDSEL",     exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Midcap Liquid 15",                    symbol:null,               exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY Smallcap 100",                        symbol:"^CNXSC",           exchange:"NSE", category:"Broad Market" },
+      { name:"NIFTY Smallcap 250",                        symbol:"^CNXSC250",        exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Smallcap 50",                         symbol:"^CNXSC50",         exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty MidSmallCap 400",                     symbol:"^CNXMIDSMALL400",  exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Largemid250",                         symbol:"^CNXLARGEMID250",  exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Microcap 250",                        symbol:"^NIFTYMICROCAP250",exchange:"NSE", category:"Broad Market" },
+      { name:"Nifty Total mkt",                           symbol:"^NIFTYTOTALMKT",   exchange:"NSE", category:"Broad Market" },
+      // ── NSE Sector ───────────────────────────────────────────────────────────
+      { name:"Nifty Bank",                                symbol:"^NSEBANK",         exchange:"NSE", category:"Banking" },
+      { name:"NIFTY PSU Bank",                            symbol:"^CNXPSUBNK",       exchange:"NSE", category:"Banking" },
+      { name:"NIFTY Private Bank",                        symbol:"^CNXPVTBNK",       exchange:"NSE", category:"Banking" },
+      { name:"NIFTY Financial Services",                  symbol:"^CNXFINANCE",      exchange:"NSE", category:"Finance" },
+      { name:"Finnifty",                                  symbol:"^CNXFIN",          exchange:"NSE", category:"Finance" },
+      { name:"Nifty Financial Services 25/50",            symbol:"^CNXFIN2550",      exchange:"NSE", category:"Finance" },
+      { name:"Nifty Financial Services Ex Bank",          symbol:null,               exchange:"NSE", category:"Finance" },
+      { name:"Nifty Capital Markets",                     symbol:null,               exchange:"NSE", category:"Finance" },
+      { name:"Nifty IT",                                  symbol:"^CNXIT",           exchange:"NSE", category:"Technology" },
+      { name:"Nifty Mid Small IT Telecom",                symbol:null,               exchange:"NSE", category:"Technology" },
+      { name:"NIFTY Auto",                                symbol:"^CNXAUTO",         exchange:"NSE", category:"Auto" },
+      { name:"Nifty EV and New Age Auto",                 symbol:null,               exchange:"NSE", category:"Auto" },
+      { name:"Nifty Mobility",                            symbol:null,               exchange:"NSE", category:"Auto" },
+      { name:"NIFTY Pharma",                              symbol:"^CNXPHARMA",       exchange:"NSE", category:"Pharma" },
+      { name:"Nifty Healthcare",                          symbol:"^NIFTYHC",         exchange:"NSE", category:"Pharma" },
+      { name:"Nifty MidSmall Healthcare",                 symbol:null,               exchange:"NSE", category:"Pharma" },
+      { name:"NIFTY FMCG",                                symbol:"^CNXFMCG",         exchange:"NSE", category:"FMCG" },
+      { name:"NIFTY Consumption",                         symbol:"^CNXCONSUMPTION",  exchange:"NSE", category:"Consumption" },
+      { name:"Nifty Consumer Durable",                    symbol:"^CNXCONSUMER",     exchange:"NSE", category:"Consumption" },
+      { name:"Nifty Non Cyclical Consumer",               symbol:null,               exchange:"NSE", category:"Consumption" },
+      { name:"Nifty India New Age Consumption",           symbol:null,               exchange:"NSE", category:"Consumption" },
+      { name:"Nifty Mid Small India Consumption",         symbol:null,               exchange:"NSE", category:"Consumption" },
+      { name:"NIFTY Metal",                               symbol:"^CNXMETAL",        exchange:"NSE", category:"Metal" },
+      { name:"NIFTY Realty",                              symbol:"^CNXREALTY",       exchange:"NSE", category:"Realty" },
+      { name:"Nifty Core Housing",                        symbol:null,               exchange:"NSE", category:"Realty" },
+      { name:"Nifty Housing",                             symbol:null,               exchange:"NSE", category:"Realty" },
+      { name:"NIFTY Energy",                              symbol:"^CNXENERGY",       exchange:"NSE", category:"Energy" },
+      { name:"Nifty Oil and Gas",                         symbol:"^CNXOILGAS",       exchange:"NSE", category:"Energy" },
+      { name:"Nifty CPSE",                                symbol:"^CNXCPSE",         exchange:"NSE", category:"PSU" },
+      { name:"Nifty PSE",                                 symbol:"^CNXPSE",          exchange:"NSE", category:"PSU" },
+      { name:"NIFTY Media",                               symbol:"^CNXMEDIA",        exchange:"NSE", category:"Media" },
+      { name:"NIFTY Infra",                               symbol:"^CNXINFRA",        exchange:"NSE", category:"Infrastructure" },
+      { name:"Nifty India Manufacturing",                 symbol:null,               exchange:"NSE", category:"Manufacturing" },
+      { name:"Nifty Transportation Logistics",            symbol:null,               exchange:"NSE", category:"Infrastructure" },
+      { name:"NIFTY Services Sector",                     symbol:"^CNXSERVICE",      exchange:"NSE", category:"Services" },
+      { name:"Nifty MNC",                                 symbol:"^CNXMNC",          exchange:"NSE", category:"MNC" },
+      { name:"NIFTY Commodities",                         symbol:"^CNXCOMMODITIES",  exchange:"NSE", category:"Commodities" },
+      { name:"India VIX",                                 symbol:"^INDIAVIX",        exchange:"NSE", category:"Volatility" },
+      // ── NSE Thematic ─────────────────────────────────────────────────────────
+      { name:"Nifty India Defence",                       symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty India Digital",                       symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty India Tourism",                       symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty Rural",                               symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty Growth Sectors 15",                   symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty India Select 5 Corp Grps (MAATR)",    symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty India Corporate Group Index - Tata",  symbol:null,               exchange:"NSE", category:"Thematic" },
+      { name:"Nifty Mid Small Financial Services",        symbol:null,               exchange:"NSE", category:"Finance" },
+      // ── NSE IPO ───────────────────────────────────────────────────────────────
+      { name:"Nifty IPO",                                 symbol:null,               exchange:"NSE", category:"IPO" },
+      // ── NSE Strategy / Factor ─────────────────────────────────────────────────
+      { name:"NIFTY ALPHA 50",                            symbol:"^CNXALPHA50",      exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 100 Alpha 30",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Alpha Low Volatility 30",             symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 50 Equal Weight",                     symbol:"^NIFTY50EW",       exchange:"NSE", category:"Strategy" },
+      { name:"Nifty100 Equal Weight",                     symbol:"^CNX100EW",        exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Equal Weight",                    symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Lrg Mid Sml Equal Wtd",           symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty100 Qualty30",                         symbol:"^NIFTY100QU30",    exchange:"NSE", category:"Strategy" },
+      { name:"Nifty100 Liquid 15",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 100 Low Volatility 30",               symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 100 Enhanced ESG",                    symbol:null,               exchange:"NSE", category:"ESG" },
+      { name:"Nifty 200 Momentum 30",                     symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 200 Alpha 30",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 200 Quality 30",                      symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 200 Value 30",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Momentum 50",                     symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Low Volatility 50",               symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Multicap 50:25:25",               symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Multicap India Mfg 50:30:20",     symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Multicap Infra 50:30:20",         symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Multicap Momentum Quality 50",    symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Multifactor MQVLv 50",            symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Quality 50",                      symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty 500 Value 50",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Dividend Opportunities 50",           symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty High Beta 50",                        symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Quality Low Volatility 30",           symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty50 Value 20 Index",                    symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Top 10 Equal Weight",                 symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Top 15 Equal Weight",                 symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Top 20 Equal Weight",                 symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Midcap150 Momentum 50",               symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"NIFTY Midcap150 Quality 50",                symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Smallcap 250 Quality 50",             symbol:null,               exchange:"NSE", category:"Strategy" },
+      { name:"Nifty Smallcap250 Momentum Quality 100",    symbol:null,               exchange:"NSE", category:"Strategy" },
+      // ── NSE ESG / Shariah ─────────────────────────────────────────────────────
+      { name:"Nifty100 ESG",                              symbol:null,               exchange:"NSE", category:"ESG" },
+      { name:"Nifty100 ESG Sector Leaders",               symbol:null,               exchange:"NSE", category:"ESG" },
+      { name:"Nifty 50 Shariah",                          symbol:null,               exchange:"NSE", category:"Shariah" },
+      { name:"Nifty Shariah 25",                          symbol:null,               exchange:"NSE", category:"Shariah" },
+      { name:"Nifty 500 Shariah",                         symbol:null,               exchange:"NSE", category:"Shariah" },
+      // ── NSE Debt ─────────────────────────────────────────────────────────────
+      { name:"Nifty Composite G Sec",                     symbol:null,               exchange:"NSE", category:"Debt" },
+      { name:"Nifty 4-8 Yr G Sec",                        symbol:null,               exchange:"NSE", category:"Debt" },
+      { name:"Nifty 11-15 Yr G Sec",                      symbol:null,               exchange:"NSE", category:"Debt" },
+      { name:"Nifty 15 Yr Plus G Sec",                    symbol:null,               exchange:"NSE", category:"Debt" },
+      // ── NSE Leverage / Inverse ────────────────────────────────────────────────
+      { name:"Nifty 50 PR 1x Inverse",                    symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
+      { name:"Nifty 50 PR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
+      { name:"Nifty 50 TR 1x Inverse",                    symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
+      { name:"Nifty 50 TR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
     ];
 
     // ─── MATH & TECHNICALS ───────────────────────────────────────────────────
@@ -224,7 +390,6 @@
         });
       }, [results, regimeFilter]);
 
-
       return (
         <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", color: "#000000", padding: "20px 16px" }}>
           <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=DM+Mono:wght@500;700&display=swap" rel="stylesheet"/>
@@ -276,12 +441,12 @@
 
                 {!scanning ? (
                   <button onClick={handleScan} style={{
-                    background: "#000000", color: "#ffffff", fontWeight: 700, padding: "8px 20px",
+                    background: "#f4a261", color: "#000000", fontWeight: 700, padding: "8px 20px",
                     border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
                   }}>EXECUTE X-RAY AUDIT</button>
                 ) : (
                   <button onClick={() => { stopRef.current = true; }} style={{
-                    background: "#ffffff", color: "#000000", fontWeight: 700, padding: "8px 20px",
+                    background: "#e2e8f0", color: "#000000", fontWeight: 700, padding: "8px 20px",
                     border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
                   }}>STOP SCAN ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)</button>
                 )}
@@ -293,7 +458,7 @@
               <div style={{ overflowX: "auto", background: "#ffffff", border: "2px solid #000000" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#000000" }}>
                   <thead>
-                    <tr style={{ background: "#e2e8f0", borderBottom: "2px solid #000000" }}>
+                    <tr style={{ background: "#e2e8f0", borderBottom: "2px solid #000000", color: "#000000" }}>
                       <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Scheme/Index Name</th>
                       <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>NAV / Price</th>
                       <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Daily RSI (14)</th>
@@ -308,7 +473,6 @@
                   <tbody>
                     {sortedRows.map((r, i) => {
                       if (!r.wRsi) return null;
-                      const isAboveWma = r.price && r.wma20Price && r.price > r.wma20Price;
                       
                       // Background color logic for Weekly RSI
                       let wRsiBg = "transparent";
@@ -316,15 +480,28 @@
                       else if (r.wRsi >= 40 && r.wRsi < 50) wRsiBg = "#fdba74"; // Orange
                       else if (r.wRsi < 40) wRsiBg = "#fca5a5"; // Red
 
+                      // Background color logic for Price > 20WMA
+                      let wmaBg = "transparent";
+                      let wmaText = "—";
+                      if (r.price && r.wma20Price) {
+                        if (r.price > r.wma20Price) {
+                          wmaBg = "#86efac"; // Green
+                          wmaText = "YES";
+                        } else {
+                          wmaBg = "#fca5a5"; // Red
+                          wmaText = "NO";
+                        }
+                      }
+
                       return (
-                        <tr key={i} style={{ borderBottom: "1px solid #000000", background: i % 2 === 0 ? "#ffffff" : "#f8f9fa" }}>
+                        <tr key={i} style={{ borderBottom: "1px solid #000000", background: i % 2 === 0 ? "#ffffff" : "#f8f9fa", color: "#000000" }}>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.name}</td>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.price?.toFixed(2) || "—"}</td>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: r.dRsi >= 40 && r.dRsi <= 50 && r.regime === "A" ? "#86efac" : "transparent" }}>{r.dRsi || "—"}</td>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: wRsiBg, borderBottom: "1px solid #000000", borderTop: "1px solid #000000" }}>{r.wRsi || "—"}</td>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.wma20Rsi || "—"}</td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", textAlign: "center" }}>
-                            {isAboveWma ? "YES" : "NO"}
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", textAlign: "center", background: wmaBg }}>
+                            {wmaText}
                           </td>
                           <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
                             <Pill v={r.regime} logic={r.regime} />
