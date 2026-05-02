@@ -21,29 +21,29 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useRef, useMemo } = React;
+    const { useState, useRef, useMemo, useEffect } = React;
 
     // ─── INDICES ─────────────────────────────────────────────────────────────
     const ALL_INDICES = [
-      { name:"Nifty 50", symbol:"^NSEI", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Next 50", symbol:"^NIFTYNXT50", exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY 500", symbol:"^CNX500", exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Midcap 100", symbol:"^NSMIDCP100", exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Smallcap 100", symbol:"^CNXSC", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Bank", symbol:"^NSEBANK", exchange:"NSE", category:"Sector" },
-      { name:"Nifty IT", symbol:"^CNXIT", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY Auto", symbol:"^CNXAUTO", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY Pharma", symbol:"^CNXPHARMA", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY FMCG", symbol:"^CNXFMCG", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY Metal", symbol:"^CNXMETAL", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY Realty", symbol:"^CNXREALTY", exchange:"NSE", category:"Sector" },
-      { name:"NIFTY Energy", symbol:"^CNXENERGY", exchange:"NSE", category:"Sector" },
-      { name:"Sensex", symbol:"^BSESN", exchange:"BSE", category:"Broad Market" },
-      { name:"BSE MidCap", symbol:"BSE-MID150.BO", exchange:"BSE", category:"Broad Market" },
-      { name:"BSE SmallCap", symbol:null, exchange:"BSE", category:"Broad Market" },
-      { name:"Nifty 50 Equal Weight", symbol:"^NIFTY50EW", exchange:"NSE", category:"Strategy" },
-      { name:"Nifty100 Qualty30", symbol:"^NIFTY100QU30", exchange:"NSE", category:"Strategy" },
-      { name:"India VIX", symbol:"^INDIAVIX", exchange:"NSE", category:"Volatility" }
+      { name: "Nifty 50", symbol: "^NSEI", exchange: "NSE", category: "Broad Market" },
+      { name: "Nifty Next 50", symbol: "^NIFTYNXT50", exchange: "NSE", category: "Broad Market" },
+      { name: "NIFTY 500", symbol: "^CNX500", exchange: "NSE", category: "Broad Market" },
+      { name: "NIFTY Midcap 100", symbol: "^NSMIDCP100", exchange: "NSE", category: "Broad Market" },
+      { name: "NIFTY Smallcap 100", symbol: "^CNXSC", exchange: "NSE", category: "Broad Market" },
+      { name: "Nifty Bank", symbol: "^NSEBANK", exchange: "NSE", category: "Sector" },
+      { name: "Nifty IT", symbol: "^CNXIT", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY Auto", symbol: "^CNXAUTO", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY Pharma", symbol: "^CNXPHARMA", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY FMCG", symbol: "^CNXFMCG", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY Metal", symbol: "^CNXMETAL", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY Realty", symbol: "^CNXREALTY", exchange: "NSE", category: "Sector" },
+      { name: "NIFTY Energy", symbol: "^CNXENERGY", exchange: "NSE", category: "Sector" },
+      { name: "Sensex", symbol: "^BSESN", exchange: "BSE", category: "Broad Market" },
+      { name: "BSE MidCap", symbol: "BSE-MID150.BO", exchange: "BSE", category: "Broad Market" },
+      { name: "BSE SmallCap", symbol: null, exchange: "BSE", category: "Broad Market" },
+      { name: "Nifty 50 Equal Weight", symbol: "^NIFTY50EW", exchange: "NSE", category: "Strategy" },
+      { name: "Nifty100 Qualty30", symbol: "^NIFTY100QU30", exchange: "NSE", category: "Strategy" },
+      { name: "India VIX", symbol: "^INDIAVIX", exchange: "NSE", category: "Volatility" }
     ];
 
     // ─── MATH & TECHNICALS ───────────────────────────────────────────────────
@@ -86,7 +86,6 @@
     }
 
     async function fetchIndex(symbol) {
-      // Fetch both weekly (2yr) and daily (6mo)
       const wkUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`;
       const dUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
       const qtUrl = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
@@ -111,15 +110,12 @@
         // Weekly Calcs
         const wRsiArray = calcRSIHistory(wCloses, 14);
         const wRsi = wRsiArray.length ? wRsiArray[wRsiArray.length - 1] : null;
-        const wRsi4WeeksAgo = wRsiArray.length >= 5 ? wRsiArray[wRsiArray.length - 5] : null;
         const wma20Price = calcWMA(wCloses, 20);
         const wma20Rsi = calcWMA(wRsiArray, 20);
 
         // Daily Calcs
         const dRsiArray = calcRSIHistory(dCloses, 14);
         const dRsi = dRsiArray.length ? dRsiArray[dRsiArray.length - 1] : null;
-        const dRsi14DaysAgo = dRsiArray.length >= 15 ? dRsiArray[dRsiArray.length - 15] : null;
-        const dPrice14DaysAgo = dCloses.length >= 15 ? dCloses[dCloses.length - 15] : null;
 
         // Regimes
         let regime = "C";
@@ -134,40 +130,13 @@
         else if (regime === "B") { action = "REDUCE"; rec = "🔴 TRAP (Fatigue. Do not buy dips)"; }
         else if (regime === "C") { action = "SELL"; rec = "💀 AVOID (Trust Break. Never avg down)"; }
 
-        // Vector
-        let rsiRoc = null;
-        let vector = "Unknown";
-        if (wRsi && wRsi4WeeksAgo) {
-          rsiRoc = parseFloat((wRsi - wRsi4WeeksAgo).toFixed(2));
-          if (rsiRoc > 0 && wRsi >= 50) vector = "Rising";
-          else if (rsiRoc < 0 && wRsi >= 50) vector = "Phase 1: Healthy Cooldown";
-          else if (rsiRoc < 0 && wRsi >= 40) vector = "Phase 2: Structural Warning";
-          else if (wRsi < 40) vector = "Phase 3: Regime Death";
-        }
-
-        // Divergence Check (Cosmetic Growth)
-        let divAlert = "";
-        if (price && dPrice14DaysAgo && dRsi && dRsi14DaysAgo) {
-          if (price > dPrice14DaysAgo && dRsi < dRsi14DaysAgo && wRsi < 60) {
-            divAlert = "⚠️ Cosmetic Growth (Price high, RSI lower high)";
-          }
-        }
-        
-        // Psych Alert
-        let psych = "";
-        if (regime === "B") psych = "Lookout: Don't get trapped by EPS optics if failing to reclaim WK 50.";
-        if (regime === "A") psych = "Price moves first; earnings explanations come later.";
-
-        return {
-          price, wRsi, dRsi, wma20Price, wma20Rsi,
-          regime, action, rec, rsiRoc, vector, divAlert, psych
-        };
+        return { price, wRsi, dRsi, wma20Price, wma20Rsi, regime, action, rec };
       } catch { return { error: true }; }
     }
 
     // ─── COMPONENTS ──────────────────────────────────────────────────────────
     function Pill({ v, logic }) {
-      let bg = "#ffffff";
+      let bg = "#e2e8f0";
       if (logic === "A") bg = "#86efac";
       if (logic === "B") bg = "#fde047";
       if (logic === "C") bg = "#fca5a5";
@@ -177,9 +146,9 @@
 
       return (
         <span style={{
-          display:"inline-block", textAlign:"center", minWidth: 30,
-          padding:"4px 8px", borderRadius:4, fontWeight:700,
-          fontSize:12, fontFamily:"'DM Mono',monospace",
+          display: "inline-block", textAlign: "center", minWidth: 40,
+          padding: "4px 8px", borderRadius: 4, fontWeight: 700,
+          fontSize: 12, fontFamily: "'DM Mono', monospace",
           background: bg, color: "#000000", border: "2px solid #000000"
         }}>{v}</span>
       );
@@ -188,116 +157,182 @@
     const AuditorDashboard = () => {
       const [scanning, setScanning] = useState(false);
       const [scanned, setScanned] = useState(false);
-      const [progress, setProgress] = useState({ done:0, total:0, label:"" });
+      const [progress, setProgress] = useState({ done: 0, total: 0, label: "" });
       const [results, setResults] = useState({});
+      const [autoRefresh, setAutoRefresh] = useState(false);
+      const [regimeFilter, setRegimeFilter] = useState("ALL");
       const stopRef = useRef(false);
 
       const handleScan = async () => {
         stopRef.current = false;
         setScanning(true);
-        setResults({});
-        setScanned(false);
         const toFetch = ALL_INDICES.filter(i => i.symbol);
         const total = toFetch.length;
         let done = 0;
+
+        let tempResults = { ...results };
 
         for (const idx of toFetch) {
           if (stopRef.current) break;
           setProgress({ done, total, label: `Auditing ${idx.name}` });
           const data = await fetchIndex(idx.symbol);
           done++;
-          setResults(prev => ({ ...prev, [idx.symbol]: data }));
+          tempResults[idx.symbol] = data;
+          setResults({ ...tempResults });
           setProgress({ done, total, label: `Audited ${idx.name}` });
-          await sleep(500); // Higher sleep for 3 requests per index
+          await sleep(500); 
         }
         setProgress({ done: total, total, label: "✓ Audit Complete" });
         setScanned(true);
         setScanning(false);
       };
 
-      const rows = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
+      // 10 Second Safety Auto-Refresh Loop
+      useEffect(() => {
+        let intervalId;
+        if (autoRefresh && scanned && !scanning) {
+          intervalId = setInterval(() => {
+            handleScan();
+          }, 10000); 
+        }
+        return () => {
+          if (intervalId) clearInterval(intervalId);
+        };
+      }, [autoRefresh, scanned, scanning]);
+
+      // Filtering and Sorting Data
+      const sortedRows = useMemo(() => {
+        let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
+        
+        // Filter by Regime
+        if (regimeFilter !== "ALL") {
+          list = list.filter(r => r.regime === regimeFilter);
+        }
+
+        // Sort: Regime A -> B -> C, then Weekly RSI Descending
+        return list.sort((a, b) => {
+          const regimeOrder = { "A": 1, "B": 2, "C": 3, "Unknown": 4 };
+          const regA = regimeOrder[a.regime] || 4;
+          const regB = regimeOrder[b.regime] || 4;
+          
+          if (regA !== regB) return regA - regB;
+          
+          // If same regime, sort by wRsi descending
+          const rsiA = a.wRsi ?? -Infinity;
+          const rsiB = b.wRsi ?? -Infinity;
+          return rsiB - rsiA;
+        });
+      }, [results, regimeFilter]);
+
 
       return (
-        <div style={{minHeight:"100vh",background:"#f8f9fa",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#000000",padding:"20px 16px"}}>
+        <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", color: "#000000", padding: "20px 16px" }}>
           <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=DM+Mono:wght@500;700&display=swap" rel="stylesheet"/>
-          <div style={{maxWidth:1400,margin:"0 auto"}}>
+          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
             {/* Header */}
-            <div style={{marginBottom:20}}>
-              <h1 style={{margin:"0 0 8px 0",fontSize:26,fontWeight:700,letterSpacing:-0.5}}>
+            <div style={{ marginBottom: 20 }}>
+              <h1 style={{ margin: "0 0 8px 0", fontSize: 26, fontWeight: 700, letterSpacing: -0.5, color: "#000000" }}>
                 Nifty Portfolio & Psychology Auditor
               </h1>
-              <div style={{fontSize:13,fontWeight:700,fontFamily:"'DM Mono',monospace",background:"#e2e8f0",padding:"8px 12px",border:"2px solid #000",display:"inline-block"}}>
+              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'DM Mono', monospace", background: "#f4a261", color: "#000000", padding: "8px 12px", border: "2px solid #000000", display: "inline-block" }}>
                 Sacred Rule: True compounders do NOT stay below 40 RSI.
               </div>
             </div>
 
             {/* Controls */}
-            <div style={{background:"#ffffff",border:"2px solid #000000",padding:"16px",marginBottom:20,boxShadow:"4px 4px 0px #000000", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-              <div style={{fontSize:12,fontWeight:700,maxWidth:600}}>
-                <strong>Regime A:</strong> Structural Bull (WK RSI ≥ 50 + P > 20WMA). Orderly pullbacks to Daily RSI 40-50 are entries.<br/>
-                <strong>Regime B:</strong> Fatigue (WK RSI 40-49). Retail trap lookout.<br/>
-                <strong>Regime C:</strong> Trust Break (WK RSI &lt; 40). Institutional exit.
+            <div style={{ background: "#ffffff", border: "2px solid #000000", padding: "16px", marginBottom: 20, boxShadow: "4px 4px 0px #000000", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, maxWidth: 600, color: "#000000" }}>
+                <strong>Regime A:</strong> Structural Bull (WK RSI ≥ 50 + P {'>'} 20WMA). Orderly pullbacks to Daily RSI 40-50 are entries.<br />
+                <strong>Regime B:</strong> Fatigue (WK RSI 40-49). Retail trap lookout.<br />
+                <strong>Regime C:</strong> Trust Break (WK RSI {'<'} 40). Institutional exit.
               </div>
-              <div>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                
+                {/* Regime Filter Dropdown */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: "#000000", fontFamily: "'DM Mono', monospace" }}>REGIME FILTER:</label>
+                  <select 
+                    value={regimeFilter} 
+                    onChange={e => setRegimeFilter(e.target.value)}
+                    style={{ background: "#ffffff", color: "#000000", border: "2px solid #000000", fontWeight: 700, padding: "6px 10px", fontFamily: "'DM Mono', monospace", cursor: "pointer" }}
+                  >
+                    <option value="ALL">ALL</option>
+                    <option value="A">Regime A</option>
+                    <option value="B">Regime B</option>
+                    <option value="C">Regime C</option>
+                  </select>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: 13, fontWeight: 700, cursor: "pointer", color: "#000000", fontFamily: "'DM Mono', monospace" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={autoRefresh} 
+                    onChange={(e) => setAutoRefresh(e.target.checked)} 
+                    style={{ accentColor: "#000000", width: 16, height: 16 }} 
+                  />
+                  AUTO-AUDIT (10s)
+                </label>
+
                 {!scanning ? (
                   <button onClick={handleScan} style={{
-                    background:"#000000",color:"#ffffff",fontWeight:700,padding:"10px 24px",
-                    border:"2px solid #000000",cursor:"pointer",fontSize:14,fontFamily:"'DM Mono',monospace",
+                    background: "#000000", color: "#ffffff", fontWeight: 700, padding: "8px 20px",
+                    border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
                   }}>EXECUTE X-RAY AUDIT</button>
                 ) : (
-                  <button onClick={()=>{stopRef.current=true;}} style={{
-                    background:"#ffffff",color:"#000000",fontWeight:700,padding:"10px 24px",
-                    border:"2px solid #000000",cursor:"pointer",fontSize:14,fontFamily:"'DM Mono',monospace",
-                  }}>STOP SCAN ({Math.round((progress.done/progress.total)*100)}%)</button>
+                  <button onClick={() => { stopRef.current = true; }} style={{
+                    background: "#ffffff", color: "#000000", fontWeight: 700, padding: "8px 20px",
+                    border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
+                  }}>STOP SCAN ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)</button>
                 )}
               </div>
             </div>
 
             {/* Main Table */}
-            {rows.length > 0 && Object.keys(results).length > 0 && (
-              <div style={{overflowX:"auto", background:"#ffffff", border:"2px solid #000000"}}>
-                <table style={{width:"100%",borderCollapse:"collapse", textAlign:"left", fontSize:12, fontWeight:700}}>
+            {sortedRows.length > 0 && Object.keys(results).length > 0 && (
+              <div style={{ overflowX: "auto", background: "#ffffff", border: "2px solid #000000" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#000000" }}>
                   <thead>
-                    <tr style={{background:"#e2e8f0", borderBottom:"2px solid #000000"}}>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>Scheme/Index Name</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>NAV / Price</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>Daily RSI (14)</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>Weekly RSI</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>WMA20 of RSI</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>Price > 20WMA</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000", textAlign:"center"}}>Regime</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000", textAlign:"center"}}>Action</th>
-                      <th style={{padding:"10px", borderRight:"1px solid #000"}}>Recommendations</th>
-                      <th style={{padding:"10px"}}>Vector & Divergence Alerts</th>
+                    <tr style={{ background: "#e2e8f0", borderBottom: "2px solid #000000" }}>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Scheme/Index Name</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>NAV / Price</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Daily RSI (14)</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Weekly RSI</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>WMA20 of RSI</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Price {'>'} 20WMA</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Regime</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Action</th>
+                      <th style={{ padding: "10px" }}>Recommendations</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, i) => {
+                    {sortedRows.map((r, i) => {
                       if (!r.wRsi) return null;
                       const isAboveWma = r.price && r.wma20Price && r.price > r.wma20Price;
+                      
+                      // Background color logic for Weekly RSI
+                      let wRsiBg = "transparent";
+                      if (r.wRsi >= 50) wRsiBg = "#86efac"; // Green
+                      else if (r.wRsi >= 40 && r.wRsi < 50) wRsiBg = "#fdba74"; // Orange
+                      else if (r.wRsi < 40) wRsiBg = "#fca5a5"; // Red
+
                       return (
-                        <tr key={i} style={{borderBottom:"1px solid #000", background: i%2===0?"#ffffff":"#f8f9fa"}}>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace"}}>{r.name}</td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace"}}>{r.price?.toFixed(2) || "—"}</td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace", background: r.dRsi>=40&&r.dRsi<=50&&r.regime==="A"?"#86efac":""}}>{r.dRsi || "—"}</td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace"}}>{r.wRsi || "—"}</td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace"}}>{r.wma20Rsi || "—"}</td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", fontFamily:"'DM Mono',monospace", textAlign:"center"}}>
+                        <tr key={i} style={{ borderBottom: "1px solid #000000", background: i % 2 === 0 ? "#ffffff" : "#f8f9fa" }}>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.name}</td>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.price?.toFixed(2) || "—"}</td>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: r.dRsi >= 40 && r.dRsi <= 50 && r.regime === "A" ? "#86efac" : "transparent" }}>{r.dRsi || "—"}</td>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: wRsiBg, borderBottom: "1px solid #000000", borderTop: "1px solid #000000" }}>{r.wRsi || "—"}</td>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.wma20Rsi || "—"}</td>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", textAlign: "center" }}>
                             {isAboveWma ? "YES" : "NO"}
                           </td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", textAlign:"center"}}>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
                             <Pill v={r.regime} logic={r.regime} />
                           </td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000", textAlign:"center"}}>
+                          <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
                             <Pill v={r.action} logic={r.action} />
                           </td>
-                          <td style={{padding:"10px", borderRight:"1px solid #000"}}>{r.rec}</td>
-                          <td style={{padding:"10px", fontSize:11}}>
-                            <div style={{marginBottom:4}}><strong>Vector:</strong> {r.vector} (Δ {r.rsiRoc})</div>
-                            {r.divAlert && <div style={{color:"#000", background:"#fca5a5", padding:"2px 4px", border:"1px solid #000", display:"inline-block", marginBottom:4}}>{r.divAlert}</div>}
-                            <div style={{fontStyle:"italic"}}>{r.psych}</div>
-                          </td>
+                          <td style={{ padding: "10px" }}>{r.rec}</td>
                         </tr>
                       );
                     })}
@@ -305,7 +340,6 @@
                 </table>
               </div>
             )}
-            
           </div>
         </div>
       );
