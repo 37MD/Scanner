@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auditor: Sacred RSI Regime</title>
+  <title>Lie Detector Scanner</title>
   <meta name="theme-color" content="#f8f9fa">
   
   <link rel="manifest" href="./manifest.json">
@@ -22,6 +22,7 @@
   <style>
     body { margin: 0; padding: 0; background-color: #f8f9fa; color: #000000; }
     * { box-sizing: border-box; }
+    th { font-weight: 400; } /* Forces table headers to be un-bolded */
   </style>
 </head>
 <body>
@@ -329,9 +330,9 @@
       return (
         <span style={{
           display: "inline-block", textAlign: "center", minWidth: 40,
-          padding: "4px 8px", borderRadius: 4, fontWeight: 700,
+          padding: "4px 8px", borderRadius: 4, fontWeight: 400,
           fontSize: 12, fontFamily: "'DM Mono', monospace",
-          background: bg, color: "#000000", border: "2px solid #000000"
+          background: bg, color: "#000000", border: "1px solid #000000"
         }}>{v}</span>
       );
     }
@@ -416,35 +417,35 @@
 
       return (
         <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", color: "#000000", padding: "20px 16px" }}>
-          <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=DM+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+          <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
           <div style={{ maxWidth: 1400, margin: "0 auto" }}>
 
             {/* Header */}
             <div style={{ marginBottom: 20 }}>
-              <h1 style={{ margin: "0 0 8px 0", fontSize: 26, fontWeight: 700, letterSpacing: -0.5, color: "#000000" }}>
-                Nifty Portfolio & Psychology Auditor
+              <h1 style={{ margin: "0 0 8px 0", fontSize: 26, fontWeight: 400, letterSpacing: -0.5, color: "#000000" }}>
+                Lie Detector Scanner
               </h1>
-              <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'DM Mono', monospace", background: "#f4a261", color: "#000000", padding: "8px 12px", border: "2px solid #000000", display: "inline-block" }}>
+              <div style={{ fontSize: 13, fontWeight: 400, fontFamily: "'DM Mono', monospace", background: "#f4a261", color: "#000000", padding: "8px 12px", border: "1px solid #000000", display: "inline-block" }}>
                 Sacred Rule: True compounders do NOT stay below 40 RSI. (Base = 4W RSI)
               </div>
             </div>
 
             {/* Controls */}
-            <div style={{ background: "#ffffff", border: "2px solid #000000", padding: "16px", marginBottom: 20, boxShadow: "4px 4px 0px #000000", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, maxWidth: 600, color: "#000000" }}>
-                <strong>Regime A:</strong> Structural Bull (4W RSI ≥ 50 + P {'>'} 20WMA). Orderly pullbacks to Daily RSI 40-50 are entries.<br />
-                <strong>Regime B:</strong> Fatigue (4W RSI 40-49). Retail trap lookout.<br />
-                <strong>Regime C:</strong> Trust Break (4W RSI {'<'} 40). Institutional exit.
+            <div style={{ background: "#ffffff", border: "1px solid #000000", padding: "16px", marginBottom: 20, boxShadow: "4px 4px 0px #000000", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+              <div style={{ fontSize: 12, fontWeight: 400, maxWidth: 600, color: "#000000" }}>
+                Regime A: Structural Bull (4W RSI ≥ 50 + P {'>'} 20WMA). Orderly pullbacks to Daily RSI 40-50 are entries.<br />
+                Regime B: Fatigue (4W RSI 40-49). Retail trap lookout.<br />
+                Regime C: Trust Break (4W RSI {'<'} 40). Institutional exit.
               </div>
               <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                 
                 {/* Regime Filter Dropdown */}
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: "#000000", fontFamily: "'DM Mono', monospace" }}>REGIME FILTER:</label>
+                  <label style={{ fontSize: 13, fontWeight: 400, color: "#000000", fontFamily: "'DM Mono', monospace" }}>REGIME FILTER:</label>
                   <select 
                     value={regimeFilter} 
                     onChange={e => setRegimeFilter(e.target.value)}
-                    style={{ background: "#ffffff", color: "#000000", border: "2px solid #000000", fontWeight: 700, padding: "6px 10px", fontFamily: "'DM Mono', monospace", cursor: "pointer" }}
+                    style={{ background: "#ffffff", color: "#000000", border: "1px solid #000000", fontWeight: 400, padding: "6px 10px", fontFamily: "'DM Mono', monospace", cursor: "pointer" }}
                   >
                     <option value="ALL">ALL</option>
                     <option value="A">Regime A</option>
@@ -453,7 +454,7 @@
                   </select>
                 </div>
 
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: 13, fontWeight: 700, cursor: "pointer", color: "#000000", fontFamily: "'DM Mono', monospace" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: 13, fontWeight: 400, cursor: "pointer", color: "#000000", fontFamily: "'DM Mono', monospace" }}>
                   <input 
                     type="checkbox" 
                     checked={autoRefresh} 
@@ -465,13 +466,13 @@
 
                 {!scanning ? (
                   <button onClick={handleScan} style={{
-                    background: "#000000", color: "#ffffff", fontWeight: 700, padding: "8px 20px",
-                    border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
+                    background: "#000000", color: "#ffffff", fontWeight: 400, padding: "8px 20px",
+                    border: "1px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
                   }}>EXECUTE X-RAY AUDIT</button>
                 ) : (
                   <button onClick={() => { stopRef.current = true; }} style={{
-                    background: "#ffffff", color: "#000000", fontWeight: 700, padding: "8px 20px",
-                    border: "2px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
+                    background: "#ffffff", color: "#000000", fontWeight: 400, padding: "8px 20px",
+                    border: "1px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
                   }}>STOP SCAN ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)</button>
                 )}
               </div>
@@ -479,20 +480,20 @@
 
             {/* Main Table */}
             {sortedRows.length > 0 && Object.keys(results).length > 0 && (
-              <div style={{ overflowX: "auto", background: "#ffffff", border: "2px solid #000000" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#000000" }}>
+              <div style={{ overflowX: "auto", background: "#ffffff", border: "1px solid #000000" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12, fontWeight: 400, color: "#000000" }}>
                   <thead>
-                    <tr style={{ background: "#e2e8f0", borderBottom: "2px solid #000000", color: "#000000" }}>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Scheme/Index Name</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>NAV / Price</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Daily RSI (14)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>Weekly RSI (4W)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Confluence (4W|8W|14W)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000" }}>WMA20 of RSI</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Price {'>'} 20WMA</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Regime</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>Action</th>
-                      <th style={{ padding: "10px" }}>Recommendations</th>
+                    <tr style={{ background: "#e2e8f0", borderBottom: "1px solid #000000", color: "#000000" }}>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Scheme/Index Name</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>NAV / Price</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Daily RSI (14)</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Weekly RSI (4W)</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Confluence (4W|8W|14W)</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>WMA20 of RSI</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Price {'>'} 20WMA</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Regime</th>
+                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Action</th>
+                      <th style={{ padding: "10px", fontWeight: 400 }}>Recommendations</th>
                     </tr>
                   </thead>
                   <tbody>
