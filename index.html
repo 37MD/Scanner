@@ -6,8 +6,15 @@
   <title>Auditor: Sacred RSI Regime</title>
   <meta name="theme-color" content="#f8f9fa">
   
-  <link rel="manifest" href='data:application/manifest+json,{"name":"RSI Auditor","short_name":"Auditor","display":"standalone","start_url":".","background_color":"#f8f9fa","theme_color":"#f8f9fa","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23e2e8f0%22/%3E%3Ctext y=%2250%22 x=%2250%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23000%22%3E%26%23128269%3B%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
-
+<link rel="manifest" href="./manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js');
+      });
+    }
+  </script>
+  
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
