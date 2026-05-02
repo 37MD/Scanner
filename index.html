@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Lie Detector Scanner</title>
   <meta name="theme-color" content="#000000">
-  <meta name="application-name" content="Lie Detector Scanner">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Lie Detector">
-  <meta name="description" content="Sacred RSI Regime Auditor — Nifty Index Scanner">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
   
@@ -18,9 +16,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(r => console.log('SW ready:', r.scope))
-          .catch(e => console.warn('SW failed:', e));
+        navigator.serviceWorker.register('./sw.js');
       });
     }
   </script>
