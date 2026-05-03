@@ -4,25 +4,583 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Lie Detector Scanner</title>
-  <meta name="theme-color" content="#f8f9fa">
-  
+  <meta name="theme-color" content="#0a0a12">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Lie Detector">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.json">
+
   <script>
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && location.hostname !== 'www.claudeusercontent.com') {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js');
+        navigator.serviceWorker.register('./sw.js')
+          .then(r => console.log('SW ready:', r.scope))
+          .catch(e => console.warn('SW failed:', e));
       });
     }
   </script>
 
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { margin: 0; padding: 0; background-color: #f8f9fa; color: #000000; }
-    * { box-sizing: border-box; }
-    th { font-weight: 400; } /* Forces table headers to be un-bolded */
+    :root {
+      --bg:        #0a0a12;
+      --surface:   #111120;
+      --surface2:  #181828;
+      --border:    #252538;
+      --border2:   #2e2e48;
+      --text:      #e8e8f0;
+      --text-dim:  #8888aa;
+      --text-faint:#44445a;
+      --orange:    #f4a261;
+      --orange-dim:#7a4e2d;
+      --green:     #3dffa0;
+      --green-bg:  #0d2e20;
+      --green-dim: #1a4a30;
+      --red:       #ff5370;
+      --red-bg:    #2e0d14;
+      --red-dim:   #4a1a22;
+      --amber:     #ffcc44;
+      --amber-bg:  #2a2000;
+      --amber-dim: #443300;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #root { position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border2);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: #000;
+      flex-shrink: 0;
+      clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%);
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .live-dot::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-faint);
+    }
+
+    .live-dot.active::before {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main-wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* ── SACRED RULE BANNER ── */
+    .sacred-rule {
+      background: linear-gradient(135deg, var(--orange-dim) 0%, transparent 60%);
+      border: 1px solid var(--orange);
+      border-left: 4px solid var(--orange);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sacred-rule .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--orange);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .sacred-rule .rule-text {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    /* ── REGIME CARDS ── */
+    .regime-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .regime-card {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 14px 16px;
+    }
+
+    .regime-card .regime-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .regime-card.a .regime-label { color: var(--green); }
+    .regime-card.b .regime-label { color: var(--amber); }
+    .regime-card.c .regime-label { color: var(--red); }
+
+    .regime-card .regime-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .regime-card .regime-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      line-height: 1.5;
+    }
+
+    /* ── CONTROLS BAR ── */
+    .controls-bar {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .filter-select {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+
+    .filter-select:focus {
+      border-color: var(--orange);
+    }
+
+    .auto-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .auto-toggle input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 32px;
+      height: 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 9px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .auto-toggle input[type="checkbox"]::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--text-faint);
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: all 0.2s;
+    }
+
+    .auto-toggle input[type="checkbox"]:checked {
+      background: var(--orange-dim);
+      border-color: var(--orange);
+    }
+
+    .auto-toggle input[type="checkbox"]:checked::before {
+      background: var(--orange);
+      left: 16px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-scan {
+      background: var(--orange);
+      color: #000;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px 22px;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    }
+
+    .btn-scan:hover {
+      background: #ffb87d;
+      transform: translateY(-1px);
+    }
+
+    .btn-stop {
+      background: transparent;
+      color: var(--red);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 9px 22px;
+      border: 1px solid var(--red);
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+
+    .btn-stop:hover {
+      background: var(--red-bg);
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-top: none;
+      padding: 10px 18px;
+      margin-top: -20px;
+      margin-bottom: 20px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .progress-pct {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    .progress-track {
+      height: 3px;
+      background: var(--border2);
+      width: 100%;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--orange), #ffcc66);
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px var(--orange);
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      border: 1px solid var(--border2);
+      overflow-x: auto;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead tr {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border2);
+    }
+
+    thead th {
+      padding: 11px 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    thead th:last-child { border-right: none; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover { background: var(--surface2) !important; }
+
+    tbody tr:last-child { border-bottom: none; }
+
+    tbody td {
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td:last-child { border-right: none; }
+
+    /* Row alternating */
+    tbody tr:nth-child(even) { background: #0e0e1c; }
+    tbody tr:nth-child(odd)  { background: var(--surface); }
+
+    /* RSI color cells */
+    .rsi-green { background: var(--green-dim) !important; color: var(--green) !important; }
+    .rsi-amber { background: var(--amber-dim) !important; color: var(--amber) !important; }
+    .rsi-red   { background: var(--red-dim)   !important; color: var(--red)   !important; }
+
+    .wma-yes { background: var(--green-dim) !important; color: var(--green) !important; }
+    .wma-no  { background: var(--red-dim)   !important; color: var(--red)   !important; }
+
+    /* ── PILL ── */
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 2px;
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .pill-A   { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .pill-B   { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+    .pill-C   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+    .pill-BUY    { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .pill-SELL   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+    .pill-REDUCE { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+    .pill-HOLD   { background: var(--surface2);  color: var(--text-dim); border: 1px solid var(--border2); }
+
+    /* Confluence mini pills */
+    .conf-pill {
+      display: inline-block;
+      padding: 2px 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      border-radius: 2px;
+      min-width: 30px;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+
+    /* Name col */
+    td.name-col {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 220px;
+      max-width: 260px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Rec col */
+    td.rec-col {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      min-width: 220px;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .empty-state .big-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-state h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .regime-cards { grid-template-columns: 1fr; }
+      .app-header { padding: 12px 16px; }
+      .main-wrap { padding: 16px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -51,7 +609,6 @@
       { name:"BSE SmallCap Select Index",                 symbol:null,               exchange:"BSE", category:"Broad Market" },
       { name:"BSE Focused Midcap",                        symbol:null,               exchange:"BSE", category:"Broad Market" },
       { name:"BSE India 150",                             symbol:null,               exchange:"BSE", category:"Broad Market" },
-      // ── BSE Sector ────────────────────────────────────────────────────────────
       { name:"BSE BANKEX",                                symbol:"BANKEX.BO",        exchange:"BSE", category:"Banking" },
       { name:"BSE Private Banks Index",                   symbol:null,               exchange:"BSE", category:"Banking" },
       { name:"BSE Finance",                               symbol:"BSE-FIN.BO",       exchange:"BSE", category:"Finance" },
@@ -77,11 +634,9 @@
       { name:"BSE Telecom",                               symbol:null,               exchange:"BSE", category:"Telecom" },
       { name:"BSE Service Sector",                        symbol:null,               exchange:"BSE", category:"Services" },
       { name:"BSE India Mfg",                             symbol:null,               exchange:"BSE", category:"Manufacturing" },
-      // ── BSE PSU / Thematic ───────────────────────────────────────────────────
       { name:"BSE PSU",                                   symbol:"BSE-PSU.BO",       exchange:"BSE", category:"PSU" },
       { name:"BSE CPSE",                                  symbol:null,               exchange:"BSE", category:"PSU" },
       { name:"BSE Bharat 22 Index",                       symbol:null,               exchange:"BSE", category:"PSU" },
-      // ── BSE Strategy / Factor ─────────────────────────────────────────────────
       { name:"BSE 100 ESG",                               symbol:null,               exchange:"BSE", category:"ESG" },
       { name:"BSE DSI",                                   symbol:null,               exchange:"BSE", category:"ESG" },
       { name:"BSE Enhanced Value Index",                  symbol:null,               exchange:"BSE", category:"Strategy" },
@@ -89,16 +644,12 @@
       { name:"BSELVI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
       { name:"BSEQUI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
       { name:"DFRGRI",                                    symbol:null,               exchange:"BSE", category:"Strategy" },
-      // ── BSE IPO ───────────────────────────────────────────────────────────────
       { name:"BSE IPO",                                   symbol:null,               exchange:"BSE", category:"IPO" },
       { name:"BSE SME IPO",                               symbol:null,               exchange:"BSE", category:"IPO" },
       { name:"BSE Select IPO",                            symbol:null,               exchange:"BSE", category:"IPO" },
-      // ── BSE Dollar Series ─────────────────────────────────────────────────────
       { name:"BSE Dollex 100",                            symbol:null,               exchange:"BSE", category:"Dollar Series" },
       { name:"BSE Dollex 200",                            symbol:null,               exchange:"BSE", category:"Dollar Series" },
       { name:"BSE Dollex 30",                             symbol:null,               exchange:"BSE", category:"Dollar Series" },
-
-      // ── NSE Broad Market ──────────────────────────────────────────────────────
       { name:"Nifty 50",                                  symbol:"^NSEI",            exchange:"NSE", category:"Broad Market" },
       { name:"Nifty Next 50",                             symbol:"^NIFTYNXT50",      exchange:"NSE", category:"Broad Market" },
       { name:"NIFTY 100",                                 symbol:"^CNX100",          exchange:"NSE", category:"Broad Market" },
@@ -116,7 +667,6 @@
       { name:"Nifty Largemid250",                         symbol:"^CNXLARGEMID250",  exchange:"NSE", category:"Broad Market" },
       { name:"Nifty Microcap 250",                        symbol:"^NIFTYMICROCAP250",exchange:"NSE", category:"Broad Market" },
       { name:"Nifty Total mkt",                           symbol:"^NIFTYTOTALMKT",   exchange:"NSE", category:"Broad Market" },
-      // ── NSE Sector ───────────────────────────────────────────────────────────
       { name:"Nifty Bank",                                symbol:"^NSEBANK",         exchange:"NSE", category:"Banking" },
       { name:"NIFTY PSU Bank",                            symbol:"^CNXPSUBNK",       exchange:"NSE", category:"Banking" },
       { name:"NIFTY Private Bank",                        symbol:"^CNXPVTBNK",       exchange:"NSE", category:"Banking" },
@@ -155,7 +705,6 @@
       { name:"Nifty MNC",                                 symbol:"^CNXMNC",          exchange:"NSE", category:"MNC" },
       { name:"NIFTY Commodities",                         symbol:"^CNXCOMMODITIES",  exchange:"NSE", category:"Commodities" },
       { name:"India VIX",                                 symbol:"^INDIAVIX",        exchange:"NSE", category:"Volatility" },
-      // ── NSE Thematic ─────────────────────────────────────────────────────────
       { name:"Nifty India Defence",                       symbol:null,               exchange:"NSE", category:"Thematic" },
       { name:"Nifty India Digital",                       symbol:null,               exchange:"NSE", category:"Thematic" },
       { name:"Nifty India Tourism",                       symbol:null,               exchange:"NSE", category:"Thematic" },
@@ -164,9 +713,7 @@
       { name:"Nifty India Select 5 Corp Grps (MAATR)",    symbol:null,               exchange:"NSE", category:"Thematic" },
       { name:"Nifty India Corporate Group Index - Tata",  symbol:null,               exchange:"NSE", category:"Thematic" },
       { name:"Nifty Mid Small Financial Services",        symbol:null,               exchange:"NSE", category:"Finance" },
-      // ── NSE IPO ───────────────────────────────────────────────────────────────
       { name:"Nifty IPO",                                 symbol:null,               exchange:"NSE", category:"IPO" },
-      // ── NSE Strategy / Factor ─────────────────────────────────────────────────
       { name:"NIFTY ALPHA 50",                            symbol:"^CNXALPHA50",      exchange:"NSE", category:"Strategy" },
       { name:"Nifty 100 Alpha 30",                        symbol:null,               exchange:"NSE", category:"Strategy" },
       { name:"Nifty Alpha Low Volatility 30",             symbol:null,               exchange:"NSE", category:"Strategy" },
@@ -202,34 +749,28 @@
       { name:"NIFTY Midcap150 Quality 50",                symbol:null,               exchange:"NSE", category:"Strategy" },
       { name:"Nifty Smallcap 250 Quality 50",             symbol:null,               exchange:"NSE", category:"Strategy" },
       { name:"Nifty Smallcap250 Momentum Quality 100",    symbol:null,               exchange:"NSE", category:"Strategy" },
-      // ── NSE ESG / Shariah ─────────────────────────────────────────────────────
       { name:"Nifty100 ESG",                              symbol:null,               exchange:"NSE", category:"ESG" },
       { name:"Nifty100 ESG Sector Leaders",               symbol:null,               exchange:"NSE", category:"ESG" },
       { name:"Nifty 50 Shariah",                          symbol:null,               exchange:"NSE", category:"Shariah" },
       { name:"Nifty Shariah 25",                          symbol:null,               exchange:"NSE", category:"Shariah" },
       { name:"Nifty 500 Shariah",                         symbol:null,               exchange:"NSE", category:"Shariah" },
-      // ── NSE Debt ─────────────────────────────────────────────────────────────
       { name:"Nifty Composite G Sec",                     symbol:null,               exchange:"NSE", category:"Debt" },
       { name:"Nifty 4-8 Yr G Sec",                        symbol:null,               exchange:"NSE", category:"Debt" },
       { name:"Nifty 11-15 Yr G Sec",                      symbol:null,               exchange:"NSE", category:"Debt" },
       { name:"Nifty 15 Yr Plus G Sec",                    symbol:null,               exchange:"NSE", category:"Debt" },
-      // ── NSE Leverage / Inverse ────────────────────────────────────────────────
       { name:"Nifty 50 PR 1x Inverse",                    symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
       { name:"Nifty 50 PR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
       { name:"Nifty 50 TR 1x Inverse",                    symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
       { name:"Nifty 50 TR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
     ];
 
-    // ─── MATH & TECHNICALS ───────────────────────────────────────────────────
     const PROXY = "https://corsproxy.io/?";
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // TradingView smoothed RSI (Wilder's RMA) returning full history array
     function calcRSIHistory(closes, period) {
       let rsis = [];
       const v = closes.filter(x => x != null && !isNaN(x));
       if (v.length < period + 1) return rsis;
-      
       let gains = 0, losses = 0;
       for (let i = 1; i <= period; i++) {
         const d = v[i] - v[i - 1];
@@ -237,7 +778,6 @@
       }
       let ag = gains / period, al = losses / period;
       rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
-
       for (let i = period + 1; i < v.length; i++) {
         const d = v[i] - v[i - 1];
         ag = (ag * (period - 1) + Math.max(d, 0)) / period;
@@ -247,102 +787,82 @@
       return rsis;
     }
 
-    // Weighted Moving Average (WMA)
     function calcWMA(data, period) {
       if (!data || data.length < period) return null;
       let sum = 0;
-      let weightSum = (period * (period + 1)) / 2;
-      let slice = data.slice(-period);
-      for (let i = 0; i < period; i++) {
-        sum += slice[i] * (i + 1);
-      }
+      const weightSum = (period * (period + 1)) / 2;
+      const slice = data.slice(-period);
+      for (let i = 0; i < period; i++) sum += slice[i] * (i + 1);
       return parseFloat((sum / weightSum).toFixed(2));
     }
 
     async function fetchIndex(symbol) {
       const wkUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`;
-      const dUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
+      const dUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
       const qtUrl = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
-      
       try {
         const [wkRes, dRes, qtRes] = await Promise.all([
           fetch(PROXY + encodeURIComponent(wkUrl), { signal: AbortSignal.timeout(15000) }),
-          fetch(PROXY + encodeURIComponent(dUrl), { signal: AbortSignal.timeout(15000) }),
+          fetch(PROXY + encodeURIComponent(dUrl),  { signal: AbortSignal.timeout(15000) }),
           fetch(PROXY + encodeURIComponent(qtUrl), { signal: AbortSignal.timeout(15000) }),
         ]);
-        
         const wkData = wkRes.ok ? await wkRes.json() : null;
-        const dData = dRes.ok ? await dRes.json() : null;
+        const dData  = dRes.ok  ? await dRes.json()  : null;
         const qtData = qtRes.ok ? await qtRes.json() : null;
-
         const wCloses = wkData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-        const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-        const q = qtData?.quoteResponse?.result?.[0] || null;
-
-        const price = q?.regularMarketPrice ?? (wCloses.length ? wCloses[wCloses.length-1] : null);
-
-        // Weekly Calcs - 4W, 8W, 14W
-        const wRsiArray4 = calcRSIHistory(wCloses, 4);
-        const wRsiArray8 = calcRSIHistory(wCloses, 8);
+        const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close  || [];
+        const q       = qtData?.quoteResponse?.result?.[0] || null;
+        const price   = q?.regularMarketPrice ?? (wCloses.length ? wCloses[wCloses.length-1] : null);
+        const wRsiArray4  = calcRSIHistory(wCloses, 4);
+        const wRsiArray8  = calcRSIHistory(wCloses, 8);
         const wRsiArray14 = calcRSIHistory(wCloses, 14);
-
-        const wRsi4 = wRsiArray4.length ? wRsiArray4[wRsiArray4.length - 1] : null;
-        const wRsi8 = wRsiArray8.length ? wRsiArray8[wRsiArray8.length - 1] : null;
-        const wRsi14 = wRsiArray14.length ? wRsiArray14[wRsiArray14.length - 1] : null;
-
-        // Default Weekly RSI is now 4-Period for core logic
+        const wRsi4  = wRsiArray4.length  ? wRsiArray4[wRsiArray4.length-1]   : null;
+        const wRsi8  = wRsiArray8.length  ? wRsiArray8[wRsiArray8.length-1]   : null;
+        const wRsi14 = wRsiArray14.length ? wRsiArray14[wRsiArray14.length-1] : null;
         const wRsi = wRsi4;
-        
         const wma20Price = calcWMA(wCloses, 20);
-        const wma20Rsi = calcWMA(wRsiArray4, 20);
-
-        // Daily Calcs
-        const dRsiArray = calcRSIHistory(dCloses, 14);
-        const dRsi = dRsiArray.length ? dRsiArray[dRsiArray.length - 1] : null;
-
-        // Regimes (Based on 4-Week RSI)
+        const wma20Rsi   = calcWMA(wRsiArray4, 20);
+        const dRsiArray  = calcRSIHistory(dCloses, 14);
+        const dRsi = dRsiArray.length ? dRsiArray[dRsiArray.length-1] : null;
         let regime = "C";
         if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
         else if (wRsi >= 40 && wRsi < 50) regime = "B";
-
-        // Action Logic
-        let action = "HOLD";
-        let rec = "Monitor";
-        if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY"; rec = "💎 STRIKE (Optimal Entry)"; }
-        else if (regime === "A" && dRsi > 70) { action = "HOLD"; rec = "OVERHEATED (Wait for daily dip)"; }
-        else if (regime === "B") { action = "REDUCE"; rec = "🔴 TRAP (Fatigue. Do not buy dips)"; }
-        else if (regime === "C") { action = "SELL"; rec = "💀 AVOID (Trust Break. Never avg down)"; }
-
+        let action = "HOLD", rec = "Monitor";
+        if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY";    rec = "💎 STRIKE — Optimal Entry"; }
+        else if (regime === "A" && dRsi > 70)            { action = "HOLD";   rec = "⚡ OVERHEATED — Wait for daily dip"; }
+        else if (regime === "B")                          { action = "REDUCE"; rec = "🔴 TRAP — Fatigue. Do not buy dips"; }
+        else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
         return { price, wRsi, wRsi4, wRsi8, wRsi14, dRsi, wma20Price, wma20Rsi, regime, action, rec };
       } catch { return { error: true }; }
     }
 
-    // ─── COMPONENTS ──────────────────────────────────────────────────────────
-    function Pill({ v, logic }) {
-      let bg = "#e2e8f0";
-      if (logic === "A") bg = "#86efac";
-      if (logic === "B") bg = "#fde047";
-      if (logic === "C") bg = "#fca5a5";
-      if (logic === "BUY") bg = "#86efac";
-      if (logic === "SELL") bg = "#fca5a5";
-      if (logic === "REDUCE") bg = "#fde047";
+    // ── RSI color helper ──
+    const getRsiClass = (val) => {
+      if (val == null) return "";
+      if (val >= 50) return "rsi-green";
+      if (val >= 40) return "rsi-amber";
+      return "rsi-red";
+    };
 
-      return (
-        <span style={{
-          display: "inline-block", textAlign: "center", minWidth: 40,
-          padding: "4px 8px", borderRadius: 4, fontWeight: 400,
-          fontSize: 12, fontFamily: "'DM Mono', monospace",
-          background: bg, color: "#000000", border: "1px solid #000000"
-        }}>{v}</span>
-      );
+    // ── Pill component ──
+    function Pill({ v, logic }) {
+      const cls = `pill pill-${logic || v}`;
+      return <span className={cls}>{v}</span>;
     }
 
+    // ── Confluence mini pill ──
+    function ConfPill({ val }) {
+      const cls = `conf-pill ${getRsiClass(val)}`;
+      return <span className={cls}>{val ?? "—"}</span>;
+    }
+
+    // ── Main Dashboard ──
     const AuditorDashboard = () => {
-      const [scanning, setScanning] = useState(false);
-      const [scanned, setScanned] = useState(false);
-      const [progress, setProgress] = useState({ done: 0, total: 0, label: "" });
-      const [results, setResults] = useState({});
-      const [autoRefresh, setAutoRefresh] = useState(false);
+      const [scanning,     setScanning]     = useState(false);
+      const [scanned,      setScanned]      = useState(false);
+      const [progress,     setProgress]     = useState({ done: 0, total: 0, label: "" });
+      const [results,      setResults]      = useState({});
+      const [autoRefresh,  setAutoRefresh]  = useState(false);
       const [regimeFilter, setRegimeFilter] = useState("ALL");
       const stopRef = useRef(false);
 
@@ -350,205 +870,191 @@
         stopRef.current = false;
         setScanning(true);
         const toFetch = ALL_INDICES.filter(i => i.symbol);
-        const total = toFetch.length;
+        const total   = toFetch.length;
         let done = 0;
-
         let tempResults = { ...results };
-
         for (const idx of toFetch) {
           if (stopRef.current) break;
-          setProgress({ done, total, label: `Auditing ${idx.name}` });
+          setProgress({ done, total, label: `Scanning ${idx.name}…` });
           const data = await fetchIndex(idx.symbol);
           done++;
           tempResults[idx.symbol] = data;
           setResults({ ...tempResults });
-          setProgress({ done, total, label: `Audited ${idx.name}` });
-          await sleep(500); 
+          setProgress({ done, total, label: `${idx.name}` });
+          await sleep(500);
         }
-        setProgress({ done: total, total, label: "✓ Audit Complete" });
+        setProgress({ done: total, total, label: "Scan complete" });
         setScanned(true);
         setScanning(false);
       };
 
-      // 10 Second Safety Auto-Refresh Loop
       useEffect(() => {
-        let intervalId;
+        let id;
         if (autoRefresh && scanned && !scanning) {
-          intervalId = setInterval(() => {
-            handleScan();
-          }, 10000); 
+          id = setInterval(handleScan, 10000);
         }
-        return () => {
-          if (intervalId) clearInterval(intervalId);
-        };
+        return () => { if (id) clearInterval(id); };
       }, [autoRefresh, scanned, scanning]);
 
-      // Filtering and Sorting Data
       const sortedRows = useMemo(() => {
         let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
-        
-        // Filter by Regime
-        if (regimeFilter !== "ALL") {
-          list = list.filter(r => r.regime === regimeFilter);
-        }
-
-        // Sort: Regime A -> B -> C, then Weekly RSI Descending
+        if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
         return list.sort((a, b) => {
-          const regimeOrder = { "A": 1, "B": 2, "C": 3, "Unknown": 4 };
-          const regA = regimeOrder[a.regime] || 4;
-          const regB = regimeOrder[b.regime] || 4;
-          
-          if (regA !== regB) return regA - regB;
-          
-          // If same regime, sort by wRsi descending
-          const rsiA = a.wRsi ?? -Infinity;
-          const rsiB = b.wRsi ?? -Infinity;
-          return rsiB - rsiA;
+          const ord = { A:1, B:2, C:3 };
+          const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
+          if (ra !== rb) return ra - rb;
+          return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
         });
       }, [results, regimeFilter]);
 
-      // Color logic helper for RSI
-      const getRsiColor = (val) => {
-        if (val == null) return "transparent";
-        if (val >= 50) return "#86efac"; // Green
-        if (val >= 40 && val < 50) return "#fdba74"; // Orange
-        return "#fca5a5"; // Red
-      };
+      const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+      const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
 
       return (
-        <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", color: "#000000", padding: "20px 16px" }}>
-          <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400&family=DM+Mono:wght@400&display=swap" rel="stylesheet"/>
-          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+        <div>
+          {/* ── HEADER ── */}
+          <header className="app-header">
+            <div className="brand">
+              <div className="brand-icon">LD</div>
+              <div className="brand-text">
+                <h1>Lie Detector Scanner</h1>
+                <p>Sacred RSI Regime Auditor · NSE / BSE</p>
+              </div>
+            </div>
+            <div className="header-right">
+              <span className={`live-dot ${scanning ? 'active' : ''}`}>
+                {scanning ? `SCANNING ${pct}%` : scanned ? 'LAST SCAN DONE' : 'READY'}
+              </span>
+            </div>
+          </header>
 
-            {/* Header */}
-            <div style={{ marginBottom: 20 }}>
-              <h1 style={{ margin: "0 0 8px 0", fontSize: 26, fontWeight: 400, letterSpacing: -0.5, color: "#000000" }}>
-                Lie Detector Scanner
-              </h1>
-              <div style={{ fontSize: 13, fontWeight: 400, fontFamily: "'DM Mono', monospace", background: "#f4a261", color: "#000000", padding: "8px 12px", border: "1px solid #000000", display: "inline-block" }}>
-                Sacred Rule: True compounders do NOT stay below 40 RSI. (Base = 4W RSI)
+          <div className="main-wrap">
+
+            {/* ── SACRED RULE ── */}
+            <div className="sacred-rule">
+              <span className="label">Sacred Rule</span>
+              <span className="rule-text">True compounders do NOT stay below 40 RSI — Base = 4W RSI</span>
+            </div>
+
+            {/* ── REGIME CARDS ── */}
+            <div className="regime-cards">
+              <div className="regime-card a">
+                <div className="regime-label">▲ Regime A</div>
+                <div className="regime-name">Structural Bull</div>
+                <div className="regime-desc">4W RSI ≥ 50 + Price above 20WMA<br/>Pullbacks to Daily RSI 40–50 are entries</div>
+              </div>
+              <div className="regime-card b">
+                <div className="regime-label">◆ Regime B</div>
+                <div className="regime-name">Fatigue Zone</div>
+                <div className="regime-desc">4W RSI 40–49<br/>Retail trap lookout — avoid dip buying</div>
+              </div>
+              <div className="regime-card c">
+                <div className="regime-label">▼ Regime C</div>
+                <div className="regime-name">Trust Break</div>
+                <div className="regime-desc">4W RSI &lt; 40<br/>Institutional exit — never average down</div>
               </div>
             </div>
 
-            {/* Controls */}
-            <div style={{ background: "#ffffff", border: "1px solid #000000", padding: "16px", marginBottom: 20, boxShadow: "4px 4px 0px #000000", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-              <div style={{ fontSize: 12, fontWeight: 400, maxWidth: 600, color: "#000000" }}>
-                Regime A: Structural Bull (4W RSI ≥ 50 + P {'>'} 20WMA). Orderly pullbacks to Daily RSI 40-50 are entries.<br />
-                Regime B: Fatigue (4W RSI 40-49). Retail trap lookout.<br />
-                Regime C: Trust Break (4W RSI {'<'} 40). Institutional exit.
-              </div>
-              <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                
-                {/* Regime Filter Dropdown */}
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <label style={{ fontSize: 13, fontWeight: 400, color: "#000000", fontFamily: "'DM Mono', monospace" }}>REGIME FILTER:</label>
-                  <select 
-                    value={regimeFilter} 
-                    onChange={e => setRegimeFilter(e.target.value)}
-                    style={{ background: "#ffffff", color: "#000000", border: "1px solid #000000", fontWeight: 400, padding: "6px 10px", fontFamily: "'DM Mono', monospace", cursor: "pointer" }}
-                  >
-                    <option value="ALL">ALL</option>
+            {/* ── CONTROLS ── */}
+            <div className="controls-bar">
+              <div className="controls-left">
+                <div className="filter-group">
+                  <span className="filter-label">Regime</span>
+                  <select className="filter-select" value={regimeFilter} onChange={e => setRegimeFilter(e.target.value)}>
+                    <option value="ALL">All Regimes</option>
                     <option value="A">Regime A</option>
                     <option value="B">Regime B</option>
                     <option value="C">Regime C</option>
                   </select>
                 </div>
-
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: 13, fontWeight: 400, cursor: "pointer", color: "#000000", fontFamily: "'DM Mono', monospace" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={autoRefresh} 
-                    onChange={(e) => setAutoRefresh(e.target.checked)} 
-                    style={{ accentColor: "#000000", width: 16, height: 16 }} 
-                  />
-                  AUTO-AUDIT (10s)
+                <label className="auto-toggle">
+                  <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
+                  Auto-Refresh 10s
                 </label>
-
-                {!scanning ? (
-                  <button onClick={handleScan} style={{
-                    background: "#000000", color: "#ffffff", fontWeight: 400, padding: "8px 20px",
-                    border: "1px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
-                  }}>EXECUTE X-RAY AUDIT</button>
-                ) : (
-                  <button onClick={() => { stopRef.current = true; }} style={{
-                    background: "#ffffff", color: "#000000", fontWeight: 400, padding: "8px 20px",
-                    border: "1px solid #000000", cursor: "pointer", fontSize: 13, fontFamily: "'DM Mono', monospace",
-                  }}>STOP SCAN ({progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0}%)</button>
-                )}
               </div>
+              {!scanning
+                ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
+                : <button className="btn-stop" onClick={() => { stopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
+              }
             </div>
 
-            {/* Main Table */}
-            {sortedRows.length > 0 && Object.keys(results).length > 0 && (
-              <div style={{ overflowX: "auto", background: "#ffffff", border: "1px solid #000000" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12, fontWeight: 400, color: "#000000" }}>
+            {/* ── PROGRESS ── */}
+            {scanning && (
+              <div className="progress-wrap">
+                <div className="progress-top">
+                  <span className="progress-label">{progress.label}</span>
+                  <span className="progress-pct">{progress.done} / {progress.total}</span>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            )}
+
+            {/* ── TABLE ── */}
+            {hasData ? (
+              <div className="table-wrap">
+                <table>
                   <thead>
-                    <tr style={{ background: "#e2e8f0", borderBottom: "1px solid #000000", color: "#000000" }}>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Scheme/Index Name</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>NAV / Price</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Daily RSI (14)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>Weekly RSI (4W)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Confluence (4W|8W|14W)</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", fontWeight: 400 }}>WMA20 of RSI</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Price {'>'} 20WMA</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Regime</th>
-                      <th style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center", fontWeight: 400 }}>Action</th>
-                      <th style={{ padding: "10px", fontWeight: 400 }}>Recommendations</th>
+                    <tr>
+                      <th>Index / Scheme</th>
+                      <th>Price</th>
+                      <th>Daily RSI (14)</th>
+                      <th>Weekly RSI (4W)</th>
+                      <th style={{textAlign:"center"}}>Confluence 4W · 8W · 14W</th>
+                      <th>WMA20 of RSI</th>
+                      <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
+                      <th style={{textAlign:"center"}}>Regime</th>
+                      <th style={{textAlign:"center"}}>Action</th>
+                      <th>Recommendation</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedRows.map((r, i) => {
                       if (!r.wRsi) return null;
-                      
-                      const wRsiBg = getRsiColor(r.wRsi);
-
-                      // Background color logic for Price > 20WMA
-                      let wmaBg = "transparent";
-                      let wmaText = "—";
-                      if (r.price && r.wma20Price) {
-                        if (r.price > r.wma20Price) {
-                          wmaBg = "#86efac"; // Green
-                          wmaText = "YES";
-                        } else {
-                          wmaBg = "#fca5a5"; // Red
-                          wmaText = "NO";
-                        }
-                      }
+                      const wmaClass = r.price && r.wma20Price
+                        ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no')
+                        : '';
+                      const wmaText = r.price && r.wma20Price
+                        ? (r.price > r.wma20Price ? 'YES' : 'NO')
+                        : '—';
+                      const dRsiClass = r.dRsi >= 40 && r.dRsi <= 50 && r.regime === "A" ? "rsi-green" : "";
 
                       return (
-                        <tr key={i} style={{ borderBottom: "1px solid #000000", background: i % 2 === 0 ? "#ffffff" : "#f8f9fa", color: "#000000" }}>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.name}</td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.price?.toFixed(2) || "—"}</td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: r.dRsi >= 40 && r.dRsi <= 50 && r.regime === "A" ? "#86efac" : "transparent" }}>{r.dRsi || "—"}</td>
-                          
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", background: wRsiBg, borderBottom: "1px solid #000000", borderTop: "1px solid #000000", textAlign: "center" }}>{r.wRsi || "—"}</td>
-                          
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
-                              <span style={{ background: getRsiColor(r.wRsi4), padding: "2px 6px", borderRadius: "3px", border: "1px solid #000000", minWidth: "32px", fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>{r.wRsi4 || "—"}</span>
-                              <span style={{ background: getRsiColor(r.wRsi8), padding: "2px 6px", borderRadius: "3px", border: "1px solid #000000", minWidth: "32px", fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>{r.wRsi8 || "—"}</span>
-                              <span style={{ background: getRsiColor(r.wRsi14), padding: "2px 6px", borderRadius: "3px", border: "1px solid #000000", minWidth: "32px", fontFamily: "'DM Mono', monospace", fontSize: "11px" }}>{r.wRsi14 || "—"}</span>
+                        <tr key={i}>
+                          <td className="name-col" title={r.name}>
+                            <span style={{fontSize:10, color:'var(--text-faint)', marginRight:6, fontFamily:'var(--mono)'}}>{r.exchange}</span>
+                            {r.name}
+                          </td>
+                          <td>{r.price?.toFixed(2) ?? "—"}</td>
+                          <td className={dRsiClass}>{r.dRsi ?? "—"}</td>
+                          <td className={`${getRsiClass(r.wRsi)}`} style={{textAlign:"center", fontWeight:600}}>{r.wRsi ?? "—"}</td>
+                          <td style={{textAlign:"center"}}>
+                            <div style={{display:"flex", gap:"4px", justifyContent:"center"}}>
+                              <ConfPill val={r.wRsi4} />
+                              <ConfPill val={r.wRsi8} />
+                              <ConfPill val={r.wRsi14} />
                             </div>
                           </td>
-
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace" }}>{r.wma20Rsi || "—"}</td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", fontFamily: "'DM Mono', monospace", textAlign: "center", background: wmaBg }}>
-                            {wmaText}
-                          </td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
-                            <Pill v={r.regime} logic={r.regime} />
-                          </td>
-                          <td style={{ padding: "10px", borderRight: "1px solid #000000", textAlign: "center" }}>
-                            <Pill v={r.action} logic={r.action} />
-                          </td>
-                          <td style={{ padding: "10px" }}>{r.rec}</td>
+                          <td>{r.wma20Rsi ?? "—"}</td>
+                          <td className={wmaClass} style={{textAlign:"center", fontWeight:600}}>{wmaText}</td>
+                          <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime} /></td>
+                          <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action} /></td>
+                          <td className="rec-col">{r.rec}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+            ) : !scanning && (
+              <div className="empty-state">
+                <div className="big-icon">📡</div>
+                <h2>Ready to Scan</h2>
+                <p>Hit Execute X-Ray Audit to analyse all {ALL_INDICES.filter(i=>i.symbol).length} indices across NSE &amp; BSE</p>
+              </div>
             )}
+
           </div>
         </div>
       );
