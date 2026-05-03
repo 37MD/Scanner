@@ -822,21 +822,85 @@
         const wRsi = wRsi4;
         const wma20Price = calcWMA(wCloses, 20);
         const wma20Rsi   = calcWMA(wRsiArray4, 20);
-        const dRsiArray  = calcRSIHistory(dCloses, 14);
-        const dRsi = dRsiArray.length ? dRsiArray[dRsiArray.length-1] : null;
+        // Daily RSI — all three speeds
+        const dRsiArray4  = calcRSIHistory(dCloses, 4);
+        const dRsiArray8  = calcRSIHistory(dCloses, 8);
+        const dRsiArray14 = calcRSIHistory(dCloses, 14);
+        const dRsi4  = dRsiArray4.length  ? dRsiArray4[dRsiArray4.length-1]   : null;
+        const dRsi8  = dRsiArray8.length  ? dRsiArray8[dRsiArray8.length-1]   : null;
+        const dRsi14 = dRsiArray14.length ? dRsiArray14[dRsiArray14.length-1] : null;
+        const dRsi   = dRsi14; // backward compat
+
+        // Divergence proxy: D-RSI(4) rising but price below 20WMA
+        const prevDRsi4 = dRsiArray4.length > 2 ? dRsiArray4[dRsiArray4.length-2] : null;
+        const dRsi4Rising = prevDRsi4 !== null && dRsi4 > prevDRsi4;
+        const divergence  = dRsi4Rising && wma20Price && price < wma20Price;
+
+        // Regime (4W RSI based — existing logic preserved)
         let regime = "C";
         if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
         else if (wRsi >= 40 && wRsi < 50) regime = "B";
+
         let action = "HOLD", rec = "Monitor";
         if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY";    rec = "💎 STRIKE — Optimal Entry"; }
         else if (regime === "A" && dRsi > 70)            { action = "HOLD";   rec = "⚡ OVERHEATED — Wait for daily dip"; }
         else if (regime === "B")                          { action = "REDUCE"; rec = "🔴 TRAP — Fatigue. Do not buy dips"; }
         else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
-        return { price, wRsi, wRsi4, wRsi8, wRsi14, dRsi, wma20Price, wma20Rsi, regime, action, rec };
+
+        return { price, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
+                 wma20Price, wma20Rsi, regime, action, rec, divergence };
       } catch { return { error: true }; }
     }
 
-    // ── RSI color helper ──
+    // ─── 5-PHASE EXECUTION TREE ──────────────────────────────────────────────
+    function runExecutionTree(r, vixPrice) {
+      if (!r || !r.wRsi14) return null;
+
+      // PHASE 1 — Macro Anchor (W-RSI14 ≥ 50 AND Price > 20WMA)
+      const p1Pass = r.wRsi14 >= 50 && r.wma20Price && r.price > r.wma20Price;
+      if (!p1Pass) return { phase: 1, verdict: "ABORT", label: "💀 ABORT", detail: "P1 FAIL: W-RSI(14) < 50 or Price below 20WMA", color: "red" };
+
+      // PHASE 2 — Micro Alignment (Daily RSI 4/8/14 available)
+      if (!r.dRsi4 || !r.dRsi8 || !r.dRsi14)
+        return { phase: 2, verdict: "NO DATA", label: "⚠ NO DATA", detail: "Daily RSI data insufficient", color: "dim" };
+
+      // PHASE 3 — Confluence: All 3 Daily RSIs in Strike Zone (40–50)
+      const inZone = v => v >= 40 && v <= 50;
+      const d4ok = inZone(r.dRsi4), d8ok = inZone(r.dRsi8), d14ok = inZone(r.dRsi14);
+      const allGreen = d4ok && d8ok && d14ok;
+      if (!allGreen) {
+        const count = [d4ok, d8ok, d14ok].filter(Boolean).length;
+        const detail = `D-RSI 4:${r.dRsi4} 8:${r.dRsi8} 14:${r.dRsi14} — ${count}/3 in zone`;
+        if (count >= 1)
+          return { phase: 3, verdict: "NEAR MISS", label: "🟡 NEAR MISS", detail, color: "amber" };
+        return { phase: 3, verdict: "NOT READY", label: "⏳ NOT READY", detail: `Daily RSI not in zone. ${detail}`, color: "dim" };
+      }
+
+      // PHASE 4 — Trapdoor Clues (5 checks)
+      const trapdoors = [];
+      // 1. Trapdoor Weekly: W-RSI(14) barely holding (50–52)
+      if (r.wRsi14 >= 50 && r.wRsi14 <= 52)
+        trapdoors.push("TD1: W-RSI(14) barely holding (" + r.wRsi14 + ")");
+      // 2. Anchor Breach: price below 20WMA
+      if (r.wma20Price && r.price < r.wma20Price)
+        trapdoors.push("TD2: Price below 20WMA");
+      // 3. D-RSI(4) Divergence: bouncing while price < 20WMA
+      if (r.divergence)
+        trapdoors.push("TD3: RSI(4) rising but price below 20WMA");
+      // 4. Volatility Override: VIX > 20
+      if (vixPrice && vixPrice > 20)
+        trapdoors.push("TD4: India VIX > 20 (" + vixPrice?.toFixed(1) + ")");
+      // 5. Constituent Rot: manual check flag
+      // (Cannot auto-detect without individual stock data — flagged for manual review)
+
+      // PHASE 5 — Final Verdict
+      if (trapdoors.length > 0)
+        return { phase: 5, verdict: "FAKE SUPPORT", label: "🔴 FAKE SUPPORT", detail: trapdoors.join(" | "), color: "red" };
+
+      return { phase: 5, verdict: "VERIFIED STRIKE", label: "💎 VERIFIED STRIKE", detail: `All 3 D-RSI in zone. No trapdoors triggered.`, color: "green" };
+    }
+
+
     const getRsiClass = (val) => {
       if (val == null) return "";
       if (val >= 50) return "rsi-green";
@@ -864,7 +928,11 @@
       const [results,      setResults]      = useState({});
       const [autoRefresh,  setAutoRefresh]  = useState(false);
       const [regimeFilter, setRegimeFilter] = useState("ALL");
+      const [phaseFilter,  setPhaseFilter]  = useState("ALL");
       const stopRef = useRef(false);
+
+      // Live VIX from results
+      const vixPrice = results["^INDIAVIX"]?.price ?? null;
 
       const handleScan = async () => {
         stopRef.current = false;
@@ -899,13 +967,19 @@
       const sortedRows = useMemo(() => {
         let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
         if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
+        if (phaseFilter !== "ALL") {
+          list = list.filter(r => {
+            const et = runExecutionTree(r, vixPrice);
+            return et && et.verdict === phaseFilter;
+          });
+        }
         return list.sort((a, b) => {
           const ord = { A:1, B:2, C:3 };
           const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
           if (ra !== rb) return ra - rb;
           return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
         });
-      }, [results, regimeFilter]);
+      }, [results, regimeFilter, phaseFilter, vixPrice]);
 
       const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
       const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
@@ -955,7 +1029,39 @@
               </div>
             </div>
 
-            {/* ── CONTROLS ── */}
+            {/* ── 5-PHASE EXECUTION TREE LEGEND ── */}
+            <div style={{
+              background:"var(--surface)", border:"1px solid var(--border2)",
+              padding:"14px 18px", marginBottom:20
+            }}>
+              <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"var(--text-dim)",
+                letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:10}}>
+                5-Phase Execution Tree
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                {[
+                  { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA",          color:"var(--text-dim)" },
+                  { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed",             color:"var(--text-dim)" },
+                  { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone",        color:"var(--amber)" },
+                  { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach",  color:"var(--red)" },
+                  { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT",        color:"var(--green)" },
+                ].map((p,i) => (
+                  <div key={i} style={{
+                    display:"flex",alignItems:"center",gap:8,
+                    background:"var(--surface2)",border:"1px solid var(--border)",
+                    padding:"6px 12px",fontSize:11
+                  }}>
+                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:p.color,whiteSpace:"nowrap"}}>{p.label}</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text-faint)"}}>{p.desc}</span>
+                  </div>
+                ))}
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text-faint)",marginLeft:4}}>
+                  ⚠ TD5 (Constituent Rot) requires manual verification
+                </div>
+              </div>
+            </div>
+
+
             <div className="controls-bar">
               <div className="controls-left">
                 <div className="filter-group">
@@ -967,6 +1073,27 @@
                     <option value="C">Regime C</option>
                   </select>
                 </div>
+                <div className="filter-group">
+                  <span className="filter-label">Verdict</span>
+                  <select className="filter-select" value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}>
+                    <option value="ALL">All Verdicts</option>
+                    <option value="VERIFIED STRIKE">💎 Verified Strike</option>
+                    <option value="NEAR MISS">🟡 Near Miss</option>
+                    <option value="FAKE SUPPORT">🔴 Fake Support</option>
+                    <option value="ABORT">💀 Abort</option>
+                  </select>
+                </div>
+                {vixPrice && (
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
+                    <span style={{color:"var(--text-dim)",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
+                    <span style={{
+                      padding:"3px 10px", borderRadius:2, fontWeight:600,
+                      background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
+                      color: vixPrice > 20 ? "var(--red)" : "var(--green)",
+                      border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
+                    }}>{vixPrice.toFixed(1)} {vixPrice > 20 ? "⚠ HIGH" : "✓ OK"}</span>
+                  </div>
+                )}
                 <label className="auto-toggle">
                   <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
                   Auto-Refresh 10s
@@ -999,48 +1126,81 @@
                     <tr>
                       <th>Index / Scheme</th>
                       <th>Price</th>
-                      <th>Daily RSI (14)</th>
-                      <th>Weekly RSI (4W)</th>
-                      <th style={{textAlign:"center"}}>Confluence 4W · 8W · 14W</th>
-                      <th>WMA20 of RSI</th>
+                      <th style={{textAlign:"center"}}>Daily RSI 4·8·14</th>
+                      <th style={{textAlign:"center"}}>Weekly RSI 4·8·14</th>
+                      <th>WMA20 RSI</th>
                       <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
                       <th style={{textAlign:"center"}}>Regime</th>
                       <th style={{textAlign:"center"}}>Action</th>
-                      <th>Recommendation</th>
+                      <th style={{minWidth:180}}>Execution Verdict</th>
+                      <th style={{minWidth:220}}>Trapdoor / Detail</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedRows.map((r, i) => {
                       if (!r.wRsi) return null;
                       const wmaClass = r.price && r.wma20Price
-                        ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no')
-                        : '';
+                        ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no') : '';
                       const wmaText = r.price && r.wma20Price
-                        ? (r.price > r.wma20Price ? 'YES' : 'NO')
-                        : '—';
-                      const dRsiClass = r.dRsi >= 40 && r.dRsi <= 50 && r.regime === "A" ? "rsi-green" : "";
+                        ? (r.price > r.wma20Price ? 'YES' : 'NO') : '—';
+
+                      const et = runExecutionTree(r, vixPrice);
+                      const verdictStyle = {
+                        green: { bg:"var(--green-dim)", color:"var(--green)", border:"var(--green)" },
+                        amber: { bg:"var(--amber-dim)", color:"var(--amber)", border:"var(--amber)" },
+                        red:   { bg:"var(--red-dim)",   color:"var(--red)",   border:"var(--red)" },
+                        dim:   { bg:"var(--surface2)",  color:"var(--text-faint)", border:"var(--border2)" },
+                      }[et?.color || "dim"];
 
                       return (
                         <tr key={i}>
                           <td className="name-col" title={r.name}>
-                            <span style={{fontSize:10, color:'var(--text-faint)', marginRight:6, fontFamily:'var(--mono)'}}>{r.exchange}</span>
+                            <span style={{fontSize:10,color:"var(--text-faint)",marginRight:6,fontFamily:"var(--mono)"}}>{r.exchange}</span>
                             {r.name}
                           </td>
                           <td>{r.price?.toFixed(2) ?? "—"}</td>
-                          <td className={dRsiClass}>{r.dRsi ?? "—"}</td>
-                          <td className={`${getRsiClass(r.wRsi)}`} style={{textAlign:"center", fontWeight:600}}>{r.wRsi ?? "—"}</td>
+
+                          {/* Daily RSI 4 · 8 · 14 */}
                           <td style={{textAlign:"center"}}>
-                            <div style={{display:"flex", gap:"4px", justifyContent:"center"}}>
+                            <div style={{display:"flex",gap:"4px",justifyContent:"center"}}>
+                              <ConfPill val={r.dRsi4} />
+                              <ConfPill val={r.dRsi8} />
+                              <ConfPill val={r.dRsi14} />
+                            </div>
+                          </td>
+
+                          {/* Weekly RSI 4 · 8 · 14 */}
+                          <td style={{textAlign:"center"}}>
+                            <div style={{display:"flex",gap:"4px",justifyContent:"center"}}>
                               <ConfPill val={r.wRsi4} />
                               <ConfPill val={r.wRsi8} />
                               <ConfPill val={r.wRsi14} />
                             </div>
                           </td>
+
                           <td>{r.wma20Rsi ?? "—"}</td>
-                          <td className={wmaClass} style={{textAlign:"center", fontWeight:600}}>{wmaText}</td>
+                          <td className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
                           <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime} /></td>
                           <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action} /></td>
-                          <td className="rec-col">{r.rec}</td>
+
+                          {/* Execution Verdict */}
+                          <td style={{textAlign:"center"}}>
+                            {et ? (
+                              <span style={{
+                                display:"inline-block", padding:"3px 10px", borderRadius:2,
+                                fontFamily:"var(--mono)", fontSize:10, fontWeight:600,
+                                letterSpacing:"0.5px", whiteSpace:"nowrap",
+                                background: verdictStyle.bg,
+                                color: verdictStyle.color,
+                                border: `1px solid ${verdictStyle.border}`,
+                              }}>{et.label}</span>
+                            ) : "—"}
+                          </td>
+
+                          {/* Trapdoor Detail */}
+                          <td className="rec-col" style={{fontSize:10,color:"var(--text-dim)"}}>
+                            {et?.detail ?? "—"}
+                          </td>
                         </tr>
                       );
                     })}
