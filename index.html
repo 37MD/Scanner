@@ -813,7 +813,14 @@
         const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close  || [];
         const q       = qtData?.quoteResponse?.result?.[0] || null;
         const price   = q?.regularMarketPrice ?? (wCloses.length ? wCloses[wCloses.length-1] : null);
-        const changePct = q?.regularMarketChangePercent ?? null;
+
+        // % change: use last 2 valid daily closes for reliability
+        const validDCloses = dCloses.filter(x => x != null && !isNaN(x));
+        const prevClose = validDCloses.length >= 2 ? validDCloses[validDCloses.length - 2] : null;
+        const currClose = validDCloses.length >= 1 ? validDCloses[validDCloses.length - 1] : null;
+        const changePct = (prevClose && currClose && prevClose !== 0)
+          ? parseFloat((((currClose - prevClose) / prevClose) * 100).toFixed(2))
+          : null;
         const wRsiArray4  = calcRSIHistory(wCloses, 4);
         const wRsiArray8  = calcRSIHistory(wCloses, 8);
         const wRsiArray14 = calcRSIHistory(wCloses, 14);
