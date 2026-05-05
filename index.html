@@ -813,6 +813,7 @@
         const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close  || [];
         const q       = qtData?.quoteResponse?.result?.[0] || null;
         const price   = q?.regularMarketPrice ?? (wCloses.length ? wCloses[wCloses.length-1] : null);
+        const changePct = q?.regularMarketChangePercent ?? null;
         const wRsiArray4  = calcRSIHistory(wCloses, 4);
         const wRsiArray8  = calcRSIHistory(wCloses, 8);
         const wRsiArray14 = calcRSIHistory(wCloses, 14);
@@ -847,7 +848,7 @@
         else if (regime === "B")                          { action = "REDUCE"; rec = "🔴 TRAP — Fatigue. Do not buy dips"; }
         else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
 
-        return { price, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
+        return { price, changePct, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
                  wma20Price, wma20Rsi, regime, action, rec, divergence };
       } catch { return { error: true }; }
     }
@@ -929,6 +930,7 @@
       const [autoRefresh,  setAutoRefresh]  = useState(false);
       const [regimeFilter, setRegimeFilter] = useState("ALL");
       const [phaseFilter,  setPhaseFilter]  = useState("ALL");
+      const [lastUpdated,  setLastUpdated]  = useState(null);
       const stopRef = useRef(false);
 
       // Live VIX from results
@@ -952,6 +954,7 @@
           await sleep(500);
         }
         setProgress({ done: total, total, label: "Scan complete" });
+        setLastUpdated(new Date());
         setScanned(true);
         setScanning(false);
       };
@@ -996,6 +999,12 @@
               </div>
             </div>
             <div className="header-right">
+              {lastUpdated && (
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)"}}>
+                  Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+                  &nbsp;·&nbsp;{lastUpdated.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+                </span>
+              )}
               <span className={`live-dot ${scanning ? 'active' : ''}`}>
                 {scanning ? `SCANNING ${pct}%` : scanned ? 'LAST SCAN DONE' : 'READY'}
               </span>
@@ -1126,6 +1135,7 @@
                     <tr>
                       <th>Index / Scheme</th>
                       <th>Price</th>
+                      <th style={{textAlign:"center"}}>% Change</th>
                       <th style={{textAlign:"center"}}>Daily RSI 4·8·14</th>
                       <th style={{textAlign:"center"}}>Weekly RSI 4·8·14</th>
                       <th>WMA20 RSI</th>
@@ -1159,6 +1169,17 @@
                             {r.name}
                           </td>
                           <td>{r.price?.toFixed(2) ?? "—"}</td>
+
+                          {/* % Change */}
+                          <td style={{
+                            textAlign:"center", fontFamily:"var(--mono)", fontWeight:600,
+                            color: r.changePct == null ? "var(--text-faint)"
+                                 : r.changePct > 0 ? "var(--green)"
+                                 : r.changePct < 0 ? "var(--red)" : "var(--text-dim)",
+                          }}>
+                            {r.changePct == null ? "—"
+                              : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${r.changePct.toFixed(2)}%`}
+                          </td>
 
                           {/* Daily RSI 4 · 8 · 14 */}
                           <td style={{textAlign:"center"}}>
