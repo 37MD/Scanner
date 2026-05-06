@@ -814,9 +814,9 @@
       return ema;
     }
 
-    // True Strength Index Calculation
-    function calcTSI(closes, r=21, s=13) {
-      if (!closes || closes.length < r + s) return null;
+    // True Strength Index Calculation returning historical array
+    function calcTSIArray(closes, r=21, s=13) {
+      if (!closes || closes.length < r + s) return [];
       let m = [];
       let abs_m = [];
       for(let i=1; i<closes.length; i++) {
@@ -831,16 +831,20 @@
       let valid_ema1_m = ema1_m.filter(x => x !== null);
       let valid_ema1_abs_m = ema1_abs_m.filter(x => x !== null);
 
-      if(valid_ema1_m.length < s) return null;
+      if(valid_ema1_m.length < s) return [];
 
       let ema2_m = calcEMA(valid_ema1_m, s);
       let ema2_abs_m = calcEMA(valid_ema1_abs_m, s);
 
-      let last_ema2_m = ema2_m[ema2_m.length - 1];
-      let last_ema2_abs = ema2_abs_m[ema2_abs_m.length - 1];
-
-      if (last_ema2_abs === 0 || last_ema2_abs == null) return 0;
-      return parseFloat((100 * (last_ema2_m / last_ema2_abs)).toFixed(2));
+      let tsiList = [];
+      for(let i=0; i<ema2_m.length; i++) {
+         if (ema2_m[i] === null || ema2_abs_m[i] === null) continue;
+         let val_m = ema2_m[i];
+         let val_abs = ema2_abs_m[i];
+         if (val_abs === 0) tsiList.push(0);
+         else tsiList.push(parseFloat((100 * (val_m / val_abs)).toFixed(2)));
+      }
+      return tsiList;
     }
 
     async function fetchIndex(symbol) {
@@ -878,8 +882,10 @@
         const wma20Price = calcWMA(wCloses, 20);
         const wma20Rsi   = calcWMA(wRsiArray4, 20);
         
-        // Calculate TSI 21 (Weekly)
-        const wTsi21 = calcTSI(wCloses, 21, 13);
+        // Calculate historical TSI 21 array to find the Resumption flip
+        const wTsiArray = calcTSIArray(wCloses, 21, 13);
+        const wTsiCurr  = wTsiArray.length > 0 ? wTsiArray[wTsiArray.length - 1] : null;
+        const wTsiPrev  = wTsiArray.length > 1 ? wTsiArray[wTsiArray.length - 2] : null;
 
         // Daily RSI — all three speeds
         const dRsiArray4  = calcRSIHistory(dCloses, 4);
@@ -900,6 +906,24 @@
         if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
         else if (wRsi >= 40 && wRsi < 50) regime = "B";
 
+        // TSI Resumption Trigger Logic
+        let tsiTrigger = "—";
+        let tsiColor = "transparent";
+        let tsiBorder = "transparent";
+        if (regime === "A") {
+            if (wTsiPrev !== null && wTsiCurr !== null && wTsiPrev < 0 && wTsiCurr > 0) {
+                tsiTrigger = "🚀 RESUMPTION"; tsiColor = "var(--green-dim)"; tsiBorder = "var(--green)";
+            } else if (wTsiCurr !== null && wTsiCurr < 0) {
+                tsiTrigger = "🎯 DIP ZONE"; tsiColor = "var(--amber-dim)"; tsiBorder = "var(--amber)";
+            } else if (wTsiCurr !== null && wTsiCurr > 30) {
+                tsiTrigger = "🔥 OVERHEATED"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
+            } else if (wTsiCurr !== null && wTsiCurr > 0) {
+                tsiTrigger = "✅ TRENDING"; tsiColor = "var(--surface2)"; tsiBorder = "var(--border2)";
+            }
+        } else if (regime === "B" && wTsiPrev !== null && wTsiCurr !== null && wTsiPrev > 0 && wTsiCurr < 0) {
+            tsiTrigger = "⚠️ BEAR CROSS"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
+        }
+
         let action = "HOLD", rec = "Monitor";
         if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY";    rec = "💎 STRIKE — Optimal Entry"; }
         else if (regime === "A" && dRsi > 70)            { action = "HOLD";   rec = "⚡ OVERHEATED — Wait for daily dip"; }
@@ -907,7 +931,7 @@
         else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
 
         return { price, changePct, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
-                 wma20Price, wma20Rsi, regime, action, rec, divergence, wTsi21 };
+                 wma20Price, wma20Rsi, regime, action, rec, divergence, wTsiCurr, tsiTrigger, tsiColor, tsiBorder };
       } catch { return { error: true }; }
     }
 
@@ -1199,6 +1223,7 @@
                       <th>WMA20 RSI</th>
                       <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
                       <th style={{textAlign:"center"}}>TSI 21</th>
+                      <th style={{textAlign:"center"}}>TSI Trigger</th>
                       <th style={{textAlign:"center"}}>Regime</th>
                       <th style={{textAlign:"center"}}>Action</th>
                       <th style={{minWidth:180}}>Execution Verdict</th>
@@ -1264,10 +1289,21 @@
                           <td style={{
                             textAlign:"center", 
                             fontWeight:600, 
-                            background: r.wTsi21 > 0 ? "var(--green-dim)" : r.wTsi21 < 0 ? "var(--red-dim)" : "transparent",
+                            background: r.wTsiCurr > 0 ? "var(--green-dim)" : r.wTsiCurr < 0 ? "var(--red-dim)" : "transparent",
                             color: "#000000"
                           }}>
-                            {r.wTsi21 ?? "—"}
+                            {r.wTsiCurr ?? "—"}
+                          </td>
+
+                          {/* TSI Trigger Column */}
+                          <td style={{textAlign:"center"}}>
+                            <span style={{
+                              display:"inline-block", padding:"3px 8px", borderRadius:2,
+                              fontFamily:"var(--mono)", fontSize:10, fontWeight:600,
+                              background: r.tsiColor, border: `1px solid ${r.tsiBorder}`, color: "#000000"
+                            }}>
+                              {r.tsiTrigger}
+                            </span>
                           </td>
 
                           <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime} /></td>
