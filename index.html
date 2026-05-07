@@ -704,7 +704,7 @@
     }
 
     function calcWMA(data, period) {
-      const v = data.filter(x => x != null && !isNaN(x)); // FORCED NULL FILTER
+      const v = data.filter(x => x != null && !isNaN(x));
       if (!v || v.length < period) return null;
       let sum = 0;
       const weightSum = (period * (period + 1)) / 2;
@@ -713,15 +713,15 @@
       return parseFloat((sum / weightSum).toFixed(2));
     }
 
-    // Pearson Correlation: TradingView's "Trend Strength Index" Calculation
+    // TradingView's "Trend Strength Index" (Pearson Correlation)
     function calcTrendStrengthIndex(closes, period=21) {
-      const v = closes.filter(x => x != null && !isNaN(x)); // FORCED NULL FILTER
+      const v = closes.filter(x => x != null && !isNaN(x)); 
       if (!v || v.length < period) return [];
       
-      let meanX = (period + 1) / 2;
+      let meanX = (period - 1) / 2;
       let ssX = 0;
-      for (let i = 1; i <= period; i++) {
-        ssX += Math.pow(i - meanX, 2);
+      for (let j = 0; j < period; j++) {
+        ssX += Math.pow(j - meanX, 2);
       }
       
       let tsiList = [];
@@ -740,7 +740,7 @@
          let sumXY = 0;
          let ssY = 0;
          for(let j = 0; j < period; j++) {
-             let xVal = j + 1;
+             let xVal = j; // Time linearly increases
              let yVal = v[i - period + 1 + j];
              sumXY += (xVal - meanX) * (yVal - meanY);
              ssY += Math.pow(yVal - meanY, 2);
@@ -792,10 +792,10 @@
         const wma20Price = calcWMA(wCloses, 20);
         const wma20Rsi   = calcWMA(wRsiArray4, 20);
         
-        // Calculate historical Trend Strength Index (Pearson Correlation) to find Resumption flip
-        const wTsiArray = calcTrendStrengthIndex(wCloses, 21);
-        const wTsiCurr  = wTsiArray.length > 0 ? wTsiArray[wTsiArray.length - 1] : null;
-        const wTsiPrev  = wTsiArray.length > 1 ? wTsiArray[wTsiArray.length - 2] : null;
+        // Calculate historical Trend Strength Index (Pearson Correlation) on DAILY closes
+        const dTsiArray = calcTrendStrengthIndex(dCloses, 21);
+        const dTsiCurr  = dTsiArray.length > 0 ? dTsiArray[dTsiArray.length - 1] : null;
+        const dTsiPrev  = dTsiArray.length > 1 ? dTsiArray[dTsiArray.length - 2] : null;
 
         // Daily RSI — all three speeds
         const dRsiArray4  = calcRSIHistory(dCloses, 4);
@@ -821,16 +821,16 @@
         let tsiColor = "transparent";
         let tsiBorder = "transparent";
         if (regime === "A") {
-            if (wTsiPrev !== null && wTsiCurr !== null && wTsiPrev < 0 && wTsiCurr > 0) {
+            if (dTsiPrev !== null && dTsiCurr !== null && dTsiPrev < 0 && dTsiCurr >= 0) {
                 tsiTrigger = "🚀 RESUMPTION"; tsiColor = "var(--green-dim)"; tsiBorder = "var(--green)";
-            } else if (wTsiCurr !== null && wTsiCurr < 0) {
+            } else if (dTsiCurr !== null && dTsiCurr < 0) {
                 tsiTrigger = "🎯 DIP ZONE"; tsiColor = "var(--amber-dim)"; tsiBorder = "var(--amber)";
-            } else if (wTsiCurr !== null && wTsiCurr > 0.85) {
+            } else if (dTsiCurr !== null && dTsiCurr > 0.85) {
                 tsiTrigger = "🔥 OVERHEATED"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
-            } else if (wTsiCurr !== null && wTsiCurr > 0) {
+            } else if (dTsiCurr !== null && dTsiCurr >= 0) {
                 tsiTrigger = "✅ TRENDING"; tsiColor = "var(--surface2)"; tsiBorder = "var(--border2)";
             }
-        } else if (regime === "B" && wTsiPrev !== null && wTsiCurr !== null && wTsiPrev > 0 && wTsiCurr < 0) {
+        } else if (regime === "B" && dTsiPrev !== null && dTsiCurr !== null && dTsiPrev > 0 && dTsiCurr < 0) {
             tsiTrigger = "⚠️ BEAR CROSS"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
         }
 
@@ -841,7 +841,7 @@
         else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
 
         return { price, changePct, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
-                 wma20Price, wma20Rsi, regime, action, rec, divergence, wTsiCurr, tsiTrigger, tsiColor, tsiBorder };
+                 wma20Price, wma20Rsi, regime, action, rec, divergence, dTsiCurr, tsiTrigger, tsiColor, tsiBorder };
       } catch { return { error: true }; }
     }
 
@@ -1104,7 +1104,7 @@
                       <th style={{textAlign:"center"}}>Weekly RSI 4·8·14</th>
                       <th>WMA20 RSI</th>
                       <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
-                      <th style={{textAlign:"center"}}>TSI 21</th>
+                      <th style={{textAlign:"center"}}>TSI 21 (Daily)</th>
                       <th style={{textAlign:"center"}}>TSI Trigger</th>
                       <th style={{textAlign:"center"}}>Regime</th>
                       <th style={{textAlign:"center"}}>Action</th>
@@ -1171,10 +1171,10 @@
                           <td style={{
                             textAlign:"center", 
                             fontWeight:600, 
-                            background: r.wTsiCurr > 0 ? "var(--green-dim)" : r.wTsiCurr < 0 ? "var(--red-dim)" : "transparent",
+                            background: r.dTsiCurr > 0 ? "var(--green-dim)" : r.dTsiCurr < 0 ? "var(--red-dim)" : "transparent",
                             color: "#000000"
                           }}>
-                            {r.wTsiCurr ?? "—"}
+                            {r.dTsiCurr !== null ? r.dTsiCurr.toFixed(2) : "—"}
                           </td>
 
                           {/* TSI Trigger Column */}
