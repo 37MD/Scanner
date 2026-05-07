@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Lie Detector Scanner</title>
-  <meta name="theme-color" content="#0a0a12">
+  <meta name="theme-color" content="#ffffff">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -30,34 +30,37 @@
 
   <style>
     :root {
-      --bg:        #0a0a12;
-      --surface:   #111120;
-      --surface2:  #181828;
-      --border:    #252538;
-      --border2:   #2e2e48;
-      --text:      #e8e8f0;
-      --text-dim:  #8888aa;
-      --text-faint:#44445a;
+      /* Force Light Mode to ensure all black fonts are readable */
+      --bg:        #ffffff;
+      --surface:   #f8f9fa;
+      --surface2:  #e9ecef;
+      --border:    #dee2e6;
+      --border2:   #ced4da;
+      /* ENFORCED STRICT BLACK FONT RULE */
+      --text:      #000000;
+      --text-dim:  #000000;
+      --text-faint:#000000;
+      
       --orange:    #f4a261;
-      --orange-dim:#7a4e2d;
-      --green:     #3dffa0;
-      --green-bg:  #0d2e20;
-      --green-dim: #1a4a30;
-      --red:       #ff5370;
-      --red-bg:    #2e0d14;
-      --red-dim:   #4a1a22;
-      --amber:     #ffcc44;
-      --amber-bg:  #2a2000;
-      --amber-dim: #443300;
+      --orange-dim:#fde8d7;
+      --green:     #28a745;
+      --green-bg:  #d4edda;
+      --green-dim: #c3e6cb;
+      --red:       #dc3545;
+      --red-bg:    #f8d7da;
+      --red-dim:   #f5c6cb;
+      --amber:     #ffc107;
+      --amber-bg:  #fff3cd;
+      --amber-dim: #ffe8a1;
       --mono:      'IBM Plex Mono', monospace;
       --sans:      'Syne', sans-serif;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; color: #000000 !important; }
 
     body {
       background: var(--bg);
-      color: var(--text);
+      color: #000000;
       font-family: var(--sans);
       min-height: 100vh;
       overflow-x: hidden;
@@ -109,7 +112,7 @@
       font-family: var(--mono);
       font-size: 13px;
       font-weight: 600;
-      color: #000;
+      color: #000000;
       flex-shrink: 0;
       clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%);
     }
@@ -118,13 +121,13 @@
       font-size: 18px;
       font-weight: 800;
       letter-spacing: -0.3px;
-      color: var(--text);
+      color: #000000;
       line-height: 1;
     }
 
     .brand-text p {
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
       font-family: var(--mono);
       margin-top: 2px;
     }
@@ -141,7 +144,7 @@
       gap: 6px;
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
     }
 
     .live-dot::before {
@@ -149,7 +152,7 @@
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--text-faint);
+      background: #000000;
     }
 
     .live-dot.active::before {
@@ -186,7 +189,7 @@
       font-family: var(--mono);
       font-size: 10px;
       font-weight: 600;
-      color: var(--orange);
+      color: #000000;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       white-space: nowrap;
@@ -195,7 +198,7 @@
     .sacred-rule .rule-text {
       font-family: var(--mono);
       font-size: 12px;
-      color: var(--text);
+      color: #000000;
     }
 
     /* ── REGIME CARDS ── */
@@ -219,22 +222,19 @@
       letter-spacing: 1.5px;
       text-transform: uppercase;
       margin-bottom: 6px;
+      color: #000000;
     }
-
-    .regime-card.a .regime-label { color: var(--green); }
-    .regime-card.b .regime-label { color: var(--amber); }
-    .regime-card.c .regime-label { color: var(--red); }
 
     .regime-card .regime-name {
       font-size: 13px;
       font-weight: 700;
-      color: var(--text);
+      color: #000000;
       margin-bottom: 4px;
     }
 
     .regime-card .regime-desc {
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
       font-family: var(--mono);
       line-height: 1.5;
     }
@@ -269,14 +269,14 @@
       font-family: var(--mono);
       font-size: 11px;
       font-weight: 600;
-      color: var(--text-dim);
+      color: #000000;
       letter-spacing: 1px;
       text-transform: uppercase;
     }
 
     .filter-select {
       background: var(--surface2);
-      color: var(--text);
+      color: #000000;
       border: 1px solid var(--border2);
       font-family: var(--mono);
       font-size: 12px;
@@ -286,7 +286,7 @@
       appearance: none;
       -webkit-appearance: none;
       padding-right: 28px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
     }
@@ -301,7 +301,7 @@
       gap: 8px;
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
       cursor: pointer;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -313,7 +313,7 @@
       -webkit-appearance: none;
       width: 32px;
       height: 18px;
-      background: var(--surface2);
+      background: var(--border2);
       border: 1px solid var(--border2);
       border-radius: 9px;
       cursor: pointer;
@@ -326,7 +326,7 @@
       position: absolute;
       width: 12px;
       height: 12px;
-      background: var(--text-faint);
+      background: #000000;
       border-radius: 50%;
       top: 2px;
       left: 2px;
@@ -346,7 +346,7 @@
     /* ── BUTTONS ── */
     .btn-scan {
       background: var(--orange);
-      color: #000;
+      color: #000000;
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
@@ -365,8 +365,8 @@
     }
 
     .btn-stop {
-      background: transparent;
-      color: var(--red);
+      background: var(--red-bg);
+      color: #000000;
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
@@ -379,7 +379,7 @@
     }
 
     .btn-stop:hover {
-      background: var(--red-bg);
+      background: var(--red-dim);
     }
 
     /* ── PROGRESS BAR ── */
@@ -402,13 +402,13 @@
     .progress-label {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
     }
 
     .progress-pct {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--orange);
+      color: #000000;
       font-weight: 600;
     }
 
@@ -448,7 +448,7 @@
       font-family: var(--mono);
       font-size: 10px;
       font-weight: 600;
-      color: var(--text-dim);
+      color: #000000;
       letter-spacing: 1.2px;
       text-transform: uppercase;
       border-right: 1px solid var(--border);
@@ -462,7 +462,7 @@
       transition: background 0.1s;
     }
 
-    tbody tr:hover { background: var(--surface2) !important; }
+    tbody tr:hover { background: var(--border2) !important; }
 
     tbody tr:last-child { border-bottom: none; }
 
@@ -470,7 +470,7 @@
       padding: 9px 12px;
       font-family: var(--mono);
       font-size: 12px;
-      color: var(--text);
+      color: #000000;
       border-right: 1px solid var(--border);
       white-space: nowrap;
     }
@@ -478,16 +478,16 @@
     tbody td:last-child { border-right: none; }
 
     /* Row alternating */
-    tbody tr:nth-child(even) { background: #0e0e1c; }
+    tbody tr:nth-child(even) { background: #f0f0f5; }
     tbody tr:nth-child(odd)  { background: var(--surface); }
 
     /* RSI color cells */
-    .rsi-green { background: var(--green-dim) !important; color: var(--green) !important; }
-    .rsi-amber { background: var(--amber-dim) !important; color: var(--amber) !important; }
-    .rsi-red   { background: var(--red-dim)   !important; color: var(--red)   !important; }
+    .rsi-green { background: var(--green-dim) !important; color: #000000 !important; }
+    .rsi-amber { background: var(--amber-dim) !important; color: #000000 !important; }
+    .rsi-red   { background: var(--red-dim)   !important; color: #000000 !important; }
 
-    .wma-yes { background: var(--green-dim) !important; color: var(--green) !important; }
-    .wma-no  { background: var(--red-dim)   !important; color: var(--red)   !important; }
+    .wma-yes { background: var(--green-dim) !important; color: #000000 !important; }
+    .wma-no  { background: var(--red-dim)   !important; color: #000000 !important; }
 
     /* ── PILL ── */
     .pill {
@@ -501,15 +501,16 @@
       border-radius: 2px;
       min-width: 44px;
       text-align: center;
+      color: #000000;
     }
 
-    .pill-A   { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-    .pill-B   { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
-    .pill-C   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
-    .pill-BUY    { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-    .pill-SELL   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
-    .pill-REDUCE { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
-    .pill-HOLD   { background: var(--surface2);  color: var(--text-dim); border: 1px solid var(--border2); }
+    .pill-A   { background: var(--green-dim); border: 1px solid var(--green); }
+    .pill-B   { background: var(--amber-dim); border: 1px solid var(--amber); }
+    .pill-C   { background: var(--red-dim);   border: 1px solid var(--red); }
+    .pill-BUY    { background: var(--green-dim); border: 1px solid var(--green); }
+    .pill-SELL   { background: var(--red-dim);   border: 1px solid var(--red); }
+    .pill-REDUCE { background: var(--amber-dim); border: 1px solid var(--amber); }
+    .pill-HOLD   { background: var(--surface2);  border: 1px solid var(--border2); }
 
     /* Confluence mini pills */
     .conf-pill {
@@ -522,6 +523,7 @@
       min-width: 30px;
       text-align: center;
       border: 1px solid transparent;
+      color: #000000;
     }
 
     /* Name col */
@@ -529,7 +531,7 @@
       font-family: var(--sans);
       font-size: 12px;
       font-weight: 600;
-      color: var(--text);
+      color: #000000;
       min-width: 220px;
       max-width: 260px;
       white-space: nowrap;
@@ -541,7 +543,7 @@
     td.rec-col {
       font-family: var(--mono);
       font-size: 11px;
-      color: var(--text-dim);
+      color: #000000;
       min-width: 220px;
     }
 
@@ -554,26 +556,27 @@
     .empty-state .big-icon {
       font-size: 48px;
       margin-bottom: 16px;
+      color: #000000;
     }
 
     .empty-state h2 {
       font-size: 20px;
       font-weight: 700;
-      color: var(--text);
+      color: #000000;
       margin-bottom: 8px;
     }
 
     .empty-state p {
       font-family: var(--mono);
       font-size: 12px;
-      color: var(--text-dim);
+      color: #000000;
     }
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--surface); }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+    ::-webkit-scrollbar-thumb:hover { background: #000000; }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
@@ -796,6 +799,54 @@
       return parseFloat((sum / weightSum).toFixed(2));
     }
 
+    // Exponential Moving Average helper for TSI
+    function calcEMA(data, period) {
+      if(!data || data.length < period) return [];
+      let ema = [];
+      let sum = 0;
+      for(let i=0; i<period; i++) sum += data[i];
+      ema[period-1] = sum / period;
+      const k = 2 / (period + 1);
+      for(let i=0; i<period-1; i++) ema[i] = null;
+      for(let i=period; i<data.length; i++) {
+         ema[i] = (data[i] - ema[i-1]) * k + ema[i-1];
+      }
+      return ema;
+    }
+
+    // True Strength Index Calculation returning historical array
+    function calcTSIArray(closes, r=21, s=13) {
+      if (!closes || closes.length < r + s) return [];
+      let m = [];
+      let abs_m = [];
+      for(let i=1; i<closes.length; i++) {
+         let diff = closes[i] - closes[i-1];
+         m.push(diff);
+         abs_m.push(Math.abs(diff));
+      }
+
+      let ema1_m = calcEMA(m, r);
+      let ema1_abs_m = calcEMA(abs_m, r);
+
+      let valid_ema1_m = ema1_m.filter(x => x !== null);
+      let valid_ema1_abs_m = ema1_abs_m.filter(x => x !== null);
+
+      if(valid_ema1_m.length < s) return [];
+
+      let ema2_m = calcEMA(valid_ema1_m, s);
+      let ema2_abs_m = calcEMA(valid_ema1_abs_m, s);
+
+      let tsiList = [];
+      for(let i=0; i<ema2_m.length; i++) {
+         if (ema2_m[i] === null || ema2_abs_m[i] === null) continue;
+         let val_m = ema2_m[i];
+         let val_abs = ema2_abs_m[i];
+         if (val_abs === 0) tsiList.push(0);
+         else tsiList.push(parseFloat((100 * (val_m / val_abs)).toFixed(2)));
+      }
+      return tsiList;
+    }
+
     async function fetchIndex(symbol) {
       const wkUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`;
       const dUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
@@ -830,6 +881,12 @@
         const wRsi = wRsi4;
         const wma20Price = calcWMA(wCloses, 20);
         const wma20Rsi   = calcWMA(wRsiArray4, 20);
+        
+        // Calculate historical TSI 21 array to find the Resumption flip
+        const wTsiArray = calcTSIArray(wCloses, 21, 13);
+        const wTsiCurr  = wTsiArray.length > 0 ? wTsiArray[wTsiArray.length - 1] : null;
+        const wTsiPrev  = wTsiArray.length > 1 ? wTsiArray[wTsiArray.length - 2] : null;
+
         // Daily RSI — all three speeds
         const dRsiArray4  = calcRSIHistory(dCloses, 4);
         const dRsiArray8  = calcRSIHistory(dCloses, 8);
@@ -849,6 +906,24 @@
         if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
         else if (wRsi >= 40 && wRsi < 50) regime = "B";
 
+        // TSI Resumption Trigger Logic
+        let tsiTrigger = "—";
+        let tsiColor = "transparent";
+        let tsiBorder = "transparent";
+        if (regime === "A") {
+            if (wTsiPrev !== null && wTsiCurr !== null && wTsiPrev < 0 && wTsiCurr > 0) {
+                tsiTrigger = "🚀 RESUMPTION"; tsiColor = "var(--green-dim)"; tsiBorder = "var(--green)";
+            } else if (wTsiCurr !== null && wTsiCurr < 0) {
+                tsiTrigger = "🎯 DIP ZONE"; tsiColor = "var(--amber-dim)"; tsiBorder = "var(--amber)";
+            } else if (wTsiCurr !== null && wTsiCurr > 30) {
+                tsiTrigger = "🔥 OVERHEATED"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
+            } else if (wTsiCurr !== null && wTsiCurr > 0) {
+                tsiTrigger = "✅ TRENDING"; tsiColor = "var(--surface2)"; tsiBorder = "var(--border2)";
+            }
+        } else if (regime === "B" && wTsiPrev !== null && wTsiCurr !== null && wTsiPrev > 0 && wTsiCurr < 0) {
+            tsiTrigger = "⚠️ BEAR CROSS"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
+        }
+
         let action = "HOLD", rec = "Monitor";
         if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY";    rec = "💎 STRIKE — Optimal Entry"; }
         else if (regime === "A" && dRsi > 70)            { action = "HOLD";   rec = "⚡ OVERHEATED — Wait for daily dip"; }
@@ -856,7 +931,7 @@
         else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
 
         return { price, changePct, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
-                 wma20Price, wma20Rsi, regime, action, rec, divergence };
+                 wma20Price, wma20Rsi, regime, action, rec, divergence, wTsiCurr, tsiTrigger, tsiColor, tsiBorder };
       } catch { return { error: true }; }
     }
 
@@ -1007,7 +1082,7 @@
             </div>
             <div className="header-right">
               {lastUpdated && (
-                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)"}}>
+                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#000000"}}>
                   Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
                   &nbsp;·&nbsp;{lastUpdated.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
                 </span>
@@ -1050,28 +1125,28 @@
               background:"var(--surface)", border:"1px solid var(--border2)",
               padding:"14px 18px", marginBottom:20
             }}>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"var(--text-dim)",
+              <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",
                 letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:10}}>
                 5-Phase Execution Tree
               </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                 {[
-                  { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA",          color:"var(--text-dim)" },
-                  { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed",             color:"var(--text-dim)" },
-                  { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone",        color:"var(--amber)" },
-                  { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach",  color:"var(--red)" },
-                  { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT",        color:"var(--green)" },
+                  { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
+                  { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
+                  { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
+                  { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
+                  { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
                 ].map((p,i) => (
                   <div key={i} style={{
                     display:"flex",alignItems:"center",gap:8,
                     background:"var(--surface2)",border:"1px solid var(--border)",
                     padding:"6px 12px",fontSize:11
                   }}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:p.color,whiteSpace:"nowrap"}}>{p.label}</span>
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text-faint)"}}>{p.desc}</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
+                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
                   </div>
                 ))}
-                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text-faint)",marginLeft:4}}>
+                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
                   ⚠ TD5 (Constituent Rot) requires manual verification
                 </div>
               </div>
@@ -1101,11 +1176,11 @@
                 </div>
                 {vixPrice && (
                   <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
-                    <span style={{color:"var(--text-dim)",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
+                    <span style={{color:"#000000",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
                     <span style={{
                       padding:"3px 10px", borderRadius:2, fontWeight:600,
                       background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
-                      color: vixPrice > 20 ? "var(--red)" : "var(--green)",
+                      color: "#000000",
                       border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
                     }}>{vixPrice.toFixed(1)} {vixPrice > 20 ? "⚠ HIGH" : "✓ OK"}</span>
                   </div>
@@ -1147,6 +1222,8 @@
                       <th style={{textAlign:"center"}}>Weekly RSI 4·8·14</th>
                       <th>WMA20 RSI</th>
                       <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
+                      <th style={{textAlign:"center"}}>TSI 21</th>
+                      <th style={{textAlign:"center"}}>TSI Trigger</th>
                       <th style={{textAlign:"center"}}>Regime</th>
                       <th style={{textAlign:"center"}}>Action</th>
                       <th style={{minWidth:180}}>Execution Verdict</th>
@@ -1163,16 +1240,16 @@
 
                       const et = runExecutionTree(r, vixPrice);
                       const verdictStyle = {
-                        green: { bg:"var(--green-dim)", color:"var(--green)", border:"var(--green)" },
-                        amber: { bg:"var(--amber-dim)", color:"var(--amber)", border:"var(--amber)" },
-                        red:   { bg:"var(--red-dim)",   color:"var(--red)",   border:"var(--red)" },
-                        dim:   { bg:"var(--surface2)",  color:"var(--text-faint)", border:"var(--border2)" },
+                        green: { bg:"var(--green-dim)", color:"#000000", border:"var(--green)" },
+                        amber: { bg:"var(--amber-dim)", color:"#000000", border:"var(--amber)" },
+                        red:   { bg:"var(--red-dim)",   color:"#000000", border:"var(--red)" },
+                        dim:   { bg:"var(--surface2)",  color:"#000000", border:"var(--border2)" },
                       }[et?.color || "dim"];
 
                       return (
                         <tr key={i}>
                           <td className="name-col" title={r.name}>
-                            <span style={{fontSize:10,color:"var(--text-faint)",marginRight:6,fontFamily:"var(--mono)"}}>{r.exchange}</span>
+                            <span style={{fontSize:10,color:"#000000",marginRight:6,fontFamily:"var(--mono)"}}>{r.exchange}</span>
                             {r.name}
                           </td>
                           <td>{r.price?.toFixed(2) ?? "—"}</td>
@@ -1180,9 +1257,8 @@
                           {/* % Change */}
                           <td style={{
                             textAlign:"center", fontFamily:"var(--mono)", fontWeight:600,
-                            color: r.changePct == null ? "var(--text-faint)"
-                                 : r.changePct > 0 ? "var(--green)"
-                                 : r.changePct < 0 ? "var(--red)" : "var(--text-dim)",
+                            color: "#000000",
+                            background: r.changePct > 0 ? "var(--green-bg)" : r.changePct < 0 ? "var(--red-bg)" : "transparent"
                           }}>
                             {r.changePct == null ? "—"
                               : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${r.changePct.toFixed(2)}%`}
@@ -1208,6 +1284,28 @@
 
                           <td>{r.wma20Rsi ?? "—"}</td>
                           <td className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
+                          
+                          {/* TSI 21 Column */}
+                          <td style={{
+                            textAlign:"center", 
+                            fontWeight:600, 
+                            background: r.wTsiCurr > 0 ? "var(--green-dim)" : r.wTsiCurr < 0 ? "var(--red-dim)" : "transparent",
+                            color: "#000000"
+                          }}>
+                            {r.wTsiCurr ?? "—"}
+                          </td>
+
+                          {/* TSI Trigger Column */}
+                          <td style={{textAlign:"center"}}>
+                            <span style={{
+                              display:"inline-block", padding:"3px 8px", borderRadius:2,
+                              fontFamily:"var(--mono)", fontSize:10, fontWeight:600,
+                              background: r.tsiColor, border: `1px solid ${r.tsiBorder}`, color: "#000000"
+                            }}>
+                              {r.tsiTrigger}
+                            </span>
+                          </td>
+
                           <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime} /></td>
                           <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action} /></td>
 
@@ -1226,7 +1324,7 @@
                           </td>
 
                           {/* Trapdoor Detail */}
-                          <td className="rec-col" style={{fontSize:10,color:"var(--text-dim)"}}>
+                          <td className="rec-col" style={{fontSize:10,color:"#000000"}}>
                             {et?.detail ?? "—"}
                           </td>
                         </tr>
