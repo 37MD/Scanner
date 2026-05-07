@@ -86,7 +86,7 @@
     .app-header {
       background: var(--surface);
       border-bottom: 1px solid var(--border2);
-      padding: 16px 24px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -94,6 +94,7 @@
       top: 0;
       z-index: 100;
       backdrop-filter: blur(12px);
+      margin-bottom: 8px; /* Reduced gap */
     }
 
     .brand {
@@ -170,7 +171,7 @@
     .main-wrap {
       max-width: 1500px;
       margin: 0 auto;
-      padding: 24px 20px;
+      padding: 0 20px 24px 20px;
     }
 
     /* ── SACRED RULE BANNER ── */
@@ -178,8 +179,8 @@
       background: linear-gradient(135deg, var(--orange-dim) 0%, transparent 60%);
       border: 1px solid var(--orange);
       border-left: 4px solid var(--orange);
-      padding: 12px 18px;
-      margin-bottom: 20px;
+      padding: 10px 18px;
+      margin-bottom: 8px; /* Reduced gap */
       display: flex;
       align-items: center;
       gap: 10px;
@@ -205,8 +206,8 @@
     .controls-bar {
       background: var(--surface);
       border: 1px solid var(--border2);
-      padding: 14px 18px;
-      margin-bottom: 20px;
+      padding: 10px 18px;
+      margin-bottom: 8px; /* Reduced gap */
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -218,20 +219,22 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      flex-wrap: nowrap; /* Force on same line */
+      flex-wrap: nowrap; 
+      min-width: 0; /* Enables flex shrinking for children */
     }
 
     .actions-wrapper {
       display: flex;
       align-items: center;
       gap: 12px;
-      flex-wrap: nowrap; /* Force on same line */
+      flex-wrap: nowrap;
     }
 
     .filter-group {
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0; /* Critical for inner text overflow */
     }
 
     .filter-label {
@@ -241,6 +244,7 @@
       color: #000000;
       letter-spacing: 1px;
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
     .filter-select {
@@ -249,15 +253,15 @@
       border: 1px solid var(--border2);
       font-family: var(--mono);
       font-size: 12px;
-      padding: 6px 10px;
+      padding: 6px 28px 6px 10px;
       cursor: pointer;
       outline: none;
       appearance: none;
       -webkit-appearance: none;
-      padding-right: 28px;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
+      width: auto;
     }
 
     .filter-select:focus {
@@ -271,7 +275,7 @@
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
-      padding: 9px 22px;
+      padding: 8px 22px;
       border: none;
       cursor: pointer;
       letter-spacing: 1px;
@@ -292,7 +296,7 @@
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
-      padding: 9px 22px;
+      padding: 8px 22px;
       border: 1px solid var(--red);
       cursor: pointer;
       letter-spacing: 1px;
@@ -311,8 +315,8 @@
       border: 1px solid var(--border2);
       border-top: none;
       padding: 10px 18px;
-      margin-top: -20px;
-      margin-bottom: 20px;
+      margin-top: -8px; /* Negative margin to attach to controls */
+      margin-bottom: 8px;
     }
 
     .progress-top {
@@ -358,12 +362,12 @@
 
     table {
       width: 100%;
-      border-collapse: separate; /* Required for stickiness to render cleanly without border glitches */
+      border-collapse: separate; 
       border-spacing: 0;
       font-size: 12px;
     }
 
-    /* Sticky Header (Freeze First Row) */
+    /* Sortable Header Additions */
     thead th {
       position: sticky;
       top: 0;
@@ -379,6 +383,13 @@
       border-bottom: 1px solid var(--border2);
       border-right: 1px solid var(--border);
       white-space: nowrap;
+      cursor: pointer; /* Makes all headers show pointer */
+      user-select: none;
+      transition: background 0.15s;
+    }
+    
+    thead th:hover {
+      background: var(--border2);
     }
 
     /* Sticky Column (Freeze First Column) */
@@ -387,20 +398,21 @@
       position: sticky;
       left: 0;
       z-index: 11;
-      border-right: 2px solid var(--border2); /* Distinguishes the frozen column clearly */
+      border-right: 2px solid var(--border2); 
     }
 
-    /* Top-Left Corner overlap (Needs highest Z-index to cover both axes) */
+    /* Top-Left Corner overlap */
     thead th.name-col {
       z-index: 12;
       background: var(--surface2);
     }
+    thead th.name-col:hover { background: var(--border2); }
 
-    /* Name col Width Adjusted (-7 alphabets = ~ -50px) */
+    /* Name col Width Adjusted */
     th.name-col, td.name-col {
       font-family: var(--sans);
-      min-width: 155px; /* Reduced from 220 */
-      max-width: 200px; /* Reduced from 260 */
+      min-width: 155px; 
+      max-width: 200px; 
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -526,15 +538,26 @@
     /* ── RESPONSIVE OVERRIDES ── */
     @media (max-width: 768px) {
       .app-header { padding: 12px 16px; }
-      .main-wrap { padding: 16px 12px; }
+      .main-wrap { padding: 12px 8px; }
       
-      /* Force UI components into mobile optimized rows */
-      .controls-bar { flex-direction: column; align-items: stretch; gap: 12px; }
-      .filters-wrapper { justify-content: space-between; width: 100%; }
-      .actions-wrapper { justify-content: space-between; width: 100%; }
+      /* Force UI components into mobile optimized rows while preventing overflow */
+      .controls-bar { flex-direction: column; align-items: stretch; gap: 8px; }
       
-      .filter-select { font-size: 11px; padding: 4px 18px 4px 6px; }
+      .filters-wrapper { 
+        justify-content: space-between; 
+        width: 100%; 
+      }
+      .filter-group { flex: 1 1 50%; }
+      .filter-select { 
+        width: 100%; 
+        font-size: 11px; 
+        padding: 4px 20px 4px 6px; 
+        text-overflow: ellipsis; /* Solves Verdict overflow */
+        white-space: nowrap;
+      }
       .filter-label { font-size: 10px; }
+      
+      .actions-wrapper { justify-content: space-between; width: 100%; }
       .btn-scan, .btn-stop { font-size: 10px; padding: 7px 10px; }
       .vix-badge { font-size: 10px !important; padding: 3px 6px !important; }
     }
@@ -781,7 +804,7 @@
          let sumXY = 0;
          let ssY = 0;
          for(let j = 0; j < period; j++) {
-             let xVal = j; // Time linearly increases
+             let xVal = j; 
              let yVal = v[i - period + 1 + j];
              sumXY += (xVal - meanX) * (yVal - meanY);
              ssY += Math.pow(yVal - meanY, 2);
@@ -964,6 +987,9 @@
       const [phaseFilter,  setPhaseFilter]  = useState("ALL");
       const [lastUpdated,  setLastUpdated]  = useState(null);
       const [showExecutionTree, setShowExecutionTree] = useState(false);
+      
+      // Sorting State
+      const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
       const stopRef = useRef(false);
 
       // Live VIX from results
@@ -992,8 +1018,18 @@
         setScanning(false);
       };
 
+      const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+          direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+      };
+
       const sortedRows = useMemo(() => {
         let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
+        
+        // Filtering
         if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
         if (phaseFilter !== "ALL") {
           list = list.filter(r => {
@@ -1001,16 +1037,54 @@
             return et && et.verdict === phaseFilter;
           });
         }
+        
+        // Sorting Logic
+        if (sortConfig.key) {
+          list.sort((a, b) => {
+            let aVal, bVal;
+            
+            if (sortConfig.key === 'priceVsWma') {
+              aVal = (a.price && a.wma20Price) ? (a.price > a.wma20Price ? 1 : -1) : 0;
+              bVal = (b.price && b.wma20Price) ? (b.price > b.wma20Price ? 1 : -1) : 0;
+            } else if (sortConfig.key === 'verdict' || sortConfig.key === 'detail') {
+              const etA = runExecutionTree(a, vixPrice);
+              const etB = runExecutionTree(b, vixPrice);
+              aVal = etA ? etA[sortConfig.key === 'verdict' ? 'label' : 'detail'] : '';
+              bVal = etB ? etB[sortConfig.key === 'verdict' ? 'label' : 'detail'] : '';
+            } else if (sortConfig.key === 'tsiTrigger') {
+              aVal = a.tsiTrigger || '';
+              bVal = b.tsiTrigger || '';
+            } else {
+              aVal = a[sortConfig.key];
+              bVal = b[sortConfig.key];
+            }
+
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+          });
+          return list;
+        }
+
+        // Default Sort
         return list.sort((a, b) => {
           const ord = { A:1, B:2, C:3 };
           const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
           if (ra !== rb) return ra - rb;
           return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
         });
-      }, [results, regimeFilter, phaseFilter, vixPrice]);
+      }, [results, regimeFilter, phaseFilter, vixPrice, sortConfig]);
 
       const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
       const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
+
+      const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return "";
+        return sortConfig.direction === 'asc' ? " ▲" : " ▼";
+      };
 
       return (
         <div>
@@ -1047,7 +1121,7 @@
             {/* ── 5-PHASE EXECUTION TREE LEGEND (ACCORDION) ── */}
             <div style={{
               background:"var(--surface)", border:"1px solid var(--border2)",
-              padding:"14px 18px", marginBottom:20, cursor: "pointer", userSelect: "none"
+              padding:"10px 18px", marginBottom:8, cursor: "pointer", userSelect: "none"
             }} onClick={() => setShowExecutionTree(!showExecutionTree)}>
               <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",
                 letterSpacing:"1.5px",textTransform:"uppercase", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
@@ -1079,7 +1153,7 @@
                     </div>
                   </div>
                   
-                  {/* NEW TSI TRIGGER LINE ITEM */}
+                  {/* TSI TRIGGER LINE ITEM */}
                   <div style={{width: "100%", height: 1, background: "var(--border2)", margin: "4px 0"}}></div>
                   <div style={{display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center"}}>
                     <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#000000"}}>TSI TRIGGERS:</span>
@@ -1121,7 +1195,7 @@
               <div className="actions-wrapper">
                 {vixPrice && (
                   <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
-                    <span style={{color:"#000000",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
+                    <span style={{color:"#000000",letterSpacing:"1px",textTransform:"uppercase",whiteSpace:"nowrap"}}>India VIX</span>
                     <span className="vix-badge" style={{
                       padding:"3px 10px", borderRadius:2, fontWeight:600, whiteSpace:"nowrap",
                       background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
@@ -1156,19 +1230,45 @@
                 <table>
                   <thead>
                     <tr>
-                      <th className="name-col">Index / Scheme</th>
-                      <th>Price</th>
-                      <th style={{textAlign:"center"}}>% Change</th>
-                      <th style={{textAlign:"center"}}>Daily RSI 4·8·14</th>
-                      <th style={{textAlign:"center"}}>Weekly RSI 4·8·14</th>
-                      <th>WMA20 RSI</th>
-                      <th style={{textAlign:"center"}}>P &gt; 20WMA</th>
-                      <th style={{textAlign:"center"}}>TSI 21 (Daily)</th>
-                      <th style={{textAlign:"center"}}>TSI Trigger</th>
-                      <th style={{textAlign:"center"}}>Regime</th>
-                      <th style={{textAlign:"center"}}>Action</th>
-                      <th style={{minWidth:180}}>Execution Verdict</th>
-                      <th style={{minWidth:220}}>Trapdoor / Detail</th>
+                      <th className="name-col" onClick={() => requestSort('name')}>
+                        Index / Scheme{getSortIcon('name')}
+                      </th>
+                      <th onClick={() => requestSort('price')}>
+                        Price{getSortIcon('price')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>
+                        % Change{getSortIcon('changePct')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('dRsi')}>
+                        Daily RSI 4·8·14{getSortIcon('dRsi')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('wRsi')}>
+                        Weekly RSI 4·8·14{getSortIcon('wRsi')}
+                      </th>
+                      <th onClick={() => requestSort('wma20Rsi')}>
+                        WMA20 RSI{getSortIcon('wma20Rsi')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('priceVsWma')}>
+                        P &gt; 20WMA{getSortIcon('priceVsWma')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('dTsiCurr')}>
+                        TSI 21 (Daily){getSortIcon('dTsiCurr')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('tsiTrigger')}>
+                        TSI Trigger{getSortIcon('tsiTrigger')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('regime')}>
+                        Regime{getSortIcon('regime')}
+                      </th>
+                      <th style={{textAlign:"center"}} onClick={() => requestSort('action')}>
+                        Action{getSortIcon('action')}
+                      </th>
+                      <th style={{minWidth:180}} onClick={() => requestSort('verdict')}>
+                        Execution Verdict{getSortIcon('verdict')}
+                      </th>
+                      <th style={{minWidth:220}} onClick={() => requestSort('detail')}>
+                        Trapdoor / Detail{getSortIcon('detail')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
