@@ -201,44 +201,6 @@
       color: #000000;
     }
 
-    /* ── REGIME CARDS ── */
-    .regime-cards {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .regime-card {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      padding: 14px 16px;
-    }
-
-    .regime-card .regime-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      color: #000000;
-    }
-
-    .regime-card .regime-name {
-      font-size: 13px;
-      font-weight: 700;
-      color: #000000;
-      margin-bottom: 4px;
-    }
-
-    .regime-card .regime-desc {
-      font-size: 11px;
-      color: #000000;
-      font-family: var(--mono);
-      line-height: 1.5;
-    }
-
     /* ── CONTROLS BAR ── */
     .controls-bar {
       background: var(--surface);
@@ -293,54 +255,6 @@
 
     .filter-select:focus {
       border-color: var(--orange);
-    }
-
-    .auto-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #000000;
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      user-select: none;
-    }
-
-    .auto-toggle input[type="checkbox"] {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 32px;
-      height: 18px;
-      background: var(--border2);
-      border: 1px solid var(--border2);
-      border-radius: 9px;
-      cursor: pointer;
-      position: relative;
-      transition: background 0.2s;
-    }
-
-    .auto-toggle input[type="checkbox"]::before {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #000000;
-      border-radius: 50%;
-      top: 2px;
-      left: 2px;
-      transition: all 0.2s;
-    }
-
-    .auto-toggle input[type="checkbox"]:checked {
-      background: var(--orange-dim);
-      border-color: var(--orange);
-    }
-
-    .auto-toggle input[type="checkbox"]:checked::before {
-      background: var(--orange);
-      left: 16px;
     }
 
     /* ── BUTTONS ── */
@@ -580,7 +494,6 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .regime-cards { grid-template-columns: 1fr; }
       .app-header { padding: 12px 16px; }
       .main-wrap { padding: 16px 12px; }
     }
@@ -1009,10 +922,10 @@
       const [scanned,      setScanned]      = useState(false);
       const [progress,     setProgress]     = useState({ done: 0, total: 0, label: "" });
       const [results,      setResults]      = useState({});
-      const [autoRefresh,  setAutoRefresh]  = useState(false);
       const [regimeFilter, setRegimeFilter] = useState("ALL");
       const [phaseFilter,  setPhaseFilter]  = useState("ALL");
       const [lastUpdated,  setLastUpdated]  = useState(null);
+      const [showExecutionTree, setShowExecutionTree] = useState(false);
       const stopRef = useRef(false);
 
       // Live VIX from results
@@ -1040,14 +953,6 @@
         setScanned(true);
         setScanning(false);
       };
-
-      useEffect(() => {
-        let id;
-        if (autoRefresh && scanned && !scanning) {
-          id = setInterval(handleScan, 10000);
-        }
-        return () => { if (id) clearInterval(id); };
-      }, [autoRefresh, scanned, scanning]);
 
       const sortedRows = useMemo(() => {
         let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
@@ -1101,57 +1006,41 @@
               <span className="rule-text">True compounders do NOT stay below 40 RSI — Base = 4W RSI</span>
             </div>
 
-            {/* ── REGIME CARDS ── */}
-            <div className="regime-cards">
-              <div className="regime-card a">
-                <div className="regime-label">▲ Regime A</div>
-                <div className="regime-name">Structural Bull</div>
-                <div className="regime-desc">4W RSI ≥ 50 + Price above 20WMA<br/>Pullbacks to Daily RSI 40–50 are entries</div>
-              </div>
-              <div className="regime-card b">
-                <div className="regime-label">◆ Regime B</div>
-                <div className="regime-name">Fatigue Zone</div>
-                <div className="regime-desc">4W RSI 40–49<br/>Retail trap lookout — avoid dip buying</div>
-              </div>
-              <div className="regime-card c">
-                <div className="regime-label">▼ Regime C</div>
-                <div className="regime-name">Trust Break</div>
-                <div className="regime-desc">4W RSI &lt; 40<br/>Institutional exit — never average down</div>
-              </div>
-            </div>
-
-            {/* ── 5-PHASE EXECUTION TREE LEGEND ── */}
+            {/* ── 5-PHASE EXECUTION TREE LEGEND (ACCORDION) ── */}
             <div style={{
               background:"var(--surface)", border:"1px solid var(--border2)",
-              padding:"14px 18px", marginBottom:20
-            }}>
+              padding:"14px 18px", marginBottom:20, cursor: "pointer", userSelect: "none"
+            }} onClick={() => setShowExecutionTree(!showExecutionTree)}>
               <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",
-                letterSpacing:"1.5px",textTransform:"uppercase",marginBottom:10}}>
-                5-Phase Execution Tree
+                letterSpacing:"1.5px",textTransform:"uppercase", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                <span>5-Phase Execution Tree</span>
+                <span>{showExecutionTree ? "▼" : "▶"}</span>
               </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                {[
-                  { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
-                  { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
-                  { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
-                  { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
-                  { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
-                ].map((p,i) => (
-                  <div key={i} style={{
-                    display:"flex",alignItems:"center",gap:8,
-                    background:"var(--surface2)",border:"1px solid var(--border)",
-                    padding:"6px 12px",fontSize:11
-                  }}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
+              
+              {showExecutionTree && (
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center", marginTop: 12}}>
+                  {[
+                    { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
+                    { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
+                    { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
+                    { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
+                    { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
+                  ].map((p,i) => (
+                    <div key={i} style={{
+                      display:"flex",alignItems:"center",gap:8,
+                      background:"var(--surface2)",border:"1px solid var(--border)",
+                      padding:"6px 12px",fontSize:11
+                    }}>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
+                    </div>
+                  ))}
+                  <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
+                    ⚠ TD5 (Constituent Rot) requires manual verification
                   </div>
-                ))}
-                <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
-                  ⚠ TD5 (Constituent Rot) requires manual verification
                 </div>
-              </div>
+              )}
             </div>
-
 
             <div className="controls-bar">
               <div className="controls-left">
@@ -1185,10 +1074,6 @@
                     }}>{vixPrice.toFixed(1)} {vixPrice > 20 ? "⚠ HIGH" : "✓ OK"}</span>
                   </div>
                 )}
-                <label className="auto-toggle">
-                  <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
-                  Auto-Refresh 10s
-                </label>
               </div>
               {!scanning
                 ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
