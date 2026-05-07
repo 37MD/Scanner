@@ -214,11 +214,18 @@
       gap: 12px;
     }
 
-    .controls-left {
+    .filters-wrapper {
       display: flex;
       align-items: center;
       gap: 12px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap; /* Force on same line */
+    }
+
+    .actions-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: nowrap; /* Force on same line */
     }
 
     .filter-group {
@@ -271,6 +278,7 @@
       text-transform: uppercase;
       transition: all 0.15s;
       clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+      white-space: nowrap;
     }
 
     .btn-scan:hover {
@@ -290,6 +298,7 @@
       letter-spacing: 1px;
       text-transform: uppercase;
       transition: all 0.15s;
+      white-space: nowrap;
     }
 
     .btn-stop:hover {
@@ -373,8 +382,8 @@
     }
 
     /* Sticky Column (Freeze First Column) */
-    tbody td:first-child,
-    thead th:first-child {
+    tbody td.name-col,
+    thead th.name-col {
       position: sticky;
       left: 0;
       z-index: 11;
@@ -382,15 +391,30 @@
     }
 
     /* Top-Left Corner overlap (Needs highest Z-index to cover both axes) */
-    thead th:first-child {
+    thead th.name-col {
       z-index: 12;
       background: var(--surface2);
     }
 
+    /* Name col Width Adjusted (-7 alphabets = ~ -50px) */
+    th.name-col, td.name-col {
+      font-family: var(--sans);
+      min-width: 155px; /* Reduced from 220 */
+      max-width: 200px; /* Reduced from 260 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td.name-col {
+      font-size: 12px;
+      font-weight: 600;
+      color: #000000;
+    }
+
     /* Alternating row backgrounds mapped onto the sticky column to prevent transparency */
-    tbody tr:nth-child(even) td:first-child { background: #f0f0f5; }
-    tbody tr:nth-child(odd)  td:first-child { background: var(--surface); }
-    tbody tr:hover td:first-child { background: var(--border2) !important; }
+    tbody tr:nth-child(even) td.name-col { background: #f0f0f5; }
+    tbody tr:nth-child(odd)  td.name-col { background: var(--surface); }
+    tbody tr:hover td.name-col { background: var(--border2) !important; }
 
     /* Standard cell borders */
     tbody td {
@@ -460,19 +484,6 @@
       color: #000000;
     }
 
-    /* Name col */
-    td.name-col {
-      font-family: var(--sans);
-      font-size: 12px;
-      font-weight: 600;
-      color: #000000;
-      min-width: 220px;
-      max-width: 260px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
     /* Rec col */
     td.rec-col {
       font-family: var(--mono);
@@ -512,10 +523,20 @@
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #000000; }
 
-    /* ── RESPONSIVE ── */
+    /* ── RESPONSIVE OVERRIDES ── */
     @media (max-width: 768px) {
       .app-header { padding: 12px 16px; }
       .main-wrap { padding: 16px 12px; }
+      
+      /* Force UI components into mobile optimized rows */
+      .controls-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+      .filters-wrapper { justify-content: space-between; width: 100%; }
+      .actions-wrapper { justify-content: space-between; width: 100%; }
+      
+      .filter-select { font-size: 11px; padding: 4px 18px 4px 6px; }
+      .filter-label { font-size: 10px; }
+      .btn-scan, .btn-stop { font-size: 10px; padding: 7px 10px; }
+      .vix-badge { font-size: 10px !important; padding: 3px 6px !important; }
     }
   </style>
 </head>
@@ -1030,37 +1051,52 @@
             }} onClick={() => setShowExecutionTree(!showExecutionTree)}>
               <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",
                 letterSpacing:"1.5px",textTransform:"uppercase", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                <span>5-Phase Execution Tree</span>
+                <span>5-Phase Execution Tree & TSI Triggers</span>
                 <span>{showExecutionTree ? "▼" : "▶"}</span>
               </div>
               
               {showExecutionTree && (
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center", marginTop: 12}}>
-                  {[
-                    { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
-                    { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
-                    { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
-                    { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
-                    { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
-                  ].map((p,i) => (
-                    <div key={i} style={{
-                      display:"flex",alignItems:"center",gap:8,
-                      background:"var(--surface2)",border:"1px solid var(--border)",
-                      padding:"6px 12px",fontSize:11
-                    }}>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
+                <div style={{display:"flex",gap:8,flexDirection:"column", marginTop: 12}}>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                    {[
+                      { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
+                      { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
+                      { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
+                      { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
+                      { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
+                    ].map((p,i) => (
+                      <div key={i} style={{
+                        display:"flex",alignItems:"center",gap:8,
+                        background:"var(--surface2)",border:"1px solid var(--border)",
+                        padding:"6px 12px",fontSize:11
+                      }}>
+                        <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
+                        <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
+                      </div>
+                    ))}
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
+                      ⚠ TD5 (Constituent Rot) requires manual verification
                     </div>
-                  ))}
-                  <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
-                    ⚠ TD5 (Constituent Rot) requires manual verification
+                  </div>
+                  
+                  {/* NEW TSI TRIGGER LINE ITEM */}
+                  <div style={{width: "100%", height: 1, background: "var(--border2)", margin: "4px 0"}}></div>
+                  <div style={{display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center"}}>
+                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#000000"}}>TSI TRIGGERS:</span>
+                    <div style={{display:"flex", gap:"6px 12px", flexWrap:"wrap"}}>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🚀 <b>RESUMPTION:</b> 0-Line Cross</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🎯 <b>DIP ZONE:</b> &lt; 0</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🔥 <b>OVERHEATED:</b> &gt; 0.85</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>✅ <b>TRENDING:</b> &gt; 0</span>
+                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>⚠️ <b>BEAR CROSS:</b> Drop &lt; 0</span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="controls-bar">
-              <div className="controls-left">
+              <div className="filters-wrapper">
                 <div className="filter-group">
                   <span className="filter-label">Regime</span>
                   <select className="filter-select" value={regimeFilter} onChange={e => setRegimeFilter(e.target.value)}>
@@ -1080,22 +1116,25 @@
                     <option value="ABORT">💀 Abort</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="actions-wrapper">
                 {vixPrice && (
                   <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
                     <span style={{color:"#000000",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
-                    <span style={{
-                      padding:"3px 10px", borderRadius:2, fontWeight:600,
+                    <span className="vix-badge" style={{
+                      padding:"3px 10px", borderRadius:2, fontWeight:600, whiteSpace:"nowrap",
                       background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
                       color: "#000000",
                       border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
                     }}>{vixPrice.toFixed(1)} {vixPrice > 20 ? "⚠ HIGH" : "✓ OK"}</span>
                   </div>
                 )}
+                {!scanning
+                  ? <button className="btn-scan" onClick={handleScan}>⚡ Execute Audit</button>
+                  : <button className="btn-stop" onClick={() => { stopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
+                }
               </div>
-              {!scanning
-                ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
-                : <button className="btn-stop" onClick={() => { stopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
-              }
             </div>
 
             {/* ── PROGRESS ── */}
@@ -1117,7 +1156,7 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Index / Scheme</th>
+                      <th className="name-col">Index / Scheme</th>
                       <th>Price</th>
                       <th style={{textAlign:"center"}}>% Change</th>
                       <th style={{textAlign:"center"}}>Daily RSI 4·8·14</th>
