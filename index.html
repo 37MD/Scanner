@@ -1082,7 +1082,7 @@
       const [keyStatus,   setKeyStatus]   = useState('');
       const baStopRef = useRef(false);
 
-      // Gemini BA call — ask for % weight in Regime A for a single index
+      // Gemini BA call — UPDATED: Custom cascade array
       async function callGeminiBA(indexName, wRsi4) {
         const key = (localStorage.getItem('ld_scanner_gemini_key') || '').trim();
         if (!key || key.length < 20) return null;
@@ -1096,11 +1096,21 @@ TASK: Estimate the percentage of this index's total market-cap weight whose cons
 
 Use your knowledge of current constituent weights and recent price behaviour.
 
-Return ONLY valid JSON — no markdown, no explanation:
+Return ONLY valid JSON:
 {"regime_a_weight_pct": <number 0-100>, "bull_count": <integer>, "total_count": <integer>, "top_regime_a": ["Stock1","Stock2","Stock3"], "confidence": "HIGH or MEDIUM or LOW", "note": "one sentence"}`;
 
-        const payload = { contents: [{ parts: [{ text: prompt }] }] };
-        const models  = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+        const payload = { 
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" } // FORCES NATIVE JSON
+        };
+        
+        // UPDATED: Custom cascade as requested
+        const models  = [
+          'gemini-3.1-flash-lite',
+          'gemini-3-flash',
+          'gemini-3.1-pro',
+          'gemini-3.1-flash-lite'
+        ];
 
         for (const model of models) {
           try {
@@ -1111,17 +1121,22 @@ Return ONLY valid JSON — no markdown, no explanation:
               body: JSON.stringify(payload),
               signal: AbortSignal.timeout(20000)
             });
-            if (res.status === 429) continue;
+            
             const data = await res.json();
-            if (data.error) { if (data.error.code === 429) continue; return null; }
-            let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-            // CORRECTED: Strip markdown fences without breaking JS regex syntax
-            raw = raw.replace(/^```[a-z]*\n?/i,'').replace(/\n?```$/,'').trim();
-            const js = raw.indexOf('{'), je = raw.lastIndexOf('}');
-            if (js !== -1 && je > js) raw = raw.slice(js, je+1);
+            
+            if (data.error) {
+              console.warn(`Gemini API Error for ${model}:`, data.error);
+              if (data.error.code === 429) continue; // Rate Limit Hit -> Try next model
+              continue; // 404 or others -> Try next model
+            }
+            
+            const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
             const parsed = JSON.parse(raw);
             return parsed;
-          } catch(_) { continue; }
+          } catch(err) { 
+            console.warn(`Gemini BA Exception on ${model}:`, err);
+            continue; 
+          }
         }
         return null;
       }
@@ -1195,7 +1210,10 @@ Return ONLY valid JSON — no markdown, no explanation:
             }));
             baIdx++;
             setProgress({ done: total, total, label: `BA ${baIdx}/${regimeAList.length}: ${idx.name}` });
-            if (baIdx < regimeAList.length) await sleep(2200); // rate-limit spacing
+            
+            // FIX: Prevent 429 Too Many Requests. Free tier allows 15 requests per minute.
+            // 4200ms sleep ensures we stay safely at ~14 requests per minute.
+            if (baIdx < regimeAList.length) await sleep(4200); 
           }
           setProgress({ done: total, total, label: "Scan + BA complete" });
         }
