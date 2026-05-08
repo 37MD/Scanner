@@ -14,7 +14,7 @@
   <link rel="manifest" href="./manifest.json">
 
   <script>
-    if ('serviceWorker' in navigator && location.hostname !== 'www.claudeusercontent.com') {
+    if ('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent.com')) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then(r => console.log('SW ready:', r.scope))
@@ -535,6 +535,86 @@
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #000000; }
 
+    /* ── BA REGIME A COLUMN ── */
+    .ba-loading {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: baSpin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes baSpin { to { transform: rotate(360deg); } }
+
+    .ba-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 2px;
+      min-width: 48px;
+      text-align: center;
+      color: #000000;
+    }
+    .ba-strong  { background: var(--green-dim);  border: 1px solid var(--green); }
+    .ba-moderate{ background: var(--amber-dim);  border: 1px solid var(--amber); }
+    .ba-weak    { background: var(--red-dim);    border: 1px solid var(--red);   }
+    .ba-na      { background: var(--surface2);   border: 1px solid var(--border2); color:#000 !important; }
+
+    /* ── API KEY BAR ── */
+    .ba-key-bar {
+      background: var(--surface);
+      border: 1px solid var(--orange);
+      border-left: 4px solid var(--orange);
+      padding: 8px 18px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .ba-key-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #000000;
+      white-space: nowrap;
+    }
+    .ba-key-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      color: #000000;
+      outline: none;
+    }
+    .ba-key-input:focus { border-color: var(--orange); }
+    .ba-key-save {
+      background: var(--orange);
+      color: #000000;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 16px;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .ba-key-status {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #000000;
+    }
+
     /* ── RESPONSIVE OVERRIDES ── */
     @media (max-width: 768px) {
       .app-header { padding: 12px 16px; }
@@ -992,6 +1072,72 @@
       const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
       const stopRef = useRef(false);
 
+      // ── BA: % Regime A by Weight ──────────────────────────────────────────
+      // baResults: { [symbol]: { pct: number|null, status: 'loading'|'done'|'error'|'skip', label: string } }
+      const [baResults,   setBaResults]   = useState({});
+      const [geminiKey,   setGeminiKey]   = useState(() => {
+        try { return localStorage.getItem('ld_scanner_gemini_key') || ''; } catch(_) { return ''; }
+      });
+      const [keyInput,    setKeyInput]    = useState('');
+      const [keyStatus,   setKeyStatus]   = useState('');
+      const baStopRef = useRef(false);
+
+      // Gemini BA call — ask for % weight in Regime A for a single index
+      async function callGeminiBA(indexName, wRsi4) {
+        const key = (localStorage.getItem('ld_scanner_gemini_key') || '').trim();
+        if (!key || key.length < 20) return null;
+        const regime = wRsi4 >= 50 ? 'A (Hope)' : wRsi4 >= 40 ? 'B (Watch)' : 'C (Fear)';
+        const prompt = `You are a constituent breadth analyst for Indian equity indices.
+
+INDEX: ${indexName}
+Index W-RSI(4): ${Math.round(wRsi4)} → Regime ${regime}
+
+TASK: Estimate the percentage of this index's total market-cap weight whose constituent stocks are currently in Regime A (Weekly RSI ≥ 50, price above 20-week MA — i.e. genuine uptrend / Hope regime).
+
+Use your knowledge of current constituent weights and recent price behaviour.
+
+Return ONLY valid JSON — no markdown, no explanation:
+{"regime_a_weight_pct": <number 0-100>, "bull_count": <integer>, "total_count": <integer>, "top_regime_a": ["Stock1","Stock2","Stock3"], "confidence": "HIGH or MEDIUM or LOW", "note": "one sentence"}`;
+
+        const payload = { contents: [{ parts: [{ text: prompt }] }] };
+        const models  = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+
+        for (const model of models) {
+          try {
+            const ep  = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+            const res = await fetch(ep, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: AbortSignal.timeout(20000)
+            });
+            if (res.status === 429) continue;
+            const data = await res.json();
+            if (data.error) { if (data.error.code === 429) continue; return null; }
+            let raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+            // Strip markdown fences
+            raw = raw.replace(/^```[a-z]*
+?/i,'').replace(/
+?```$/,'').trim();
+            const js = raw.indexOf('{'), je = raw.lastIndexOf('}');
+            if (js !== -1 && je > js) raw = raw.slice(js, je+1);
+            const parsed = JSON.parse(raw);
+            return parsed;
+          } catch(_) { continue; }
+        }
+        return null;
+      }
+
+      function saveGeminiKey() {
+        const k = keyInput.trim();
+        if (!k || k.length < 20) { setKeyStatus('⚠ Too short'); return; }
+        try { localStorage.setItem('ld_scanner_gemini_key', k); } catch(_) {}
+        setGeminiKey(k);
+        setKeyInput('');
+        setKeyStatus('✅ Key saved');
+        setTimeout(() => setKeyStatus(''), 2500);
+      }
+
       // Live VIX from results
       const vixPrice = results["^INDIAVIX"]?.price ?? null;
 
@@ -1016,6 +1162,45 @@
         setLastUpdated(new Date());
         setScanned(true);
         setScanning(false);
+
+        // ── BA PHASE: call Gemini for every Regime A index ────────────────
+        const storedKey = (localStorage.getItem('ld_scanner_gemini_key') || '').trim();
+        if (storedKey && storedKey.length >= 20) {
+          baStopRef.current = false;
+          // Collect Regime A indices from tempResults
+          const regimeAList = toFetch.filter(idx => {
+            const d = tempResults[idx.symbol];
+            return d && !d.error && d.regime === 'A';
+          });
+
+          // Mark all as loading
+          const initBA = {};
+          regimeAList.forEach(idx => { initBA[idx.symbol] = { status: 'loading', pct: null }; });
+          setBaResults(prev => ({ ...prev, ...initBA }));
+
+          let baIdx = 0;
+          for (const idx of regimeAList) {
+            if (baStopRef.current) break;
+            const result = await callGeminiBA(idx.name, tempResults[idx.symbol].wRsi4);
+            const pct = result?.regime_a_weight_pct ?? null;
+            const conf = result?.confidence ?? '';
+            setBaResults(prev => ({
+              ...prev,
+              [idx.symbol]: {
+                status: pct !== null ? 'done' : 'error',
+                pct,
+                bull:  result?.bull_count ?? null,
+                total: result?.total_count ?? null,
+                conf,
+                note:  result?.note ?? ''
+              }
+            }));
+            baIdx++;
+            setProgress({ done: total, total, label: `BA ${baIdx}/${regimeAList.length}: ${idx.name}` });
+            if (baIdx < regimeAList.length) await sleep(2200); // rate-limit spacing
+          }
+          setProgress({ done: total, total, label: "Scan + BA complete" });
+        }
       };
 
       const requestSort = (key) => {
@@ -1054,6 +1239,9 @@
             } else if (sortConfig.key === 'tsiTrigger') {
               aVal = a.tsiTrigger || '';
               bVal = b.tsiTrigger || '';
+            } else if (sortConfig.key === 'baPct') {
+              aVal = baResults[a.symbol]?.pct ?? -1;
+              bVal = baResults[b.symbol]?.pct ?? -1;
             } else {
               aVal = a[sortConfig.key];
               bVal = b[sortConfig.key];
@@ -1111,6 +1299,31 @@
           </header>
 
           <div className="main-wrap">
+
+            {/* ── GEMINI API KEY BAR ── */}
+            <div className="ba-key-bar">
+              <span className="ba-key-label">🤖 Gemini Key</span>
+              {geminiKey
+                ? <span className="ba-key-status">✅ Key saved — BA will run for Regime A indices after scan</span>
+                : <span className="ba-key-status" style={{color:"#c97a00"}}>⚠ No key — BA column will be empty</span>
+              }
+              <input
+                className="ba-key-input"
+                type="password"
+                placeholder="Paste AIza… key (39 chars) — stored in localStorage"
+                value={keyInput}
+                onChange={e => setKeyInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveGeminiKey()}
+              />
+              <button className="ba-key-save" onClick={saveGeminiKey}>Save Key</button>
+              {keyStatus && <span className="ba-key-status">{keyStatus}</span>}
+              {geminiKey && (
+                <button className="ba-key-save" style={{background:"var(--red-bg)",border:"1px solid var(--red)"}}
+                  onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key');}catch(_){} setGeminiKey(''); setKeyStatus('Key cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
+                  Clear
+                </button>
+              )}
+            </div>
 
             {/* ── SACRED RULE ── */}
             <div className="sacred-rule">
@@ -1206,7 +1419,7 @@
                 )}
                 {!scanning
                   ? <button className="btn-scan" onClick={handleScan}>⚡ Execute Audit</button>
-                  : <button className="btn-stop" onClick={() => { stopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
+                  : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
                 }
               </div>
             </div>
@@ -1268,6 +1481,10 @@
                       </th>
                       <th style={{minWidth:220}} onClick={() => requestSort('detail')}>
                         Trapdoor / Detail{getSortIcon('detail')}
+                      </th>
+                      <th style={{textAlign:"center",minWidth:90}} onClick={() => requestSort('baPct')}
+                        title="% of index market-cap weight in Regime A (W-RSI ≥ 50) — Gemini AI estimate, Regime A indices only">
+                        % Wt Regime A{getSortIcon('baPct')}
                       </th>
                     </tr>
                   </thead>
@@ -1367,6 +1584,39 @@
                           {/* Trapdoor Detail */}
                           <td className="rec-col" style={{fontSize:10,color:"#000000"}}>
                             {et?.detail ?? "—"}
+                          </td>
+
+                          {/* % Weight Regime A — BA column */}
+                          <td style={{textAlign:"center"}}>
+                            {(() => {
+                              // Only show for Regime A
+                              if (r.regime !== 'A') {
+                                return <span className="ba-pill ba-na">—</span>;
+                              }
+                              const ba = baResults[r.symbol];
+                              if (!ba) {
+                                // Key present but scan not yet run / BA not triggered
+                                const hasKey = !!(localStorage.getItem('ld_scanner_gemini_key') || '').trim();
+                                return <span className="ba-pill ba-na" style={{fontSize:9}}>{hasKey ? 'Scan to get' : 'No key'}</span>;
+                              }
+                              if (ba.status === 'loading') {
+                                return <span className="ba-loading" title="Gemini BA running…" />;
+                              }
+                              if (ba.status === 'error' || ba.pct === null) {
+                                return <span className="ba-pill ba-na" title={ba.note || ''}>ERR</span>;
+                              }
+                              const pct = ba.pct;
+                              const cls = pct >= 60 ? 'ba-strong' : pct >= 40 ? 'ba-moderate' : 'ba-weak';
+                              const confBadge = ba.conf === 'HIGH' ? '●' : ba.conf === 'MEDIUM' ? '◑' : '○';
+                              return (
+                                <span
+                                  className={`ba-pill ${cls}`}
+                                  title={`${pct}% in Regime A | ${ba.bull ?? '?'}/${ba.total ?? '?'} stocks | Confidence: ${ba.conf} | ${ba.note || ''}`}
+                                >
+                                  {pct}% {confBadge}
+                                </span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       );
