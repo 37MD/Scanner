@@ -765,6 +765,7 @@
     ];
 
     const PROXY = "https://corsproxy.io/?";
+    const LOCAL_NSE_SERVER = 'http://localhost:3000'; // optional Node.js server
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     function calcRSIHistory(closes, period) {
@@ -860,48 +861,63 @@
       } catch { return { error: true }; }
     }
 
-    // ─── NSE BATCH FETCH (for indices without Yahoo symbols) ────────────────
+    // ─── NSE BATCH FETCH (multi-proxy fallback) ────────────────────────────
+    // Try proxies in order. Local Node.js server (nse-server.js) is fastest.
+    const NSE_PROXIES = [
+      u => `${LOCAL_NSE_SERVER}/api/indices`, // local server (ignores u)
+      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    ];
+
     async function fetchNSEAllIndices() {
       const nseUrl = 'https://www.nseindia.com/api/allIndices';
-      try {
-        // Some proxies need a warm-up request for NSE cookies
-        await fetch(PROXY + encodeURIComponent('https://www.nseindia.com/'), {
-          signal: AbortSignal.timeout(10000)
-        }).catch(() => {});
-        const res = await fetch(PROXY + encodeURIComponent(nseUrl), {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Referer': 'https://www.nseindia.com/'
-          },
-          signal: AbortSignal.timeout(30000)
-        });
-        if (!res.ok) throw new Error('NSE API returned ' + res.status);
-        const json = await res.json();
-        return json.data || [];
-      } catch (e) {
-        console.warn('NSE batch fetch failed:', e.message);
-        return [];
+      const errors = [];
+
+      for (const buildUrl of NSE_PROXIES) {
+        try {
+          // Warm-up for session cookies
+          await fetch(buildUrl('https://www.nseindia.com/'), {
+            signal: AbortSignal.timeout(8000)
+          }).catch(() => {});
+
+          const res = await fetch(buildUrl(nseUrl), {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': 'application/json',
+              'Referer': 'https://www.nseindia.com/'
+            },
+            signal: AbortSignal.timeout(25000)
+          });
+          if (!res.ok) { errors.push(`${buildUrl(nseUrl).slice(0,40)}… → ${res.status}`); continue; }
+          const json = await res.json();
+          if (json?.data?.length) return json.data;
+          errors.push('empty data from NSE API');
+        } catch (e) {
+          errors.push(e.message.slice(0, 60));
+        }
       }
+      console.warn('NSE batch fetch failed (all proxies):', errors.join(' | '));
+      return [];
     }
 
-    // Normalize NSE index names for fuzzy matching
+    // Normalize for fuzzy matching
     function normalizeName(n) {
-      return n.replace(/[^a-z0-9]/gi, '').toLowerCase();
+      return (n || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
     }
 
-    // Build a map: normalized name -> { price, changePct } from NSE response
+    // Build lookup map from NSE response
     function mapNSEData(nseIndices) {
       const map = {};
       nseIndices.forEach(idx => {
         const key = normalizeName(idx.index);
+        const toNum = v => { const n = Number(v); return isNaN(n) ? null : n; };
         map[key] = {
-          price: parseFloat(idx.last) || null,
-          changePct: parseFloat(idx.percentChange) || null,
-          variation: parseFloat(idx.variation) || null,
-          open: parseFloat(idx.open) || null,
-          high: parseFloat(idx.high) || null,
-          low: parseFloat(idx.low) || null,
+          price: toNum(idx.last),
+          changePct: toNum(idx.percentChange),
+          variation: toNum(idx.variation),
+          open: toNum(idx.open),
+          high: toNum(idx.high),
+          low: toNum(idx.low),
           _nseSource: true
         };
       });
@@ -986,6 +1002,7 @@
       const [regimeFilter, setRegimeFilter] = useState("ALL");
       const [phaseFilter,  setPhaseFilter]  = useState("ALL");
       const [lastUpdated,  setLastUpdated]  = useState(null);
+      const [nseStatus,    setNseStatus]    = useState(null); // null | 'fetching' | 'ok' | 'fail'
       const stopRef = useRef(false);
 
       // Live VIX from results
@@ -994,6 +1011,7 @@
       const handleScan = async () => {
         stopRef.current = false;
         setScanning(true);
+        setNseStatus('fetching');
         let tempResults = { ...results };
 
         // Step 1: Fetch NSE batch data (all indices in one call)
@@ -1001,6 +1019,7 @@
         const nseIndices = await fetchNSEAllIndices();
         const nseMap = mapNSEData(nseIndices);
         const matchedNames = new Set();
+        setNseStatus(nseIndices.length > 0 ? 'ok' : 'fail');
 
         // Seed NSE data for ALL_INDICES entries that match NSE response
         ALL_INDICES.forEach(idx => {
@@ -1049,13 +1068,14 @@
       }, [autoRefresh, scanned, scanning]);
 
       const sortedRows = useMemo(() => {
-        // Include indices WITH Yahoo symbols + NSE-only indices that have data
+        // Include ALL indices, using Yahoo (preferred) or NSE fallback
         let list = ALL_INDICES.map(idx => {
           const yahooData = idx.symbol ? results[idx.symbol] : null;
           const nseKey = `_nse_${normalizeName(idx.name)}`;
           const nseData = results[nseKey];
-          const data = yahooData || nseData || {};
-          return { ...idx, ...data };
+          // Prefer Yahoo data unless it errored out
+          const best = (yahooData && !yahooData.error) ? yahooData : (nseData || {});
+          return { ...idx, ...best };
         }).filter(r => r.price != null || r._nseSource || results[r.symbol]);
 
         if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
@@ -1097,6 +1117,16 @@
               <span className={`live-dot ${scanning ? 'active' : ''}`}>
                 {scanning ? `SCANNING ${pct}%` : scanned ? 'LAST SCAN DONE' : 'READY'}
               </span>
+              {nseStatus && !scanning && (
+                <span style={{
+                  fontFamily:"var(--mono)", fontSize:10, padding:"3px 8px", borderRadius:2,
+                  background: nseStatus === 'ok' ? 'var(--green-dim)' : 'var(--red-dim)',
+                  color: nseStatus === 'ok' ? 'var(--green)' : 'var(--red)',
+                  border: `1px solid ${nseStatus === 'ok' ? 'var(--green)' : 'var(--red)'}`
+                }}>
+                  NSE {nseStatus === 'ok' ? '✓' : '✗'}
+                </span>
+              )}
             </div>
           </header>
 
@@ -1322,6 +1352,12 @@
                 <div className="big-icon">📡</div>
                 <h2>Ready to Scan</h2>
                 <p>Tap ⚡ to audit all {ALL_INDICES.length} indices via Yahoo Finance + NSE live API</p>
+                {nseStatus === 'fail' && (
+                  <p style={{color:"var(--red)",fontSize:11,marginTop:8}}>
+                    ⚠ NSE live API unreachable — indices without Yahoo symbols will not show price data.
+                    Check browser console for details.
+                  </p>
+                )}
               </div>
             )}
 
