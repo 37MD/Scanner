@@ -871,32 +871,26 @@
 
     async function fetchNSEAllIndices() {
       const nseUrl = 'https://www.nseindia.com/api/allIndices';
-      const errors = [];
-
-      for (const buildUrl of NSE_PROXIES) {
-        try {
-          // Warm-up for session cookies
-          await fetch(buildUrl('https://www.nseindia.com/'), {
-            signal: AbortSignal.timeout(8000)
-          }).catch(() => {});
-
-          const res = await fetch(buildUrl(nseUrl), {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Accept': 'application/json',
-              'Referer': 'https://www.nseindia.com/'
-            },
-            signal: AbortSignal.timeout(25000)
-          });
-          if (!res.ok) { errors.push(`${buildUrl(nseUrl).slice(0,40)}… → ${res.status}`); continue; }
-          const json = await res.json();
-          if (json?.data?.length) return json.data;
-          errors.push('empty data from NSE API');
-        } catch (e) {
-          errors.push(e.message.slice(0, 60));
-        }
-      }
-      console.warn('NSE batch fetch failed (all proxies):', errors.join(' | '));
+      // Try all proxies in parallel, take the first success
+      const results = await Promise.allSettled(NSE_PROXIES.map(async (buildUrl, i) => {
+        const url = buildUrl(nseUrl);
+        const timeout = i === 0 ? 3000 : 8000; // localhost check is fast
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Referer': 'https://www.nseindia.com/'
+          },
+          signal: AbortSignal.timeout(timeout)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (!json?.data?.length) throw new Error('empty data');
+        return json.data;
+      }));
+      const ok = results.find(r => r.status === 'fulfilled');
+      if (ok) return ok.value;
+      console.warn('NSE batch fetch failed:', results.map(r => r.reason?.message).join(' | '));
       return [];
     }
 
@@ -1013,46 +1007,43 @@
         setScanning(true);
         setNseStatus('fetching');
         let tempResults = { ...results };
-
-        // Step 1: Fetch NSE batch data (all indices in one call)
-        setProgress({ done: 0, total: 0, label: "Fetching NSE real-time data…" });
-        const nseIndices = await fetchNSEAllIndices();
-        const nseMap = mapNSEData(nseIndices);
-        const matchedNames = new Set();
-        setNseStatus(nseIndices.length > 0 ? 'ok' : 'fail');
-
-        // Seed NSE data for ALL_INDICES entries that match NSE response
-        ALL_INDICES.forEach(idx => {
-          const key = normalizeName(idx.name);
-          if (nseMap[key]) {
-            const sym = idx.symbol || `_nse_${key}`;
-            tempResults[sym] = { ...nseMap[key], name: idx.name };
-            matchedNames.add(key);
-          }
-        });
-
-        // Log unmatched NSE indices (for debugging)
-        nseIndices.forEach(idx => {
-          if (!matchedNames.has(normalizeName(idx.index))) {
-            console.log('Unmatched NSE index:', idx.index);
-          }
-        });
-
-        // Step 2: Fetch Yahoo data for indices WITH symbols
         const toFetch = ALL_INDICES.filter(i => i.symbol);
         const total   = toFetch.length;
-        let done = 0;
 
+        // Start NSE fetch in background (non-blocking)
+        const nsePromise = fetchNSEAllIndices().then(nseIndices => {
+          const nseMap = mapNSEData(nseIndices);
+          const matchedNames = new Set();
+          setNseStatus(nseIndices.length > 0 ? 'ok' : 'fail');
+          ALL_INDICES.forEach(idx => {
+            const key = normalizeName(idx.name);
+            if (nseMap[key]) {
+              const sym = idx.symbol || `_nse_${key}`;
+              tempResults[sym] = { ...nseMap[key], name: idx.name };
+              matchedNames.add(key);
+            }
+          });
+          nseIndices.forEach(idx => {
+            if (!matchedNames.has(normalizeName(idx.index)))
+              console.log('Unmatched NSE index:', idx.index);
+          });
+          setResults({ ...tempResults });
+        }).catch(() => setNseStatus('fail'));
+
+        // Yahoo scan runs immediately
+        let done = 0;
         for (const idx of toFetch) {
           if (stopRef.current) break;
-          setProgress({ done, total, label: `Scanning ${idx.name}…` });
+          setProgress({ done, total, label: `${idx.name}` });
           const data = await fetchIndex(idx.symbol);
           done++;
           tempResults[idx.symbol] = { ...data, name: idx.name };
           setResults({ ...tempResults });
-          setProgress({ done, total, label: `${idx.name}` });
           await sleep(500);
         }
+
+        // Wait for NSE to finish if still pending
+        await nsePromise;
         setProgress({ done: total, total, label: "Scan complete" });
         setLastUpdated(new Date());
         setScanned(true);
