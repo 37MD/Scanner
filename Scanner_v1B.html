@@ -764,8 +764,13 @@
       { name:"Nifty 50 TR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
     ];
 
-    const PROXY = "https://corsproxy.io/?";
-    const LOCAL_NSE_SERVER = 'http://localhost:3000'; // optional Node.js server
+    // CORS proxies (tried in order — 1st that works wins for each request)
+    const PROXIES = [
+      'https://corsproxy.org/?',
+      'https://api.allorigins.win/raw?url=',
+    ];
+    const LOCAL_SERVER = 'http://localhost:3000';
+
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     function calcRSIHistory(closes, period) {
@@ -797,17 +802,30 @@
       return parseFloat((sum / weightSum).toFixed(2));
     }
 
+    // Try fetching a URL through multiple proxies, return first success
+    async function fetchViaProxies(url) {
+      for (const p of PROXIES) {
+        try {
+          const res = await fetch(p + encodeURIComponent(url), {
+            signal: AbortSignal.timeout(12000)
+          });
+          if (res.ok) return res;
+        } catch {}
+      }
+      return null;
+    }
+
     async function fetchIndex(symbol) {
       const wkUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`;
       const dUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
       const qtUrl = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
       try {
         const [wkRes, dRes, qtRes] = await Promise.all([
-          fetch(PROXY + encodeURIComponent(wkUrl), { signal: AbortSignal.timeout(15000) }),
-          fetch(PROXY + encodeURIComponent(dUrl),  { signal: AbortSignal.timeout(15000) }),
-          fetch(PROXY + encodeURIComponent(qtUrl), { signal: AbortSignal.timeout(15000) }),
+          fetchViaProxies(wkUrl),
+          fetchViaProxies(dUrl),
+          fetchViaProxies(qtUrl),
         ]);
-        const wkData = wkRes.ok ? await wkRes.json() : null;
+        const wkData = wkRes ? await wkRes.json() : null;
         const dData  = dRes.ok  ? await dRes.json()  : null;
         const qtData = qtRes.ok ? await qtRes.json() : null;
         const wCloses = wkData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
@@ -861,26 +879,22 @@
       } catch { return { error: true }; }
     }
 
-    // ─── NSE BATCH FETCH (multi-proxy fallback) ────────────────────────────
-    // Try proxies in order. Local Node.js server (nse-server.js) is fastest.
-    const NSE_PROXIES = [
-      u => `${LOCAL_NSE_SERVER}/api/indices`, // local server (ignores u)
-      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    ];
-
+    // ─── NSE BATCH FETCH ──────────────────────────────────────────────────
     async function fetchNSEAllIndices() {
       const nseUrl = 'https://www.nseindia.com/api/allIndices';
-      // Try all proxies in parallel, take the first success
-      const results = await Promise.allSettled(NSE_PROXIES.map(async (buildUrl, i) => {
-        const url = buildUrl(nseUrl);
-        const timeout = i === 0 ? 3000 : 8000; // localhost check is fast
+      // Try local server + public proxies in parallel
+      const attempts = [
+        ...PROXIES.map(p => p + encodeURIComponent(nseUrl)),
+        `${LOCAL_SERVER}/api/indices`,
+      ];
+      const results = await Promise.allSettled(attempts.map(async (url, i) => {
+        const timeout = url.includes('localhost') ? 3000 : 10000;
         const res = await fetch(url, {
-          headers: {
+          headers: url.includes('nseindia') ? {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
             'Referer': 'https://www.nseindia.com/'
-          },
+          } : {},
           signal: AbortSignal.timeout(timeout)
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -890,7 +904,7 @@
       }));
       const ok = results.find(r => r.status === 'fulfilled');
       if (ok) return ok.value;
-      console.warn('NSE batch fetch failed:', results.map(r => r.reason?.message).join(' | '));
+      console.warn('NSE fetch failed:', results.map(r => r.reason?.message).join(' | '));
       return [];
     }
 
