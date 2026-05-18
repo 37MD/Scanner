@@ -764,12 +764,14 @@
       { name:"Nifty 50 TR 2x Leverage",                   symbol:null,               exchange:"NSE", category:"Leverage/Inverse" },
     ];
 
-    // CORS proxies (tried in order — 1st that works wins for each request)
-    const PROXIES = [
-      'https://corsproxy.org/?',
-      'https://api.allorigins.win/raw?url=',
-    ];
+    // ── Data sources ─────────────────────────────────────────────
     const LOCAL_SERVER = 'http://localhost:3000';
+    const PROXIES = ['https://corsproxy.org/?', 'https://api.allorigins.win/raw?url='];
+
+    // Build URL: prefer local server, fall back to public proxy
+    function proxyUrl(target) {
+      return LOCAL_SERVER + '/proxy?url=' + encodeURIComponent(target);
+    }
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -804,11 +806,11 @@
 
     // Try fetching a URL through multiple proxies, return first success
     async function fetchViaProxies(url) {
-      for (const p of PROXIES) {
+      // Try local server first (fails fast if not running), then public proxies
+      const targets = [proxyUrl(url), ...PROXIES.map(p => p + encodeURIComponent(url))];
+      for (const t of targets) {
         try {
-          const res = await fetch(p + encodeURIComponent(url), {
-            signal: AbortSignal.timeout(12000)
-          });
+          const res = await fetch(t, { signal: AbortSignal.timeout(8000) });
           if (res.ok) return res;
         } catch {}
       }
@@ -826,8 +828,8 @@
           fetchViaProxies(qtUrl),
         ]);
         const wkData = wkRes ? await wkRes.json() : null;
-        const dData  = dRes.ok  ? await dRes.json()  : null;
-        const qtData = qtRes.ok ? await qtRes.json() : null;
+        const dData  = dRes?.ok  ? await dRes.json()  : null;
+        const qtData = qtRes?.ok ? await qtRes.json() : null;
         const wCloses = wkData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
         const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close  || [];
         const q       = qtData?.quoteResponse?.result?.[0] || null;
@@ -882,21 +884,15 @@
     // ─── NSE BATCH FETCH ──────────────────────────────────────────────────
     async function fetchNSEAllIndices() {
       const nseUrl = 'https://www.nseindia.com/api/allIndices';
-      // Try local server + public proxies in parallel
+      // Try local server directly, then via proxy, then public proxies
       const attempts = [
-        ...PROXIES.map(p => p + encodeURIComponent(nseUrl)),
         `${LOCAL_SERVER}/api/indices`,
+        proxyUrl(nseUrl),
+        ...PROXIES.map(p => p + encodeURIComponent(nseUrl)),
       ];
-      const results = await Promise.allSettled(attempts.map(async (url, i) => {
+      const results = await Promise.allSettled(attempts.map(async (url) => {
         const timeout = url.includes('localhost') ? 3000 : 10000;
-        const res = await fetch(url, {
-          headers: url.includes('nseindia') ? {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json',
-            'Referer': 'https://www.nseindia.com/'
-          } : {},
-          signal: AbortSignal.timeout(timeout)
-        });
+        const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json?.data?.length) throw new Error('empty data');
@@ -1100,6 +1096,7 @@
 
       const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
       const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
+      const debugInfo = { rows: sortedRows.length, results: Object.keys(results).length, first: sortedRows[0]?.name };
 
       return (
         <div>
@@ -1216,7 +1213,10 @@
                     <option value="ABORT">💀 Abort</option>
                   </select>
                 </div>
-                {vixPrice && (
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:10,color:"var(--text-faint)"}}>
+                    📊 {debugInfo.rows} rows · {debugInfo.results} results {scanned && debugInfo.first ? `· First: ${debugInfo.first}` : ''}
+                  </div>
+                  {vixPrice && (
                   <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
                     <span style={{color:"var(--text-dim)",letterSpacing:"1px",textTransform:"uppercase"}}>India VIX</span>
                     <span style={{
