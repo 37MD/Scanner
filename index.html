@@ -1,1010 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>LD Scanner v1</title>
-  <meta name="theme-color" content="#ffffff">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="LD Scanner v1">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="manifest" href="./manifest.json">
-
-  <script>
-    if ('serviceWorker' in navigator && !location.hostname.includes('claudeusercontent.com')) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(r => console.log('SW ready:', r.scope))
-          .catch(e => console.warn('SW failed:', e));
-      });
-    }
-  </script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    :root {
-      /* Force Light Mode to ensure all black fonts are readable */
-      --bg:        #ffffff;
-      --surface:   #f8f9fa;
-      --surface2:  #e9ecef;
-      --border:    #dee2e6;
-      --border2:   #ced4da;
-      /* ENFORCED STRICT BLACK FONT RULE */
-      --text:      #000000;
-      --text-dim:  #000000;
-      --text-faint:#000000;
-      
-      --orange:    #f4a261;
-      --orange-dim:#fde8d7;
-      --green:     #28a745;
-      --green-bg:  #d4edda;
-      --green-dim: #c3e6cb;
-      --red:       #dc3545;
-      --red-bg:    #f8d7da;
-      --red-dim:   #f5c6cb;
-      --amber:     #ffc107;
-      --amber-bg:  #fff3cd;
-      --amber-dim: #ffe8a1;
-      --mono:      'IBM Plex Mono', monospace;
-      --sans:      'Syne', sans-serif;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; color: #000000 !important; }
-
-    body {
-      background: var(--bg);
-      color: #000000;
-      font-family: var(--sans);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Subtle grid background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--border) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border) 1px, transparent 1px);
-      background-size: 40px 40px;
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    #root { position: relative; z-index: 1; }
-
-    /* ── HEADER ── */
-    .app-header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border2);
-      padding: 12px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(12px);
-      margin-bottom: 8px; /* Reduced gap */
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--orange);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: #000000;
-      flex-shrink: 0;
-      clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%);
-    }
-
-    .brand-text h1 {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-      color: #000000;
-      line-height: 1;
-    }
-
-    .brand-text p {
-      font-size: 11px;
-      color: #000000;
-      font-family: var(--mono);
-      margin-top: 2px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .live-dot {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #000000;
-    }
-
-    .live-dot::before {
-      content: '';
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #000000;
-    }
-
-    .live-dot.active::before {
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    /* ── MAIN LAYOUT ── */
-    .main-wrap {
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 0 20px 24px 20px;
-    }
-
-    /* ── SACRED RULE BANNER ── */
-    .sacred-rule {
-      background: linear-gradient(135deg, var(--orange-dim) 0%, transparent 60%);
-      border: 1px solid var(--orange);
-      border-left: 4px solid var(--orange);
-      padding: 10px 18px;
-      margin-bottom: 8px; /* Reduced gap */
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .sacred-rule .label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      color: #000000;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .sacred-rule .rule-text {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: #000000;
-    }
-
-    /* ── CONTROLS BAR ── */
-    .controls-bar {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      padding: 10px 18px;
-      margin-bottom: 8px; /* Reduced gap */
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .filters-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: nowrap; 
-      min-width: 0; /* Enables flex shrinking for children */
-    }
-
-    .actions-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: nowrap;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0; /* Critical for inner text overflow */
-    }
-
-    .filter-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      color: #000000;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .filter-select {
-      background: var(--surface2);
-      color: #000000;
-      border: 1px solid var(--border2);
-      font-family: var(--mono);
-      font-size: 12px;
-      padding: 6px 28px 6px 10px;
-      cursor: pointer;
-      outline: none;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      width: auto;
-    }
-
-    .filter-select:focus {
-      border-color: var(--orange);
-    }
-
-    /* ── BUTTONS ── */
-    .btn-scan {
-      background: var(--orange);
-      color: #000000;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 22px;
-      border: none;
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
-      white-space: nowrap;
-    }
-
-    .btn-scan:hover {
-      background: #ffb87d;
-      transform: translateY(-1px);
-    }
-
-    .btn-stop {
-      background: var(--red-bg);
-      color: #000000;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 22px;
-      border: 1px solid var(--red);
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-
-    .btn-stop:hover {
-      background: var(--red-dim);
-    }
-
-    /* ── PROGRESS BAR ── */
-    .progress-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-top: none;
-      padding: 10px 18px;
-      margin-top: -8px; /* Negative margin to attach to controls */
-      margin-bottom: 8px;
-    }
-
-    .progress-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .progress-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #000000;
-    }
-
-    .progress-pct {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #000000;
-      font-weight: 600;
-    }
-
-    .progress-track {
-      height: 3px;
-      background: var(--border2);
-      width: 100%;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--orange), #ffcc66);
-      transition: width 0.3s ease;
-      box-shadow: 0 0 8px var(--orange);
-    }
-
-    /* ── EXCEL FREEZE PANES TABLE CSS ── */
-    .table-wrap {
-      border: 1px solid var(--border2);
-      overflow: auto; /* Enables scroll in both directions */
-      max-height: 75vh; /* Mandates a scrollable area for vertical freeze */
-      background: var(--surface);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: separate; 
-      border-spacing: 0;
-      font-size: 12px;
-    }
-
-    /* Sortable Header Additions */
-    thead th {
-      position: sticky;
-      top: 0;
-      background: var(--surface2);
-      z-index: 10;
-      padding: 11px 12px;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      color: #000000;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      border-bottom: 1px solid var(--border2);
-      border-right: 1px solid var(--border);
-      white-space: nowrap;
-      cursor: pointer; /* Makes all headers show pointer */
-      user-select: none;
-      transition: background 0.15s;
-    }
-    
-    thead th:hover {
-      background: var(--border2);
-    }
-
-    /* Sticky Column (Freeze First Column) */
-    tbody td.name-col,
-    thead th.name-col {
-      position: sticky;
-      left: 0;
-      z-index: 11;
-      border-right: 2px solid var(--border2); 
-    }
-
-    /* Top-Left Corner overlap */
-    thead th.name-col {
-      z-index: 12;
-      background: var(--surface2);
-    }
-    thead th.name-col:hover { background: var(--border2); }
-
-    /* Name col Width Adjusted */
-    th.name-col, td.name-col {
-      font-family: var(--sans);
-      min-width: 155px; 
-      max-width: 200px; 
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    td.name-col {
-      font-size: 12px;
-      font-weight: 600;
-      color: #000000;
-    }
-
-    /* Alternating row backgrounds mapped onto the sticky column to prevent transparency */
-    tbody tr:nth-child(even) td.name-col { background: #f0f0f5; }
-    tbody tr:nth-child(odd)  td.name-col { background: var(--surface); }
-    tbody tr:hover td.name-col { background: var(--border2) !important; }
-
-    /* Standard cell borders */
-    tbody td {
-      padding: 9px 12px;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: #000000;
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    /* Remove trailing edges */
-    tbody tr:last-child td { border-bottom: none; }
-    thead th:last-child, tbody td:last-child { border-right: none; }
-
-    /* Row Hover Effect */
-    tbody tr { transition: background 0.1s; }
-    tbody tr:hover { background: var(--border2) !important; }
-
-    /* Alternate Row Colors */
-    tbody tr:nth-child(even) { background: #f0f0f5; }
-    tbody tr:nth-child(odd)  { background: var(--surface); }
-
-    /* RSI color cells */
-    .rsi-green { background: var(--green-dim) !important; color: #000000 !important; }
-    .rsi-amber { background: var(--amber-dim) !important; color: #000000 !important; }
-    .rsi-red   { background: var(--red-dim)   !important; color: #000000 !important; }
-
-    .wma-yes { background: var(--green-dim) !important; color: #000000 !important; }
-    .wma-no  { background: var(--red-dim)   !important; color: #000000 !important; }
-
-    /* ── PILL ── */
-    .pill {
-      display: inline-block;
-      padding: 3px 10px;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      border-radius: 2px;
-      min-width: 44px;
-      text-align: center;
-      color: #000000;
-    }
-
-    .pill-A   { background: var(--green-dim); border: 1px solid var(--green); }
-    .pill-B   { background: var(--amber-dim); border: 1px solid var(--amber); }
-    .pill-C   { background: var(--red-dim);   border: 1px solid var(--red); }
-    .pill-BUY    { background: var(--green-dim); border: 1px solid var(--green); }
-    .pill-SELL   { background: var(--red-dim);   border: 1px solid var(--red); }
-    .pill-REDUCE { background: var(--amber-dim); border: 1px solid var(--amber); }
-    .pill-HOLD   { background: var(--surface2);  border: 1px solid var(--border2); }
-
-    /* Confluence mini pills */
-    .conf-pill {
-      display: inline-block;
-      padding: 2px 6px;
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 500;
-      border-radius: 2px;
-      min-width: 30px;
-      text-align: center;
-      border: 1px solid transparent;
-      color: #000000;
-    }
-
-    /* Rec col */
-    td.rec-col {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #000000;
-      min-width: 220px;
-    }
-
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      padding: 80px 20px;
-      text-align: center;
-    }
-
-    .empty-state .big-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      color: #000000;
-    }
-
-    .empty-state h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #000000;
-      margin-bottom: 8px;
-    }
-
-    .empty-state p {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: #000000;
-    }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--surface); }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #000000; }
-
-    /* ── BA REGIME A COLUMN ── */
-    .ba-loading {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid var(--border2);
-      border-top-color: var(--orange);
-      border-radius: 50%;
-      animation: baSpin 0.7s linear infinite;
-      vertical-align: middle;
-    }
-    @keyframes baSpin { to { transform: rotate(360deg); } }
-
-    .ba-pill {
-      display: inline-block;
-      padding: 3px 10px;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 2px;
-      min-width: 48px;
-      text-align: center;
-      color: #000000;
-    }
-    .ba-strong  { background: var(--green-dim);  border: 1px solid var(--green); }
-    .ba-moderate{ background: var(--amber-dim);  border: 1px solid var(--amber); }
-    .ba-weak    { background: var(--red-dim);    border: 1px solid var(--red);   }
-    .ba-na      { background: var(--surface2);   border: 1px solid var(--border2); color:#000 !important; }
-
-    /* ── API KEY BAR ── */
-    .ba-key-bar {
-      background: var(--surface);
-      border: 1px solid var(--orange);
-      border-left: 4px solid var(--orange);
-      padding: 8px 18px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .ba-key-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #000000;
-      white-space: nowrap;
-    }
-    .ba-key-input {
-      flex: 1;
-      min-width: 200px;
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 5px 10px;
-      color: #000000;
-      outline: none;
-    }
-    .ba-key-input:focus { border-color: var(--orange); }
-    .ba-key-save {
-      background: var(--orange);
-      color: #000000;
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 5px 16px;
-      border: none;
-      cursor: pointer;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .ba-key-status {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: #000000;
-    }
-
-    /* ── RESPONSIVE OVERRIDES ── */
-    @media (max-width: 768px) {
-      .app-header { padding: 12px 16px; }
-      .main-wrap { padding: 12px 8px; }
-      
-      /* Force UI components into mobile optimized rows while preventing overflow */
-      .controls-bar { flex-direction: column; align-items: stretch; gap: 8px; }
-      
-      .filters-wrapper { 
-        justify-content: space-between; 
-        width: 100%; 
-      }
-      .filter-group { flex: 1 1 50%; }
-      .filter-select { 
-        width: 100%; 
-        font-size: 11px; 
-        padding: 4px 20px 4px 6px; 
-        text-overflow: ellipsis; /* Solves Verdict overflow */
-        white-space: nowrap;
-      }
-      .filter-label { font-size: 10px; }
-      
-      .actions-wrapper { justify-content: space-between; width: 100%; }
-      .btn-scan, .btn-stop { font-size: 10px; padding: 7px 10px; }
-      .vix-badge { font-size: 10px !important; padding: 3px 6px !important; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lie Detector Scanner v2E</title>
+<meta name="theme-color" content="#0a0a12">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root{--bg:#0a0a12;--surface:#111120;--surface2:#181828;--border:#252538;--border2:#2e2e48;--text:#e8e8f0;--text-dim:#8888aa;--text-faint:#44445a;--orange:#f4a261;--orange-dim:#7a4e2d;--green:#3dffa0;--green-dim:#1a4a30;--red:#ff5370;--red-dim:#4a1a22;--amber:#ffcc44;--amber-dim:#443300;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.3;pointer-events:none;z-index:0}
+#root{position:relative;z-index:1}
+.app-header{background:var(--surface);border-bottom:1px solid var(--border2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:36px;height:36px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:600;color:#000;clip-path:polygon(10% 0%,90% 0%,100% 10%,100% 90%,90% 100%,10% 100%,0% 90%,0% 10%)}
+.brand-text h1{font-size:18px;font-weight:800;color:var(--text);line-height:1}
+.brand-text p{font-size:11px;color:var(--text-dim);font-family:var(--mono);margin-top:2px}
+.header-right{display:flex;align-items:center;gap:16px}
+.live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
+.live-dot.active::before{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.main-wrap{max-width:1500px;margin:0 auto;padding:24px 20px}
+.sacred-rule{background:linear-gradient(135deg,var(--orange-dim) 0%,transparent 60%);border:1px solid var(--orange);border-left:4px solid var(--orange);padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.sacred-rule .label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--orange);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+.sacred-rule .rule-text{font-family:var(--mono);font-size:12px;color:var(--text)}
+.regime-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.regime-card{background:var(--surface);border:1px solid var(--border2);padding:14px 16px}
+.regime-card .regime-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.regime-card.a .regime-label{color:var(--green)}
+.regime-card.b .regime-label{color:var(--amber)}
+.regime-card.c .regime-label{color:var(--red)}
+.regime-card .regime-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.regime-card .regime-desc{font-size:11px;color:var(--text-dim);font-family:var(--mono);line-height:1.5}
+.controls-bar{background:var(--surface);border:1px solid var(--border2);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.controls-left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn-scan{background:var(--orange);color:#000;font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.btn-scan:hover{background:#ffb87d;transform:translateY(-1px)}
+.btn-stop{background:transparent;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:1px solid var(--red);cursor:pointer;letter-spacing:1px;text-transform:uppercase}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase}
+.filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:12px;padding:6px 10px;cursor:pointer;outline:none;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.filter-select:focus{border-color:var(--orange)}
+.auto-toggle{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;letter-spacing:1px;text-transform:uppercase;user-select:none}
+.auto-toggle input[type="checkbox"]{appearance:none;width:32px;height:18px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;cursor:pointer;position:relative;transition:background .2s}
+.auto-toggle input[type="checkbox"]::before{content:'';position:absolute;width:12px;height:12px;background:var(--text-faint);border-radius:50%;top:2px;left:2px;transition:all .2s}
+.auto-toggle input[type="checkbox"]:checked{background:var(--orange-dim);border-color:var(--orange)}
+.auto-toggle input[type="checkbox"]:checked::before{background:var(--orange);left:16px}
+.progress-wrap{background:var(--surface);border:1px solid var(--border2);padding:10px 18px;border-top:none;margin-top:-20px;margin-bottom:20px}
+.progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.progress-label{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.progress-pct{font-family:var(--mono);font-size:11px;color:var(--orange);font-weight:600}
+.progress-track{height:3px;background:var(--border2);width:100%}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ffcc66);transition:width .3s ease;box-shadow:0 0 8px var(--orange)}
+.table-wrap{border:1px solid var(--border2);overflow-x:auto;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--surface2);border-bottom:1px solid var(--border2)}
+thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:last-child{border-right:none}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:var(--surface2)!important}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);white-space:nowrap}
+tbody td:last-child{border-right:none}
+tbody tr:nth-child(even){background:#0e0e1c}
+tbody tr:nth-child(odd){background:var(--surface)}
+.rsi-green{background:var(--green-dim)!important;color:var(--green)!important}
+.rsi-amber{background:var(--amber-dim)!important;color:var(--amber)!important}
+.rsi-red{background:var(--red-dim)!important;color:var(--red)!important}
+.pill{display:inline-block;padding:3px 10px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-radius:2px;min-width:44px;text-align:center}
+.pill-A{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.pill-B{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+.pill-C{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.pill-BUY{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.pill-SELL{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.pill-REDUCE{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+.pill-HOLD{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2)}
+.conf-pill{display:inline-block;padding:2px 6px;font-family:var(--mono);font-size:10px;font-weight:500;border-radius:2px;min-width:30px;text-align:center;border:1px solid transparent}
+td.name-col{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text);min-width:200px;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty-state{padding:80px 20px;text-align:center}
+.empty-state .big-icon{font-size:48px;margin-bottom:16px}
+.empty-state h2{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-state p{font-family:var(--mono);font-size:12px;color:var(--text-dim)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
+.ba-loading{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:baSpin .7s linear infinite;vertical-align:middle}
+@keyframes baSpin{to{transform:rotate(360deg)}}
+.ba-pill{display:inline-block;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:2px;min-width:48px;text-align:center;color:var(--text)}
+.ba-strong{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
+.ba-moderate{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber)}
+.ba-weak{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
+.ba-na{background:var(--surface2);border:1px solid var(--border2);color:var(--text-faint)}
+.ba-key-bar{background:var(--surface);border:1px solid var(--orange);border-left:4px solid var(--orange);padding:8px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ba-key-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);white-space:nowrap}
+.ba-key-input{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:5px 10px;color:var(--text);outline:none}
+.ba-key-input:focus{border-color:var(--orange)}
+.ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+@media(max-width:768px){.regime-cards{grid-template-columns:1fr}.app-header{padding:12px 16px}.main-wrap{padding:16px 12px}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
+<div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useRef, useMemo, useEffect } = React;
+<script type="text/babel">
+const { useState, useRef, useMemo, useEffect } = React;
 
-    // ─── EXACTLY 88 VALID INDICES FROM CSV ────────────────────────────────────────────────
-    const ALL_INDICES = [
-      { name:"Sensex",                                    symbol:"^BSESN",           exchange:"BSE", category:"Broad Market" },
-      { name:"Sensex Next 50 Index",                      symbol:"BSE-SNXT50.BO",    exchange:"BSE", category:"Broad Market" },
-      { name:"BSE Sensex 50",                             symbol:"^SENSEX50",        exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 100",                                   symbol:"BSE-100.BO",       exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 200",                                   symbol:"BSE-200.BO",       exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 500",                                   symbol:"0P00011L9N.BO",    exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 150 MidCap",                            symbol:"BSE-MID150.BO",    exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 250 Large Mid",                         symbol:"0P00011LAK.BO",    exchange:"BSE", category:"Broad Market" },
-      { name:"BSE 250 Small Cap",                         symbol:"0P0001O281.BO",    exchange:"BSE", category:"Broad Market" },
-      { name:"BSE BANKEX",                                symbol:"BANKEX.BO",        exchange:"BSE", category:"Banking" },
-      { name:"BSE Finance",                               symbol:"BSE-FIN.BO",       exchange:"BSE", category:"Finance" },
-      { name:"BSE IT",                                    symbol:"BSE-IT.BO",        exchange:"BSE", category:"Technology" },
-      { name:"BSE TECk",                                  symbol:"BSE-TECK.BO",      exchange:"BSE", category:"Technology" },
-      { name:"BSE Auto",                                  symbol:"BSE-AUTO.BO",      exchange:"BSE", category:"Auto" },
-      { name:"BSE Healthcare",                            symbol:"BSE-HC.BO",        exchange:"BSE", category:"Pharma" },
-      { name:"BSE FMCG",                                  symbol:"BSE-FMCG.BO",      exchange:"BSE", category:"FMCG" },
-      { name:"BSE Metals",                                symbol:"BSE-METAL.BO",     exchange:"BSE", category:"Metal" },
-      { name:"BSE Realty",                                symbol:"BSE-REALTY.BO",    exchange:"BSE", category:"Realty" },
-      { name:"BSE Energy",                                symbol:"BSE-ENERGY.BO",    exchange:"BSE", category:"Energy" },
-      { name:"BSE Power",                                 symbol:"BSE-POWER.BO",     exchange:"BSE", category:"Energy" },
-      { name:"BSE Oil and Gas",                           symbol:"BSE-ONG.BO",       exchange:"BSE", category:"Energy" },
-      { name:"BSE Consumer Durables",                     symbol:"BSE-CD.BO",        exchange:"BSE", category:"Consumption" },
-      { name:"BSE Capital Goods",                         symbol:"BSE-CG.BO",        exchange:"BSE", category:"Capital Goods" },
-      { name:"BSE PSU",                                   symbol:"BSE-PSU.BO",       exchange:"BSE", category:"PSU" },
-      { name:"Nifty 50",                                  symbol:"^NSEI",            exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Next 50",                             symbol:"^NSMIDCP",         exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY 100",                                 symbol:"^CNX100",          exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY 200",                                 symbol:"^CNX200",          exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY 500",                                 symbol:"^CRSLDX",          exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Midcap 100",                          symbol:"NIFTY_MIDCAP_100.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Midcap 150",                          symbol:"NIFTYMIDCAP150.NS",   exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Mid Cap 50",                          symbol:"^NSEMDCP50",       exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Midcap Select",                       symbol:"NIFTY_MID_SELECT.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Midcap Liquid 15",                    symbol:"NIFTYMIDLIQ15.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Smallcap 100",                        symbol:"^CNXSC",           exchange:"NSE", category:"Broad Market" },
-      { name:"NIFTY Smallcap 250",                        symbol:"NIFTYSMLCAP250.NS",exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Smallcap 50",                         symbol:"NIFTYSMLCAP50.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty MidSmallCap 400",                     symbol:"NIFTYMIDSML400.NS",exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Largemid250",                         symbol:"NIFTY_LARGEMID250.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Microcap 250",                        symbol:"NIFTY_MICROCAP250.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Total mkt",                           symbol:"NIFTY_TOTAL_MKT.NS", exchange:"NSE", category:"Broad Market" },
-      { name:"Nifty Bank",                                symbol:"^NSEBANK",         exchange:"NSE", category:"Banking" },
-      { name:"NIFTY PSU Bank",                            symbol:"^CNXPSUBNK",       exchange:"NSE", category:"Banking" },
-      { name:"NIFTY Private Bank",                        symbol:"^CNXPVTBNK",       exchange:"NSE", category:"Banking" },
-      { name:"NIFTY Financial Services",                  symbol:"NIFTY_FIN_SERVICE.NS", exchange:"NSE", category:"Finance" },
-      { name:"Finnifty",                                  symbol:"^CNXFIN",          exchange:"NSE", category:"Finance" },
-      { name:"Nifty Financial Services 25/50",            symbol:"^CNXFIN2550",      exchange:"NSE", category:"Finance" },
-      { name:"Nifty IT",                                  symbol:"^CNXIT",           exchange:"NSE", category:"Technology" },
-      { name:"NIFTY Auto",                                symbol:"^CNXAUTO",         exchange:"NSE", category:"Auto" },
-      { name:"Nifty EV and New Age Auto",                 symbol:"EVEA.NS",          exchange:"NSE", category:"Auto" },
-      { name:"NIFTY Pharma",                              symbol:"^CNXPHARMA",       exchange:"NSE", category:"Pharma" },
-      { name:"Nifty Healthcare",                          symbol:"^NIFTYHC",         exchange:"NSE", category:"Pharma" },
-      { name:"Nifty MidSmall Healthcare",                 symbol:"0P0001O1ZV.BO",    exchange:"NSE", category:"Pharma" },
-      { name:"NIFTY FMCG",                                symbol:"^CNXFMCG",         exchange:"NSE", category:"FMCG" },
-      { name:"NIFTY Consumption",                         symbol:"^CNXCONSUMPTION",  exchange:"NSE", category:"Consumption" },
-      { name:"Nifty Consumer Durable",                    symbol:"^CNXCONSUMER",     exchange:"NSE", category:"Consumption" },
-      { name:"NIFTY Metal",                               symbol:"^CNXMETAL",        exchange:"NSE", category:"Metal" },
-      { name:"NIFTY Realty",                              symbol:"^CNXREALTY",       exchange:"NSE", category:"Realty" },
-      { name:"NIFTY Energy",                              symbol:"^CNXENERGY",       exchange:"NSE", category:"Energy" },
-      { name:"Nifty Oil and Gas",                         symbol:"^CNXOILGAS",       exchange:"NSE", category:"Energy" },
-      { name:"Nifty CPSE",                                symbol:"^CNXCPSE",         exchange:"NSE", category:"PSU" },
-      { name:"Nifty PSE",                                 symbol:"^CNXPSE",          exchange:"NSE", category:"PSU" },
-      { name:"NIFTY Media",                               symbol:"^CNXMEDIA",        exchange:"NSE", category:"Media" },
-      { name:"NIFTY Infra",                               symbol:"^CNXINFRA",        exchange:"NSE", category:"Infrastructure" },
-      { name:"Nifty India Manufacturing",                 symbol:"NIFTY_INDIA_MFG.NS", exchange:"NSE", category:"Manufacturing" },
-      { name:"NIFTY Services Sector",                     symbol:"^CNXSERVICE",      exchange:"NSE", category:"Services" },
-      { name:"Nifty MNC",                                 symbol:"^CNXMNC",          exchange:"NSE", category:"MNC" },
-      { name:"NIFTY Commodities",                         symbol:"^CNXCOMMODITIES",  exchange:"NSE", category:"Commodities" },
-      { name:"India VIX",                                 symbol:"^INDIAVIX",        exchange:"NSE", category:"Volatility" },
-      { name:"Nifty India Defence",                       symbol:"MODEFENCE.NS",     exchange:"NSE", category:"Thematic" },
-      { name:"Nifty India Digital",                       symbol:"TNIDETF.NS",       exchange:"NSE", category:"Thematic" },
-      { name:"Nifty Growth Sectors 15",                   symbol:"HDFCGROWTH.NS",    exchange:"NSE", category:"Thematic" },
-      { name:"NIFTY ALPHA 50",                            symbol:"NIFTYALPHA50.NS",  exchange:"NSE", category:"Strategy" },
-      { name:"Nifty Alpha Low Volatility 30",             symbol:"NIFTYALPHALOWVOL.NS", exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 50 Equal Weight",                     symbol:"^NIFTY50EW",       exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 100 Equal Weight",                    symbol:"NIFTY100EW.NS",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 500 Equal Weight",                    symbol:"DSPN500EWI.NS",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty100 Qualty30",                         symbol:"NIFTYQUALITY30.NS",exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 100 Low Volatility 30",               symbol:"NIFTY100LOWVOL30.NS", exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 200 Momentum 30",                     symbol:"MOMOMENTUM.NS",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 200 Alpha 30",                        symbol:"ALPL30IETF.NS",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 200 Quality 30",                      symbol:"NIFTY200QUALTY30.NS", exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 200 Value 30",                        symbol:"VAL30IETF.NS",     exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 500 Momentum 50",                     symbol:"MOMENTUM50.NS",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty 500 Value 50",                        symbol:"0P0001O51L.BO",    exchange:"NSE", category:"Strategy" },
-      { name:"Nifty High Beta 50",                        symbol:"NIFTY_HIGHBETA_50.NS", exchange:"NSE", category:"Strategy" },
-      { name:"Nifty50 Value 20 Index",                    symbol:"NV20.NS",          exchange:"NSE", category:"Strategy" },
-      { name:"Nifty Smallcap250 Momentum Quality 100",    symbol:"SMALLCAP.NS",      exchange:"NSE", category:"Strategy" }
-    ];
+const CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+const NSE_API = 'https://www.nseindia.com/api/allIndices';
 
-    const PROXY = "https://corsproxy.io/?";
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
+function normalize(n) { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
 
-    function calcRSIHistory(closes, period) {
-      let rsis = [];
-      const v = closes.filter(x => x != null && !isNaN(x));
-      if (v.length < period + 1) return rsis;
-      let gains = 0, losses = 0;
-      for (let i = 1; i <= period; i++) {
-        const d = v[i] - v[i - 1];
-        if (d > 0) gains += d; else losses -= d;
-      }
-      let ag = gains / period, al = losses / period;
-      rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
-      for (let i = period + 1; i < v.length; i++) {
-        const d = v[i] - v[i - 1];
-        ag = (ag * (period - 1) + Math.max(d, 0)) / period;
-        al = (al * (period - 1) + Math.abs(Math.min(d, 0))) / period;
-        rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
-      }
-      return rsis;
-    }
+const YAHOO = {
+  nifty50:"^NSEI", niftynext50:"^NIFTYNXT50", nifty100:"^CNX100", nifty200:"^CNX200",
+  nifty500:"^CNX500", niftymidcap50:"^CNXMIDCAP50", niftymidcap100:"^NSMIDCP100",
+  niftymidcap150:"^CNXMIDCAP150", niftymidselect:"^NIFTYMIDSEL",
+  niftysmallcap100:"^CNXSC", niftysmallcap50:"^CNXSC50", niftysmallcap250:"^CNXSC250",
+  niftymidsmallcap400:"^CNXMIDSMALL400", niftylargemidcap250:"^CNXLARGEMID250",
+  niftymicrocap250:"^NIFTYMICROCAP250", niftytotalmarket:"^NIFTYTOTALMKT",
+  niftybank:"^NSEBANK", niftypsubank:"^CNXPSUBNK", niftyprivatebank:"^CNXPVTBNK",
+  niftyfinancialservices:"^CNXFINANCE", niftyfinancialservices2550:"^CNXFIN2550",
+  niftyit:"^CNXIT", niftyauto:"^CNXAUTO", niftypharma:"^CNXPHARMA",
+  niftyhealthcareindex:"^NIFTYHC", niftyfmcg:"^CNXFMCG",
+  niftymetal:"^CNXMETAL", niftyrealty:"^CNXREALTY", niftyenergy:"^CNXENERGY",
+  niftyoilgas:"^CNXOILGAS", niftycpse:"^CNXCPSE", niftypse:"^CNXPSE",
+  niftymedia:"^CNXMEDIA", niftyinfrastructure:"^CNXINFRA",
+  niftyservicessector:"^CNXSERVICE", niftymnc:"^CNXMNC",
+  niftycommodities:"^CNXCOMMODITIES", indiavix:"^INDIAVIX",
+  niftyalpha50:"^CNXALPHA50", nifty50equalweight:"^NIFTY50EW",
+  nifty100equalweight:"^CNX100EW", nifty100qualty30:"^NIFTY100QU30",
+  nifty100lowvolatility30:"^NIFTY100LV30",
+  nifty200quality30:"^NIFTY200QU30", nifty200momentum30:"^NIFTY200MO30",
+  nifty200alpha30:"^NIFTY200AL30", nifty200value30:"^NIFTY200VA30",
+  nifty50value20:"^NIFTY50VA20",
+  niftyconsumerd:"^CNXCONSUMER", niftyconsumption:"^CNXCONSUMPTION",
+};
 
-    function calcWMA(data, period) {
-      const v = data.filter(x => x != null && !isNaN(x));
-      if (!v || v.length < period) return null;
-      let sum = 0;
-      const weightSum = (period * (period + 1)) / 2;
-      const slice = v.slice(-period);
-      for (let i = 0; i < period; i++) sum += slice[i] * (i + 1);
-      return parseFloat((sum / weightSum).toFixed(2));
-    }
+function calcRSI(closes, period) {
+  const v = closes.filter(x => x != null && !isNaN(x));
+  if (v.length < period + 1) return [];
+  const rsis = []; let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = v[i] - v[i - 1];
+    if (d > 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
+  for (let i = period + 1; i < v.length; i++) {
+    const d = v[i] - v[i - 1];
+    ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+    al = (al * (period - 1) + Math.abs(Math.min(d, 0))) / period;
+    rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
+  }
+  return rsis;
+}
 
-    // TradingView's "Trend Strength Index" (Pearson Correlation)
-    function calcTrendStrengthIndex(closes, period=21) {
-      const v = closes.filter(x => x != null && !isNaN(x)); 
-      if (!v || v.length < period) return [];
-      
-      let meanX = (period - 1) / 2;
-      let ssX = 0;
-      for (let j = 0; j < period; j++) {
-        ssX += Math.pow(j - meanX, 2);
-      }
-      
-      let tsiList = [];
-      for(let i = 0; i < v.length; i++) {
-         if (i < period - 1) {
-             tsiList.push(null);
-             continue;
-         }
-         
-         let sumY = 0;
-         for(let j = 0; j < period; j++) {
-             sumY += v[i - period + 1 + j];
-         }
-         let meanY = sumY / period;
-         
-         let sumXY = 0;
-         let ssY = 0;
-         for(let j = 0; j < period; j++) {
-             let xVal = j; 
-             let yVal = v[i - period + 1 + j];
-             sumXY += (xVal - meanX) * (yVal - meanY);
-             ssY += Math.pow(yVal - meanY, 2);
-         }
-         
-         if (ssY === 0) {
-             tsiList.push(0);
-         } else {
-             let r = sumXY / Math.sqrt(ssX * ssY);
-             tsiList.push(parseFloat(r.toFixed(2)));
-         }
-      }
-      return tsiList;
-    }
+function calcWMA(data, period) {
+  if (!data || data.length < period) return null;
+  const ws = (period * (period + 1)) / 2;
+  const sl = data.slice(-period); let sum = 0;
+  for (let i = 0; i < period; i++) sum += sl[i] * (i + 1);
+  return parseFloat((sum / ws).toFixed(2));
+}
 
-    async function fetchIndex(symbol) {
-      const wkUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`;
-      const dUrl  = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`;
-      const qtUrl = `https://query1.finance.yahoo.com/v8/finance/quote?symbols=${symbol}`;
-      try {
-        const [wkRes, dRes, qtRes] = await Promise.all([
-          fetch(PROXY + encodeURIComponent(wkUrl), { signal: AbortSignal.timeout(15000) }),
-          fetch(PROXY + encodeURIComponent(dUrl),  { signal: AbortSignal.timeout(15000) }),
-          fetch(PROXY + encodeURIComponent(qtUrl), { signal: AbortSignal.timeout(15000) }),
-        ]);
-        const wkData = wkRes.ok ? await wkRes.json() : null;
-        const dData  = dRes.ok  ? await dRes.json()  : null;
-        const qtData = qtRes.ok ? await qtRes.json() : null;
-        const wCloses = wkData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
-        const dCloses = dData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close  || [];
-        const q       = qtData?.quoteResponse?.result?.[0] || null;
-        const price   = q?.regularMarketPrice ?? (wCloses.length ? wCloses[wCloses.length-1] : null);
+function computeRegime(wRsi14, price, wma20Price) {
+  if (wRsi14 == null) return null;
+  if (wRsi14 >= 50 && price && (!wma20Price || price > wma20Price)) return "A";
+  if (wRsi14 >= 40 && wRsi14 < 50) return "B";
+  return "C";
+}
 
-        // % change: use last 2 valid daily closes for reliability
-        const validDCloses = dCloses.filter(x => x != null && !isNaN(x));
-        const prevClose = validDCloses.length >= 2 ? validDCloses[validDCloses.length - 2] : null;
-        const currClose = validDCloses.length >= 1 ? validDCloses[validDCloses.length - 1] : null;
-        const changePct = (prevClose && currClose && prevClose !== 0)
-          ? parseFloat((((currClose - prevClose) / prevClose) * 100).toFixed(2))
-          : null;
-        
-        const wRsiArray4  = calcRSIHistory(wCloses, 4);
-        const wRsiArray8  = calcRSIHistory(wCloses, 8);
-        const wRsiArray14 = calcRSIHistory(wCloses, 14);
-        const wRsi4  = wRsiArray4.length  ? wRsiArray4[wRsiArray4.length-1]   : null;
-        const wRsi8  = wRsiArray8.length  ? wRsiArray8[wRsiArray8.length-1]   : null;
-        const wRsi14 = wRsiArray14.length ? wRsiArray14[wRsiArray14.length-1] : null;
-        const wRsi = wRsi4;
-        const wma20Price = calcWMA(wCloses, 20);
-        const wma20Rsi   = calcWMA(wRsiArray4, 20);
-        
-        // Calculate historical Trend Strength Index (Pearson Correlation) on DAILY closes
-        const dTsiArray = calcTrendStrengthIndex(dCloses, 21);
-        const dTsiCurr  = dTsiArray.length > 0 ? dTsiArray[dTsiArray.length - 1] : null;
-        const dTsiPrev  = dTsiArray.length > 1 ? dTsiArray[dTsiArray.length - 2] : null;
+function genTradingDays(n) {
+  const days = []; const d = new Date();
+  while (days.length < n) {
+    if (d.getDay() !== 0 && d.getDay() !== 6) days.push(new Date(d));
+    d.setDate(d.getDate() - 1);
+  }
+  return days;
+}
 
-        // Daily RSI — all three speeds
-        const dRsiArray4  = calcRSIHistory(dCloses, 4);
-        const dRsiArray8  = calcRSIHistory(dCloses, 8);
-        const dRsiArray14 = calcRSIHistory(dCloses, 14);
-        const dRsi4  = dRsiArray4.length  ? dRsiArray4[dRsiArray4.length-1]   : null;
-        const dRsi8  = dRsiArray8.length  ? dRsiArray8[dRsiArray8.length-1]   : null;
-        const dRsi14 = dRsiArray14.length ? dRsiArray14[dRsiArray14.length-1] : null;
-        const dRsi   = dRsi14; // backward compat
+function fmtDDMMYYYY(d) {
+  const pad = v => String(v).padStart(2, '0');
+  return `${pad(d.getDate())}${pad(d.getMonth()+1)}${d.getFullYear()}`;
+}
 
-        // Divergence proxy: D-RSI(4) rising but price below 20WMA
-        const prevDRsi4 = dRsiArray4.length > 2 ? dRsiArray4[dRsiArray4.length-2] : null;
-        const dRsi4Rising = prevDRsi4 !== null && dRsi4 > prevDRsi4;
-        const divergence  = dRsi4Rising && wma20Price && price < wma20Price;
+function computeAction(regime, dRsi) {
+  if (regime === "A" && dRsi >= 40 && dRsi <= 50) return { action: "BUY", rec: "STRIKE — Optimal Entry" };
+  if (regime === "A" && dRsi > 70) return { action: "HOLD", rec: "OVERHEATED — Wait for daily dip" };
+  if (regime === "B") return { action: "REDUCE", rec: "TRAP — Fatigue" };
+  return { action: "SELL", rec: "AVOID — Trust Break" };
+}
 
-        // Regime (4W RSI based — existing logic preserved)
-        let regime = "C";
-        if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
-        else if (wRsi >= 40 && wRsi < 50) regime = "B";
+function runExecutionTree(r, vixPrice) {
+  if (!r || !r.wRsi14) return null;
+  if (!(r.wRsi14 >= 50 && (!r.wma20Price || r.price > r.wma20Price)))
+    return { phase: 1, verdict: "ABORT", label: "ABORT", detail: r.wma20Price ? "W-RSI(14) < 50 or Price below 20WMA" : "W-RSI(14) < 50", color: "red" };
+  if (!r.dRsi4 || !r.dRsi8 || !r.dRsi14)
+    return { phase: 2, verdict: "NO DATA", label: "NO DATA", detail: "Daily RSI insufficient", color: "dim" };
+  const inZ = v => v >= 40 && v <= 50;
+  const ok = [inZ(r.dRsi4), inZ(r.dRsi8), inZ(r.dRsi14)];
+  const cnt = ok.filter(Boolean).length;
+  if (!ok.every(Boolean)) {
+    if (cnt >= 1) return { phase: 3, verdict: "NEAR MISS", label: "NEAR MISS", detail: `D-RSI ${r.dRsi4}/${r.dRsi8}/${r.dRsi14} — ${cnt}/3 in zone`, color: "amber" };
+    return { phase: 3, verdict: "NOT READY", label: "NOT READY", detail: `D-RSI ${r.dRsi4}/${r.dRsi8}/${r.dRsi14} not in zone`, color: "dim" };
+  }
+  const td = [];
+  if (r.wRsi14 >= 50 && r.wRsi14 <= 52) td.push("TD1: W-RSI barely holding (" + r.wRsi14 + ")");
+  if (r.wma20Price && r.price < r.wma20Price) td.push("TD2: Price below 20WMA");
+  if (r.divergence) td.push("TD3: RSI(4) rising below 20WMA");
+  if (vixPrice && vixPrice > 20) td.push("TD4: VIX > 20 (" + vixPrice.toFixed(1) + ")");
+  if (td.length) return { phase: 5, verdict: "FAKE SUPPORT", label: "FAKE SUPPORT", detail: td.join(" | "), color: "red" };
+  return { phase: 5, verdict: "VERIFIED STRIKE", label: "VERIFIED STRIKE", detail: "All 3 D-RSI in zone. No trapdoors.", color: "green" };
+}
 
-        // TSI Resumption Trigger Logic (Scale is now -1 to +1)
-        let tsiTrigger = "—";
-        let tsiColor = "transparent";
-        let tsiBorder = "transparent";
-        if (regime === "A") {
-            if (dTsiPrev !== null && dTsiCurr !== null && dTsiPrev < 0 && dTsiCurr >= 0) {
-                tsiTrigger = "🚀 RESUMPTION"; tsiColor = "var(--green-dim)"; tsiBorder = "var(--green)";
-            } else if (dTsiCurr !== null && dTsiCurr < 0) {
-                tsiTrigger = "🎯 DIP ZONE"; tsiColor = "var(--amber-dim)"; tsiBorder = "var(--amber)";
-            } else if (dTsiCurr !== null && dTsiCurr > 0.85) {
-                tsiTrigger = "🔥 OVERHEATED"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
-            } else if (dTsiCurr !== null && dTsiCurr >= 0) {
-                tsiTrigger = "✅ TRENDING"; tsiColor = "var(--surface2)"; tsiBorder = "var(--border2)";
-            }
-        } else if (regime === "B" && dTsiPrev !== null && dTsiCurr !== null && dTsiPrev > 0 && dTsiCurr < 0) {
-            tsiTrigger = "⚠️ BEAR CROSS"; tsiColor = "var(--red-dim)"; tsiBorder = "var(--red)";
-        }
+function Pill({v,logic}) { return <span className={`pill pill-${logic||v}`}>{v}</span>; }
+function ConfPill({val}) {
+  const cls = `conf-pill ${val == null ? '' : val >= 50 ? 'rsi-green' : val >= 40 ? 'rsi-amber' : 'rsi-red'}`;
+  return <span className={cls}>{val ?? "—"}</span>;
+}
 
-        let action = "HOLD", rec = "Monitor";
-        if (regime === "A" && dRsi >= 40 && dRsi <= 50) { action = "BUY";    rec = "💎 STRIKE — Optimal Entry"; }
-        else if (regime === "A" && dRsi > 70)            { action = "HOLD";   rec = "⚡ OVERHEATED — Wait for daily dip"; }
-        else if (regime === "B")                          { action = "REDUCE"; rec = "🔴 TRAP — Fatigue. Do not buy dips"; }
-        else if (regime === "C")                          { action = "SELL";   rec = "💀 AVOID — Trust Break. Never avg down"; }
+const Scanner = () => {
+  const [phase, setPhase] = useState('init');
+  const [progress, setProgress] = useState({ done: 0, total: 0, label: "" });
+  const [results, setResults] = useState({});
+  const [nseData, setNseData] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [regimeFilter, setRegimeFilter] = useState("ALL");
+  const [phaseFilter, setPhaseFilter] = useState("ALL");
+  const [catFilter, setCatFilter] = useState("ALL");
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [error, setError] = useState(null);
+  const [dataSource, setDataSource] = useState(null);
+  const stopRef = useRef(false);
+  const autoRef = useRef(null);
+  const baStopRef = useRef(false);
 
-        return { price, changePct, wRsi, wRsi4, wRsi8, wRsi14, dRsi, dRsi4, dRsi8, dRsi14,
-                 wma20Price, wma20Rsi, regime, action, rec, divergence, dTsiCurr, tsiTrigger, tsiColor, tsiBorder };
-      } catch { return { error: true }; }
-    }
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    // ─── 5-PHASE EXECUTION TREE ──────────────────────────────────────────────
-    function runExecutionTree(r, vixPrice) {
-      if (!r || !r.wRsi14) return null;
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
 
-      // PHASE 1 — Macro Anchor (W-RSI14 ≥ 50 AND Price > 20WMA)
-      const p1Pass = r.wRsi14 >= 50 && r.wma20Price && r.price > r.wma20Price;
-      if (!p1Pass) return { phase: 1, verdict: "ABORT", label: "💀 ABORT", detail: "P1 FAIL: W-RSI(14) < 50 or Price below 20WMA", color: "red" };
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return '';
+    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+  };
 
-      // PHASE 2 — Micro Alignment (Daily RSI 4/8/14 available)
-      if (!r.dRsi4 || !r.dRsi8 || !r.dRsi14)
-        return { phase: 2, verdict: "NO DATA", label: "⚠ NO DATA", detail: "Daily RSI data insufficient", color: "dim" };
+  const [baResults, setBaResults] = useState({});
+  const [geminiKey1, setGeminiKey1] = useState(() => {
+    try { return localStorage.getItem('ld_scanner_gemini_key1') || ''; } catch(_) { return ''; }
+  });
+  const [geminiKey2, setGeminiKey2] = useState(() => {
+    try { return localStorage.getItem('ld_scanner_gemini_key2') || ''; } catch(_) { return ''; }
+  });
+  const [keyInput1, setKeyInput1] = useState('');
+  const [keyInput2, setKeyInput2] = useState('');
+  const [keyStatus, setKeyStatus] = useState('');
 
-      // PHASE 3 — Confluence: All 3 Daily RSIs in Strike Zone (40–50)
-      const inZone = v => v >= 40 && v <= 50;
-      const d4ok = inZone(r.dRsi4), d8ok = inZone(r.dRsi8), d14ok = inZone(r.dRsi14);
-      const allGreen = d4ok && d8ok && d14ok;
-      if (!allGreen) {
-        const count = [d4ok, d8ok, d14ok].filter(Boolean).length;
-        const detail = `D-RSI 4:${r.dRsi4} 8:${r.dRsi8} 14:${r.dRsi14} — ${count}/3 in zone`;
-        if (count >= 1)
-          return { phase: 3, verdict: "NEAR MISS", label: "🟡 NEAR MISS", detail, color: "amber" };
-        return { phase: 3, verdict: "NOT READY", label: "⏳ NOT READY", detail: `Daily RSI not in zone. ${detail}`, color: "dim" };
-      }
+  function saveGeminiKey1() {
+    const k = keyInput1.trim();
+    if (!k || k.length < 20) { setKeyStatus('Key1 too short'); setTimeout(() => setKeyStatus(''), 2500); return; }
+    try { localStorage.setItem('ld_scanner_gemini_key1', k); } catch(_) {}
+    setGeminiKey1(k);
+    setKeyInput1('');
+    setKeyStatus('Key1 saved');
+    setTimeout(() => setKeyStatus(''), 2500);
+  }
 
-      // PHASE 4 — Trapdoor Clues (5 checks)
-      const trapdoors = [];
-      // 1. Trapdoor Weekly: W-RSI(14) barely holding (50–52)
-      if (r.wRsi14 >= 50 && r.wRsi14 <= 52)
-        trapdoors.push("TD1: W-RSI(14) barely holding (" + r.wRsi14 + ")");
-      // 2. Anchor Breach: price below 20WMA
-      if (r.wma20Price && r.price < r.wma20Price)
-        trapdoors.push("TD2: Price below 20WMA");
-      // 3. D-RSI(4) Divergence: bouncing while price < 20WMA
-      if (r.divergence)
-        trapdoors.push("TD3: RSI(4) rising but price below 20WMA");
-      // 4. Volatility Override: VIX > 20
-      if (vixPrice && vixPrice > 20)
-        trapdoors.push("TD4: India VIX > 20 (" + vixPrice?.toFixed(1) + ")");
-      // 5. Constituent Rot: manual check flag
-      // (Cannot auto-detect without individual stock data — flagged for manual review)
+  function saveGeminiKey2() {
+    const k = keyInput2.trim();
+    if (!k || k.length < 20) { setKeyStatus('Key2 too short'); setTimeout(() => setKeyStatus(''), 2500); return; }
+    try { localStorage.setItem('ld_scanner_gemini_key2', k); } catch(_) {}
+    setGeminiKey2(k);
+    setKeyInput2('');
+    setKeyStatus('Key2 saved');
+    setTimeout(() => setKeyStatus(''), 2500);
+  }
 
-      // PHASE 5 — Final Verdict
-      if (trapdoors.length > 0)
-        return { phase: 5, verdict: "FAKE SUPPORT", label: "🔴 FAKE SUPPORT", detail: trapdoors.join(" | "), color: "red" };
-
-      return { phase: 5, verdict: "VERIFIED STRIKE", label: "💎 VERIFIED STRIKE", detail: `All 3 D-RSI in zone. No trapdoors triggered.`, color: "green" };
-    }
-
-
-    const getRsiClass = (val) => {
-      if (val == null) return "";
-      if (val >= 50) return "rsi-green";
-      if (val >= 40) return "rsi-amber";
-      return "rsi-red";
-    };
-
-    // ── Pill component ──
-    function Pill({ v, logic }) {
-      const cls = `pill pill-${logic || v}`;
-      return <span className={cls}>{v}</span>;
-    }
-
-    // ── Confluence mini pill ──
-    function ConfPill({ val }) {
-      const cls = `conf-pill ${getRsiClass(val)}`;
-      return <span className={cls}>{val ?? "—"}</span>;
-    }
-
-    // ── Main Dashboard ──
-    const AuditorDashboard = () => {
-      const [scanning,     setScanning]     = useState(false);
-      const [scanned,      setScanned]      = useState(false);
-      const [progress,     setProgress]     = useState({ done: 0, total: 0, label: "" });
-      const [results,      setResults]      = useState({});
-      const [regimeFilter, setRegimeFilter] = useState("ALL");
-      const [phaseFilter,  setPhaseFilter]  = useState("ALL");
-      const [lastUpdated,  setLastUpdated]  = useState(null);
-      const [showExecutionTree, setShowExecutionTree] = useState(false);
-      
-      // Sorting State
-      const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-      const stopRef = useRef(false);
-
-      // ── BA: % Regime A by Weight ──────────────────────────────────────────
-      // baResults: { [symbol]: { pct: number|null, status: 'loading'|'done'|'error'|'skip', label: string } }
-      const [baResults,   setBaResults]   = useState({});
-      const [geminiKey,   setGeminiKey]   = useState(() => {
-        try { return localStorage.getItem('ld_scanner_gemini_key') || ''; } catch(_) { return ''; }
-      });
-      const [keyInput,    setKeyInput]    = useState('');
-      const [keyStatus,   setKeyStatus]   = useState('');
-      const baStopRef = useRef(false);
-
-      // Gemini BA call — Cascade models
-      async function callGeminiBA(indexName, wRsi4) {
-        const key = (localStorage.getItem('ld_scanner_gemini_key') || '').trim();
-        if (!key || key.length < 20) return null;
-        const regime = wRsi4 >= 50 ? 'A (Hope)' : wRsi4 >= 40 ? 'B (Watch)' : 'C (Fear)';
-        const prompt = `You are a constituent breadth analyst for Indian equity indices.
+  async function callGeminiBA(indexName, wRsi4) {
+    const k1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+    const k2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    const keys = { 1: k1.length >= 20 ? k1 : null, 2: k2.length >= 20 ? k2 : null };
+    const regime = wRsi4 >= 50 ? 'A (Hope)' : wRsi4 >= 40 ? 'B (Watch)' : 'C (Fear)';
+    const prompt = `You are a constituent breadth analyst for Indian equity indices.
 
 INDEX: ${indexName}
 Index W-RSI(4): ${Math.round(wRsi4)} → Regime ${regime}
@@ -1016,562 +303,667 @@ Use your knowledge of current constituent weights and recent price behaviour.
 Return ONLY valid JSON:
 {"regime_a_weight_pct": <number 0-100>, "bull_count": <integer>, "total_count": <integer>, "top_regime_a": ["Stock1","Stock2","Stock3"], "confidence": "HIGH or MEDIUM or LOW", "note": "one sentence"}`;
 
-        const payload = { 
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" } // FORCES NATIVE JSON
-        };
-        
-        // Cascade list
-        const models  = [
-          'gemini-3.1-flash-lite',
-          'gemini-3-flash',
-          'gemini-3.1-pro',
-          'gemini-3.1-flash-lite'
-        ];
-
-        for (const model of models) {
-          try {
-            const ep  = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-            const res = await fetch(ep, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              signal: AbortSignal.timeout(20000)
-            });
-            
-            const data = await res.json();
-            
-            if (data.error) {
-              console.warn(`Gemini API Error for ${model}:`, data.error);
-              if (data.error.code === 429) continue; // Rate Limit Hit -> Try next model
-              continue; // 404 or others -> Try next model
-            }
-            
-            const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-            const parsed = JSON.parse(raw);
-            return parsed;
-          } catch(err) { 
-            console.warn(`Gemini BA Exception on ${model}:`, err);
-            continue; 
-          }
-        }
-        return null;
-      }
-
-      function saveGeminiKey() {
-        const k = keyInput.trim();
-        if (!k || k.length < 20) { setKeyStatus('⚠ Too short'); return; }
-        try { localStorage.setItem('ld_scanner_gemini_key', k); } catch(_) {}
-        setGeminiKey(k);
-        setKeyInput('');
-        setKeyStatus('✅ Key saved');
-        setTimeout(() => setKeyStatus(''), 2500);
-      }
-
-      // Live VIX from results
-      const vixPrice = results["^INDIAVIX"]?.price ?? null;
-
-      const handleScan = async () => {
-        stopRef.current = false;
-        setScanning(true);
-        const toFetch = ALL_INDICES.filter(i => i.symbol);
-        const total   = toFetch.length;
-        let done = 0;
-        let tempResults = { ...results };
-        for (const idx of toFetch) {
-          if (stopRef.current) break;
-          setProgress({ done, total, label: `Scanning ${idx.name}…` });
-          const data = await fetchIndex(idx.symbol);
-          done++;
-          tempResults[idx.symbol] = data;
-          setResults({ ...tempResults });
-          setProgress({ done, total, label: `${idx.name}` });
-          await sleep(500);
-        }
-        setProgress({ done: total, total, label: "Scan complete" });
-        setLastUpdated(new Date());
-        setScanned(true);
-        setScanning(false);
-
-        // ── BA PHASE: call Gemini for every Regime A index ────────────────
-        const storedKey = (localStorage.getItem('ld_scanner_gemini_key') || '').trim();
-        if (storedKey && storedKey.length >= 20) {
-          baStopRef.current = false;
-          // Collect Regime A indices from tempResults
-          const regimeAList = toFetch.filter(idx => {
-            const d = tempResults[idx.symbol];
-            return d && !d.error && d.regime === 'A';
-          });
-
-          // Mark all as loading
-          const initBA = {};
-          regimeAList.forEach(idx => { initBA[idx.symbol] = { status: 'loading', pct: null }; });
-          setBaResults(prev => ({ ...prev, ...initBA }));
-
-          let baIdx = 0;
-          for (const idx of regimeAList) {
-            if (baStopRef.current) break;
-            const result = await callGeminiBA(idx.name, tempResults[idx.symbol].wRsi4);
-            const pct = result?.regime_a_weight_pct ?? null;
-            const conf = result?.confidence ?? '';
-            setBaResults(prev => ({
-              ...prev,
-              [idx.symbol]: {
-                status: pct !== null ? 'done' : 'error',
-                pct,
-                bull:  result?.bull_count ?? null,
-                total: result?.total_count ?? null,
-                conf,
-                note:  result?.note ?? ''
-              }
-            }));
-            baIdx++;
-            setProgress({ done: total, total, label: `BA ${baIdx}/${regimeAList.length}: ${idx.name}` });
-            
-            // Prevent 429 Too Many Requests. Free tier allows 15 requests per minute.
-            // 4200ms sleep ensures we stay safely at ~14 requests per minute.
-            if (baIdx < regimeAList.length) await sleep(4200); 
-          }
-          setProgress({ done: total, total, label: "Scan + BA complete" });
-        }
-      };
-
-      const requestSort = (key) => {
-        let direction = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-          direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-      };
-
-      const sortedRows = useMemo(() => {
-        let list = ALL_INDICES.filter(i => i.symbol).map(idx => ({ ...idx, ...(results[idx.symbol] || {}) }));
-        
-        // Filtering
-        if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
-        if (phaseFilter !== "ALL") {
-          list = list.filter(r => {
-            const et = runExecutionTree(r, vixPrice);
-            return et && et.verdict === phaseFilter;
-          });
-        }
-        
-        // Sorting Logic
-        if (sortConfig.key) {
-          list.sort((a, b) => {
-            let aVal, bVal;
-            
-            if (sortConfig.key === 'priceVsWma') {
-              aVal = (a.price && a.wma20Price) ? (a.price > a.wma20Price ? 1 : -1) : 0;
-              bVal = (b.price && b.wma20Price) ? (b.price > b.wma20Price ? 1 : -1) : 0;
-            } else if (sortConfig.key === 'verdict' || sortConfig.key === 'detail') {
-              const etA = runExecutionTree(a, vixPrice);
-              const etB = runExecutionTree(b, vixPrice);
-              aVal = etA ? etA[sortConfig.key === 'verdict' ? 'label' : 'detail'] : '';
-              bVal = etB ? etB[sortConfig.key === 'verdict' ? 'label' : 'detail'] : '';
-            } else if (sortConfig.key === 'tsiTrigger') {
-              aVal = a.tsiTrigger || '';
-              bVal = b.tsiTrigger || '';
-            } else if (sortConfig.key === 'baPct') {
-              aVal = baResults[a.symbol]?.pct ?? -1;
-              bVal = baResults[b.symbol]?.pct ?? -1;
-            } else {
-              aVal = a[sortConfig.key];
-              bVal = b[sortConfig.key];
-            }
-
-            if (aVal == null) return 1;
-            if (bVal == null) return -1;
-
-            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-            return 0;
-          });
-          return list;
-        }
-
-        // Default Sort
-        return list.sort((a, b) => {
-          const ord = { A:1, B:2, C:3 };
-          const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
-          if (ra !== rb) return ra - rb;
-          return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
-        });
-      }, [results, regimeFilter, phaseFilter, vixPrice, sortConfig]);
-
-      const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
-      const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
-
-      const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return "";
-        return sortConfig.direction === 'asc' ? " ▲" : " ▼";
-      };
-
-      return (
-        <div>
-          {/* ── HEADER ── */}
-          <header className="app-header">
-            <div className="brand">
-              <div className="brand-icon">LD</div>
-              <div className="brand-text">
-                <h1>LD Scanner v1</h1>
-                <p>Sacred RSI Regime Auditor · NSE / BSE</p>
-              </div>
-            </div>
-            <div className="header-right">
-              {lastUpdated && (
-                <span style={{fontFamily:"var(--mono)",fontSize:11,color:"#000000"}}>
-                  Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
-                  &nbsp;·&nbsp;{lastUpdated.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-                </span>
-              )}
-              <span className={`live-dot ${scanning ? 'active' : ''}`}>
-                {scanning ? `SCANNING ${pct}%` : scanned ? 'LAST SCAN DONE' : 'READY'}
-              </span>
-            </div>
-          </header>
-
-          <div className="main-wrap">
-
-            {/* ── GEMINI API KEY BAR ── */}
-            <div className="ba-key-bar">
-              <span className="ba-key-label">🤖 Gemini Key</span>
-              {geminiKey
-                ? <span className="ba-key-status">✅ Key saved — BA will run for Regime A indices after scan</span>
-                : <span className="ba-key-status" style={{color:"#c97a00"}}>⚠ No key — BA column will be empty</span>
-              }
-              <input
-                className="ba-key-input"
-                type="password"
-                placeholder="Paste AIza… key (39 chars) — stored in localStorage"
-                value={keyInput}
-                onChange={e => setKeyInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && saveGeminiKey()}
-              />
-              <button className="ba-key-save" onClick={saveGeminiKey}>Save Key</button>
-              {keyStatus && <span className="ba-key-status">{keyStatus}</span>}
-              {geminiKey && (
-                <button className="ba-key-save" style={{background:"var(--red-bg)",border:"1px solid var(--red)"}}
-                  onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key');}catch(_){} setGeminiKey(''); setKeyStatus('Key cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* ── SACRED RULE ── */}
-            <div className="sacred-rule">
-              <span className="label">Sacred Rule</span>
-              <span className="rule-text">True compounders do NOT stay below 40 RSI — Base = 4W RSI</span>
-            </div>
-
-            {/* ── 5-PHASE EXECUTION TREE LEGEND (ACCORDION) ── */}
-            <div style={{
-              background:"var(--surface)", border:"1px solid var(--border2)",
-              padding:"10px 18px", marginBottom:8, cursor: "pointer", userSelect: "none"
-            }} onClick={() => setShowExecutionTree(!showExecutionTree)}>
-              <div style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",
-                letterSpacing:"1.5px",textTransform:"uppercase", display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                <span>5-Phase Execution Tree & TSI Triggers</span>
-                <span>{showExecutionTree ? "▼" : "▶"}</span>
-              </div>
-              
-              {showExecutionTree && (
-                <div style={{display:"flex",gap:8,flexDirection:"column", marginTop: 12}}>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                    {[
-                      { label:"P1: Macro Anchor",    desc:"W-RSI(14) ≥ 50 + P > 20WMA" },
-                      { label:"P2: Micro Align",     desc:"Daily RSI 4/8/14 computed" },
-                      { label:"P3: Confluence",      desc:"All 3 Daily RSIs in 40–50 zone" },
-                      { label:"P4: Trapdoor Audit",  desc:"5 clues: VIX, Divergence, WMA breach" },
-                      { label:"P5: Final Verdict",   desc:"VERIFIED STRIKE or FAKE SUPPORT" },
-                    ].map((p,i) => (
-                      <div key={i} style={{
-                        display:"flex",alignItems:"center",gap:8,
-                        background:"var(--surface2)",border:"1px solid var(--border)",
-                        padding:"6px 12px",fontSize:11
-                      }}>
-                        <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,color:"#000000",whiteSpace:"nowrap"}}>{p.label}</span>
-                        <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>{p.desc}</span>
-                      </div>
-                    ))}
-                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000",marginLeft:4}}>
-                      ⚠ TD5 (Constituent Rot) requires manual verification
-                    </div>
-                  </div>
-                  
-                  {/* TSI TRIGGER LINE ITEM */}
-                  <div style={{width: "100%", height: 1, background: "var(--border2)", margin: "4px 0"}}></div>
-                  <div style={{display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center"}}>
-                    <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:700,color:"#000000"}}>TSI TRIGGERS:</span>
-                    <div style={{display:"flex", gap:"6px 12px", flexWrap:"wrap"}}>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🚀 <b>RESUMPTION:</b> 0-Line Cross</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🎯 <b>DIP ZONE:</b> &lt; 0</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>🔥 <b>OVERHEATED:</b> &gt; 0.85</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>✅ <b>TRENDING:</b> &gt; 0</span>
-                      <span style={{fontFamily:"var(--mono)",fontSize:10,color:"#000000"}}>⚠️ <b>BEAR CROSS:</b> Drop &lt; 0</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="controls-bar">
-              <div className="filters-wrapper">
-                <div className="filter-group">
-                  <span className="filter-label">Regime</span>
-                  <select className="filter-select" value={regimeFilter} onChange={e => setRegimeFilter(e.target.value)}>
-                    <option value="ALL">All Regimes</option>
-                    <option value="A">Regime A</option>
-                    <option value="B">Regime B</option>
-                    <option value="C">Regime C</option>
-                  </select>
-                </div>
-                <div className="filter-group">
-                  <span className="filter-label">Verdict</span>
-                  <select className="filter-select" value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}>
-                    <option value="ALL">All Verdicts</option>
-                    <option value="VERIFIED STRIKE">💎 Verified Strike</option>
-                    <option value="NEAR MISS">🟡 Near Miss</option>
-                    <option value="FAKE SUPPORT">🔴 Fake Support</option>
-                    <option value="ABORT">💀 Abort</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="actions-wrapper">
-                {vixPrice && (
-                  <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
-                    <span style={{color:"#000000",letterSpacing:"1px",textTransform:"uppercase",whiteSpace:"nowrap"}}>India VIX</span>
-                    <span className="vix-badge" style={{
-                      padding:"3px 10px", borderRadius:2, fontWeight:600, whiteSpace:"nowrap",
-                      background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
-                      color: "#000000",
-                      border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
-                    }}>{vixPrice.toFixed(1)} {vixPrice > 20 ? "⚠ HIGH" : "✓ OK"}</span>
-                  </div>
-                )}
-                {!scanning
-                  ? <button className="btn-scan" onClick={handleScan}>⚡ Execute Audit</button>
-                  : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop Scan ({pct}%)</button>
-                }
-              </div>
-            </div>
-
-            {/* ── PROGRESS ── */}
-            {scanning && (
-              <div className="progress-wrap">
-                <div className="progress-top">
-                  <span className="progress-label">{progress.label}</span>
-                  <span className="progress-pct">{progress.done} / {progress.total}</span>
-                </div>
-                <div className="progress-track">
-                  <div className="progress-fill" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            )}
-
-            {/* ── TABLE ── */}
-            {hasData ? (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th className="name-col" onClick={() => requestSort('name')}>
-                        Index / Scheme{getSortIcon('name')}
-                      </th>
-                      <th onClick={() => requestSort('price')}>
-                        Price{getSortIcon('price')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>
-                        % Change{getSortIcon('changePct')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('dRsi')}>
-                        Daily RSI 4·8·14{getSortIcon('dRsi')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('wRsi')}>
-                        Weekly RSI 4·8·14{getSortIcon('wRsi')}
-                      </th>
-                      <th onClick={() => requestSort('wma20Rsi')}>
-                        WMA20 RSI{getSortIcon('wma20Rsi')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('priceVsWma')}>
-                        P &gt; 20WMA{getSortIcon('priceVsWma')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('dTsiCurr')}>
-                        TSI 21 (Daily){getSortIcon('dTsiCurr')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('tsiTrigger')}>
-                        TSI Trigger{getSortIcon('tsiTrigger')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('regime')}>
-                        Regime{getSortIcon('regime')}
-                      </th>
-                      <th style={{textAlign:"center"}} onClick={() => requestSort('action')}>
-                        Action{getSortIcon('action')}
-                      </th>
-                      <th style={{minWidth:180}} onClick={() => requestSort('verdict')}>
-                        Execution Verdict{getSortIcon('verdict')}
-                      </th>
-                      <th style={{minWidth:220}} onClick={() => requestSort('detail')}>
-                        Trapdoor / Detail{getSortIcon('detail')}
-                      </th>
-                      <th style={{textAlign:"center",minWidth:90}} onClick={() => requestSort('baPct')}
-                        title="% of index market-cap weight in Regime A (W-RSI ≥ 50) — Gemini AI estimate, Regime A indices only">
-                        % Wt Regime A{getSortIcon('baPct')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedRows.map((r, i) => {
-                      if (!r.wRsi) return null;
-                      const wmaClass = r.price && r.wma20Price
-                        ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no') : '';
-                      const wmaText = r.price && r.wma20Price
-                        ? (r.price > r.wma20Price ? 'YES' : 'NO') : '—';
-
-                      const et = runExecutionTree(r, vixPrice);
-                      const verdictStyle = {
-                        green: { bg:"var(--green-dim)", color:"#000000", border:"var(--green)" },
-                        amber: { bg:"var(--amber-dim)", color:"#000000", border:"var(--amber)" },
-                        red:   { bg:"var(--red-dim)",   color:"#000000", border:"var(--red)" },
-                        dim:   { bg:"var(--surface2)",  color:"#000000", border:"var(--border2)" },
-                      }[et?.color || "dim"];
-
-                      return (
-                        <tr key={i}>
-                          <td className="name-col" title={r.name}>
-                            <span style={{fontSize:10,color:"#000000",marginRight:6,fontFamily:"var(--mono)"}}>{r.exchange}</span>
-                            {r.name}
-                          </td>
-                          <td>{r.price?.toFixed(2) ?? "—"}</td>
-
-                          {/* % Change */}
-                          <td style={{
-                            textAlign:"center", fontFamily:"var(--mono)", fontWeight:600,
-                            color: "#000000",
-                            background: r.changePct > 0 ? "var(--green-bg)" : r.changePct < 0 ? "var(--red-bg)" : "transparent"
-                          }}>
-                            {r.changePct == null ? "—"
-                              : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${r.changePct.toFixed(2)}%`}
-                          </td>
-
-                          {/* Daily RSI 4 · 8 · 14 */}
-                          <td style={{textAlign:"center"}}>
-                            <div style={{display:"flex",gap:"4px",justifyContent:"center"}}>
-                              <ConfPill val={r.dRsi4} />
-                              <ConfPill val={r.dRsi8} />
-                              <ConfPill val={r.dRsi14} />
-                            </div>
-                          </td>
-
-                          {/* Weekly RSI 4 · 8 · 14 */}
-                          <td style={{textAlign:"center"}}>
-                            <div style={{display:"flex",gap:"4px",justifyContent:"center"}}>
-                              <ConfPill val={r.wRsi4} />
-                              <ConfPill val={r.wRsi8} />
-                              <ConfPill val={r.wRsi14} />
-                            </div>
-                          </td>
-
-                          <td>{r.wma20Rsi ?? "—"}</td>
-                          <td className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
-                          
-                          {/* TSI 21 Column */}
-                          <td style={{
-                            textAlign:"center", 
-                            fontWeight:600, 
-                            background: r.dTsiCurr > 0 ? "var(--green-dim)" : r.dTsiCurr < 0 ? "var(--red-dim)" : "transparent",
-                            color: "#000000"
-                          }}>
-                            {r.dTsiCurr !== null ? r.dTsiCurr.toFixed(2) : "—"}
-                          </td>
-
-                          {/* TSI Trigger Column */}
-                          <td style={{textAlign:"center"}}>
-                            <span style={{
-                              display:"inline-block", padding:"3px 8px", borderRadius:2,
-                              fontFamily:"var(--mono)", fontSize:10, fontWeight:600,
-                              background: r.tsiColor, border: `1px solid ${r.tsiBorder}`, color: "#000000"
-                            }}>
-                              {r.tsiTrigger}
-                            </span>
-                          </td>
-
-                          <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime} /></td>
-                          <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action} /></td>
-
-                          {/* Execution Verdict */}
-                          <td style={{textAlign:"center"}}>
-                            {et ? (
-                              <span style={{
-                                display:"inline-block", padding:"3px 10px", borderRadius:2,
-                                fontFamily:"var(--mono)", fontSize:10, fontWeight:600,
-                                letterSpacing:"0.5px", whiteSpace:"nowrap",
-                                background: verdictStyle.bg,
-                                color: verdictStyle.color,
-                                border: `1px solid ${verdictStyle.border}`,
-                              }}>{et.label}</span>
-                            ) : "—"}
-                          </td>
-
-                          {/* Trapdoor Detail */}
-                          <td className="rec-col" style={{fontSize:10,color:"#000000"}}>
-                            {et?.detail ?? "—"}
-                          </td>
-
-                          {/* % Weight Regime A — BA column */}
-                          <td style={{textAlign:"center"}}>
-                            {(() => {
-                              // Only show for Regime A
-                              if (r.regime !== 'A') {
-                                return <span className="ba-pill ba-na">—</span>;
-                              }
-                              const ba = baResults[r.symbol];
-                              if (!ba) {
-                                // Key present but scan not yet run / BA not triggered
-                                const hasKey = !!(localStorage.getItem('ld_scanner_gemini_key') || '').trim();
-                                return <span className="ba-pill ba-na" style={{fontSize:9}}>{hasKey ? 'Scan to get' : 'No key'}</span>;
-                              }
-                              if (ba.status === 'loading') {
-                                return <span className="ba-loading" title="Gemini BA running…" />;
-                              }
-                              if (ba.status === 'error' || ba.pct === null) {
-                                return <span className="ba-pill ba-na" title={ba.note || ''}>ERR</span>;
-                              }
-                              const pct = ba.pct;
-                              const cls = pct >= 60 ? 'ba-strong' : pct >= 40 ? 'ba-moderate' : 'ba-weak';
-                              const confBadge = ba.conf === 'HIGH' ? '●' : ba.conf === 'MEDIUM' ? '◑' : '○';
-                              return (
-                                <span
-                                  className={`ba-pill ${cls}`}
-                                  title={`${pct}% in Regime A | ${ba.bull ?? '?'}/${ba.total ?? '?'} stocks | Confidence: ${ba.conf} | ${ba.note || ''}`}
-                                >
-                                  {pct}% {confBadge}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : !scanning && (
-              <div className="empty-state">
-                <div className="big-icon">📡</div>
-                <h2>Ready to Scan</h2>
-                <p>Hit Execute Audit to analyse all {ALL_INDICES.length} indices across NSE &amp; BSE</p>
-              </div>
-            )}
-
-          </div>
-        </div>
-      );
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
     };
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<AuditorDashboard />);
-  </script>
+    const cascade = [
+      { key: 1, model: 'gemini-3.1-flash-lite' },
+      { key: 1, model: 'gemini-3-flash' },
+      { key: 1, model: 'gemini-3.1-pro' },
+      { key: 2, model: 'gemini-2.5-flash-lite' },
+      { key: 2, model: 'gemini-3.1-flash-lite' },
+    ];
+
+    for (const entry of cascade) {
+      const apiKey = keys[entry.key];
+      if (!apiKey) continue;
+      try {
+        const ep = `https://generativelanguage.googleapis.com/v1beta/models/${entry.model}:generateContent?key=${apiKey}`;
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(20000)
+        });
+        const data = await res.json();
+        if (data.error) { if (data.error.code === 429) continue; continue; }
+        const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        return JSON.parse(raw);
+      } catch(err) { continue; }
+    }
+    return null;
+  }
+
+  const categories = useMemo(() => {
+    const s = new Set(nseData.map(i => i.key));
+    return ["ALL", ...Array.from(s).sort()];
+  }, [nseData]);
+
+  const vixPrice = results["indiavix"]?.price ?? null;
+
+  const handleScan = async () => {
+    stopRef.current = false;
+    setError(null);
+
+    // Phase 1: Fetch NSE prices via CORS proxy
+    setPhase('prices');
+    setProgress({ done: 0, total: 1, label: "Fetching NSE indices…" });
+
+    let nseRaw = [];
+    try {
+      const res = await fetch(CORS + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      nseRaw = json.data || [];
+    } catch (e) {
+      setError('Failed to fetch NSE data: ' + e.message + '. Try refreshing or check your internet connection.');
+      setPhase('init');
+      return;
+    }
+
+    setNseData(nseRaw);
+    setProgress({ done: 1, total: 1, label: `${nseRaw.length} indices loaded` });
+
+    // Build price map from NSE data
+    const priceMap = {};
+    const indexList = [];
+    nseRaw.forEach(idx => {
+      const key = normalize(idx.index || idx.indexSymbol);
+      priceMap[key] = {
+        price: parseFloat(idx.last) || null,
+        changePct: parseFloat(idx.percentChange) || null,
+        variation: parseFloat(idx.variation) || null,
+        open: parseFloat(idx.open) || null,
+        high: parseFloat(idx.high) || null,
+        low: parseFloat(idx.low) || null,
+        prevClose: parseFloat(idx.previousClose) || null,
+        yearHigh: parseFloat(idx.yearHigh) || null,
+        yearLow: parseFloat(idx.yearLow) || null,
+        perChange30d: parseFloat(idx.perChange30d) || null,
+        perChange365d: parseFloat(idx.perChange365d) || null,
+        pe: idx.pe || null,
+        pb: idx.pb || null,
+        dy: idx.dy || null,
+        key: idx.key,
+        _nseName: idx.index,
+      };
+      indexList.push({ name: idx.index, key, nseKey: idx.key });
+    });
+
+    // Phase 2: Fetch NSE index close files via proxy, fallback Yahoo
+    setPhase('rsi');
+    let tempResults = {};
+    let done = 0;
+    let historicalData = null;
+
+    try {
+      const res = await fetch('nse_history/nse_historical.json', { signal: AbortSignal.timeout(5000) });
+      if (res.ok) historicalData = await res.json();
+    } catch (e) {}
+
+    if (historicalData) {
+      setDataSource('NSE JSON');
+      const total = indexList.length;
+      for (const idx of indexList) {
+        if (stopRef.current) break;
+        setProgress({ done, total, label: `RSI: ${idx.name}` });
+        const priceInfo = priceMap[idx.key] || {};
+        let row = { name: idx.name, ...priceInfo };
+        row.divergence = false;
+        const sym = idx.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const closes = historicalData[sym];
+        if (closes && closes.length >= 15) {
+          const dA4 = calcRSI(closes, 4), dA8 = calcRSI(closes, 8), dA14 = calcRSI(closes, 14);
+          row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
+          row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
+          row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+          const weekly = [];
+          for (let i = 0; i < closes.length; i += 5) weekly.push(closes[Math.min(i + 4, closes.length - 1)]);
+          if (weekly.length >= 14) {
+            const wA4 = calcRSI(weekly, 4), wA8 = calcRSI(weekly, 8), wA14 = calcRSI(weekly, 14);
+            row.wRsi4 = wA4.length ? wA4[wA4.length-1] : null;
+            row.wRsi8 = wA8.length ? wA8[wA8.length-1] : null;
+            row.wRsi14 = wA14.length ? wA14[wA14.length-1] : null;
+            row.wma20Price = calcWMA(weekly, 20);
+            row.wma20Rsi = calcWMA(wA4, 20);
+            if (dA4.length > 2) {
+              const p = dA4[dA4.length-2], c = dA4[dA4.length-1];
+              if (p != null && c > p && row.wma20Price && row.price < row.wma20Price)
+                row.divergence = true;
+            }
+          }
+        }
+        row.regime = computeRegime(row.wRsi14, row.price, row.wma20Price);
+        const ac = computeAction(row.regime, row.dRsi14);
+        row.action = ac.action; row.rec = ac.rec;
+        tempResults[idx.key] = row;
+        setResults({ ...tempResults });
+        done++;
+      }
+    } else {
+      // Two-pass: first 25 files for D-RSI, then 75 more for W-RSI
+      const tradingDays = genTradingDays(100);
+      const dailyMap = {};
+      const total = tradingDays.length;
+
+      const fetchBatch = async (start, end) => {
+        const datesOk = [];
+        for (let bs = start; bs < end; bs += 5) {
+          if (stopRef.current) break;
+          await Promise.all(tradingDays.slice(bs, bs + 5).map(async (td) => {
+            const ds = fmtDDMMYYYY(td);
+            try {
+              const res = await fetch(CORS + encodeURIComponent(`https://archives.nseindia.com/content/indices/ind_close_all_${ds}.csv`), { signal: AbortSignal.timeout(10000) });
+              if (!res.ok) return;
+              const text = await res.text();
+              const lines = text.trim().split('\n').filter(l => l.trim());
+              if (lines.length < 2) return;
+              for (let i = 1; i < lines.length; i++) {
+                const v = lines[i].split(',');
+                const name = v[0]?.trim().toLowerCase();
+                const close = parseFloat(v[5]);
+                if (name && !isNaN(close)) {
+                  if (!dailyMap[name]) dailyMap[name] = [];
+                  dailyMap[name].push(ds + '|' + close);
+                }
+              }
+              datesOk.push(ds);
+            } catch (e) {}
+          }));
+        }
+        return datesOk;
+      };
+
+      const getCloses = (name) => {
+        const key = name.toLowerCase();
+        const entries = dailyMap[key];
+        if (!entries || entries.length < 15) return null;
+        entries.sort((a, b) => {
+          const da = a.substring(4,8) + a.substring(2,4) + a.substring(0,2);
+          const db = b.substring(4,8) + b.substring(2,4) + b.substring(0,2);
+          return da < db ? -1 : da > db ? 1 : 0;
+        });
+        return entries.map(e => parseFloat(e.split('|')[1]));
+      };
+
+      const processIndex = (idx) => {
+        const priceInfo = priceMap[idx.key] || {};
+        let row = { name: idx.name, ...priceInfo };
+        row.divergence = false;
+        const closes = getCloses(idx.name);
+        if (closes) {
+          const dA4 = calcRSI(closes, 4), dA8 = calcRSI(closes, 8), dA14 = calcRSI(closes, 14);
+          row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
+          row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
+          row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+          const weekly = [];
+          for (let j = 0; j < closes.length; j += 5) weekly.push(closes[Math.min(j + 4, closes.length - 1)]);
+          if (weekly.length >= 14) {
+            const wA4 = calcRSI(weekly, 4), wA8 = calcRSI(weekly, 8), wA14 = calcRSI(weekly, 14);
+            row.wRsi4 = wA4.length ? wA4[wA4.length-1] : null;
+            row.wRsi8 = wA8.length ? wA8[wA8.length-1] : null;
+            row.wRsi14 = wA14.length ? wA14[wA14.length-1] : null;
+            row.wma20Price = calcWMA(weekly, Math.min(20, weekly.length));
+            row.wma20Rsi = calcWMA(wA4, Math.min(20, wA4.length));
+            if (dA4.length > 2) {
+              const p = dA4[dA4.length-2], c = dA4[dA4.length-1];
+              if (p != null && c > p && row.wma20Price && row.price < row.wma20Price)
+                row.divergence = true;
+            }
+          }
+        }
+        return row;
+      };
+
+      // Pass 1: fetch 25 days, compute D-RSI
+      const dates1 = await fetchBatch(0, 25);
+      setProgress({ done: 25, total, label: `Pass 1: ${dates1.length} days loaded` });
+      for (const idx of indexList) {
+        if (stopRef.current) break;
+        const row = processIndex(idx);
+        row.regime = computeRegime(row.wRsi14, row.price, row.wma20Price);
+        const ac = computeAction(row.regime, row.dRsi14);
+        row.action = ac.action; row.rec = ac.rec;
+        tempResults[idx.key] = row;
+      }
+      setResults({ ...tempResults });
+      setPhase('rsi');
+
+      // Pass 2: fetch 75 more days, compute W-RSI, Yahoo fallback for gaps
+      const dates2 = await fetchBatch(25, total);
+      const allDates = dates1.concat(dates2);
+      setProgress({ done: allDates.length, total, label: `Pass 2: ${allDates.length} days` });
+      setDataSource(`NSE ${allDates.length}d`);
+
+      const totalIdx = indexList.length;
+      for (let i = 0; i < totalIdx; i++) {
+        if (stopRef.current) break;
+        const idx = indexList[i];
+        setProgress({ done: i + 1, total: totalIdx, label: `RSI: ${idx.name}` });
+        const row = processIndex(idx);
+
+        // Yahoo fallback for indices without W-RSI
+        if (row.wRsi14 == null && YAHOO[idx.key]) {
+          try {
+            const symbol = YAHOO[idx.key];
+            const [wkRes, dRes] = await Promise.all([
+              fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
+              fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
+            ]);
+            if (wkRes?.ok) {
+              const wJson = await wkRes.json();
+              const wC = (wJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(x => x != null);
+              if (wC.length >= 14) {
+                const wA = calcRSI(wC, 4), wB = calcRSI(wC, 8), wC2 = calcRSI(wC, 14);
+                row.wRsi4 = wA.length ? wA[wA.length-1] : null;
+                row.wRsi8 = wB.length ? wB[wB.length-1] : null;
+                row.wRsi14 = wC2.length ? wC2[wC2.length-1] : null;
+                row.wma20Price = calcWMA(wC, 20);
+                row.wma20Rsi = calcWMA(wA, 20);
+              }
+            }
+            if (dRes?.ok && row.dRsi14 == null) {
+              const dJson = await dRes.json();
+              const dC = (dJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(x => x != null);
+              if (dC.length >= 14) {
+                const dA = calcRSI(dC, 4), dB = calcRSI(dC, 8), dC2 = calcRSI(dC, 14);
+                row.dRsi4 = dA.length ? dA[dA.length-1] : null;
+                row.dRsi8 = dB.length ? dB[dB.length-1] : null;
+                row.dRsi14 = dC2.length ? dC2[dC2.length-1] : null;
+              }
+            }
+          } catch (e) {}
+        }
+
+        row.regime = computeRegime(row.wRsi14, row.price, row.wma20Price);
+        const ac = computeAction(row.regime, row.dRsi14);
+        row.action = ac.action; row.rec = ac.rec;
+        tempResults[idx.key] = row;
+        setResults({ ...tempResults });
+        done = i + 1;
+      }
+
+      const remaining = indexList.filter(idx => !tempResults[idx.key]);
+      remaining.forEach(idx => { tempResults[idx.key] = { name: idx.name, ...priceMap[idx.key] }; });
+    }
+
+    setResults({ ...tempResults });
+
+    // BA Phase: Gemini breadth analysis for Regime A indices
+    const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+    const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
+      baStopRef.current = false;
+      const regimeAList = indexList.filter(idx => {
+        const d = tempResults[idx.key];
+        return d && !d.error && d.regime === 'A';
+      });
+      const initBA = {};
+      regimeAList.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
+      setBaResults(prev => ({ ...prev, ...initBA }));
+
+      let baIdx = 0;
+      for (const idx of regimeAList) {
+        if (stopRef.current || baStopRef.current) break;
+        const tr = tempResults[idx.key];
+        const result = await callGeminiBA(idx.name, tr?.wRsi4);
+        const pct = result?.regime_a_weight_pct ?? null;
+        setBaResults(prev => ({
+          ...prev,
+          [idx.name]: {
+            status: pct !== null ? 'done' : 'error',
+            pct,
+            bull: result?.bull_count ?? null,
+            total: result?.total_count ?? null,
+            conf: result?.confidence ?? '',
+            note: result?.note ?? ''
+          }
+        }));
+        baIdx++;
+        setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${regimeAList.length}: ${idx.name}` });
+        if (baIdx < regimeAList.length) await new Promise(r => setTimeout(r, 4200));
+      }
+    }
+
+    setProgress({ done: 0, total: 0, label: "" });
+    setLastUpdated(new Date());
+    setPhase('done');
+  };
+
+  // Auto-refresh
+  useEffect(() => {
+    if (autoRefresh && phase === 'done') {
+      autoRef.current = setTimeout(() => { handleScan(); }, 60000);
+      return () => clearTimeout(autoRef.current);
+    }
+  }, [autoRefresh, phase]);
+
+  const sortedRows = useMemo(() => {
+    let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(r => r.name.toLowerCase().includes(q));
+    }
+    if (catFilter !== "ALL") list = list.filter(r => r.key === catFilter);
+    if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
+    if (phaseFilter !== "ALL") {
+      list = list.filter(r => {
+        const et = runExecutionTree(r, vixPrice);
+        return et && et.verdict === phaseFilter;
+      });
+    }
+    if (sortConfig.key) {
+      list.sort((a, b) => {
+        let aVal, bVal;
+        if (sortConfig.key === 'priceVsWma') {
+          aVal = (a.price && a.wma20Price) ? (a.price > a.wma20Price ? 1 : -1) : 0;
+          bVal = (b.price && b.wma20Price) ? (b.price > b.wma20Price ? 1 : -1) : 0;
+        } else if (sortConfig.key === 'verdict') {
+          const etA = runExecutionTree(a, vixPrice);
+          const etB = runExecutionTree(b, vixPrice);
+          aVal = etA ? etA.label : '';
+          bVal = etB ? etB.label : '';
+        } else if (sortConfig.key === 'detail') {
+          const etA = runExecutionTree(a, vixPrice);
+          const etB = runExecutionTree(b, vixPrice);
+          aVal = etA ? etA.detail : '';
+          bVal = etB ? etB.detail : '';
+        } else if (sortConfig.key === 'baPct') {
+          aVal = baResults[a.name]?.pct ?? -1;
+          bVal = baResults[b.name]?.pct ?? -1;
+        } else if (sortConfig.key === 'dRsi14') {
+          aVal = a.dRsi14 ?? -1;
+          bVal = b.dRsi14 ?? -1;
+        } else if (sortConfig.key === 'wRsi14') {
+          aVal = a.wRsi14 ?? -1;
+          bVal = b.wRsi14 ?? -1;
+        } else {
+          aVal = a[sortConfig.key];
+          bVal = b[sortConfig.key];
+        }
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+      return list;
+    }
+    return list.sort((a, b) => {
+      const ord = { A: 1, B: 2, C: 3 };
+      const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
+      if (ra !== rb) return ra - rb;
+      return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
+    });
+  }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, baResults]);
+
+  const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
+  const pct = Math.round((progress.done / (progress.total || 1)) * 100);
+
+  return (
+    <div>
+      <header className="app-header">
+        <div className="brand">
+          <div className="brand-icon">LD</div>
+          <div className="brand-text">
+            <h1>Lie Detector Scanner v2E</h1>
+            <p>NSE Official Index Close Files · Two-Pass RSI · BA · Sort</p>
+          </div>
+        </div>
+        <div className="header-right">
+          {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)"}}>Updated {lastUpdated.toLocaleTimeString('en-IN')}</span>}
+          {hasData && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-dim)"}}>{sortedRows.length} idx</span>}
+          <span className={`live-dot ${phase === 'rsi' ? 'active' : ''}`}>
+            {phase === 'rsi' ? `Daily RSI ✓` : phase === 'done' ? (dataSource||'READY') : phase === 'prices' ? 'LOADING' : 'INIT'}
+          </span>
+        </div>
+      </header>
+
+      <div className="main-wrap">
+        {error && (
+          <div style={{background:"var(--red-dim)",border:"1px solid var(--red)",padding:"10px 16px",marginBottom:16,fontFamily:"var(--mono)",fontSize:12,color:"var(--red)",borderRadius:2}}>
+            {error}
+          </div>
+        )}
+
+        <div className="sacred-rule">
+          <span className="label">Sacred Rule</span>
+          <span className="rule-text">True compounders do NOT stay below 40 RSI — Base = 4W RSI</span>
+        </div>
+
+        <div className="ba-key-bar">
+          <span className="ba-key-label">Gemini Keys</span>
+          <span className="ba-key-status">
+            {geminiKey1 || geminiKey2 ? 'Keys saved — cascade BA runs for Regime A indices' : <span style={{color:"var(--orange)"}}>No keys — BA column will be empty</span>}
+            {keyStatus && <span style={{marginLeft:8}}>{keyStatus}</span>}
+          </span>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",width:"100%"}}>
+            <input className="ba-key-input" type="password" placeholder="Key 1: AIza… (cascade: flash-lite → flash → pro)"
+              value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
+            <button className="ba-key-save" onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
+            {geminiKey1 && (
+              <button className="ba-key-save" style={{background:"var(--red-dim)",border:"1px solid var(--red)",color:"var(--red)"}}
+                onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key1');}catch(_){} setGeminiKey1(''); setKeyStatus('Key1 cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
+                Clear 1
+              </button>
+            )}
+            <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade: 2.5-flash-lite → flash-lite)"
+              value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
+            <button className="ba-key-save" onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
+            {geminiKey2 && (
+              <button className="ba-key-save" style={{background:"var(--red-dim)",border:"1px solid var(--red)",color:"var(--red)"}}
+                onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key2');}catch(_){} setGeminiKey2(''); setKeyStatus('Key2 cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
+                Clear 2
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="regime-cards">
+          <div className="regime-card a">
+            <div className="regime-label">▲ Regime A</div>
+            <div className="regime-name">Structural Bull</div>
+            <div className="regime-desc">4W RSI ≥ 50 + Price above 20WMA<br/>Pullbacks to Daily RSI 40–50 are entries</div>
+          </div>
+          <div className="regime-card b">
+            <div className="regime-label">◆ Regime B</div>
+            <div className="regime-name">Fatigue Zone</div>
+            <div className="regime-desc">4W RSI 40–49<br/>Retail trap lookout — avoid dip buying</div>
+          </div>
+          <div className="regime-card c">
+            <div className="regime-label">▼ Regime C</div>
+            <div className="regime-name">Trust Break</div>
+            <div className="regime-desc">4W RSI &lt; 40<br/>Institutional exit — never average down</div>
+          </div>
+        </div>
+
+        {hasData && (() => {
+          const all = Object.values(results);
+          const withRsi = all.filter(r => r.wRsi14 != null).length;
+          const aCnt = all.filter(r => r.regime === 'A').length;
+          const bCnt = all.filter(r => r.regime === 'B').length;
+          const cCnt = all.filter(r => r.regime === 'C').length;
+          const strike = all.filter(r => { const e = runExecutionTree(r, vixPrice); return e?.verdict === 'VERIFIED STRIKE'; }).length;
+          const near = all.filter(r => { const e = runExecutionTree(r, vixPrice); return e?.verdict === 'NEAR MISS'; }).length;
+          return (
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12,fontFamily:"var(--mono)",fontSize:10}}>
+              <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>RSI: <b style={{color:"var(--green)"}}>{withRsi}</b>/{all.length}</span>
+              <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>A: <b style={{color:"var(--green)"}}>{aCnt}</b></span>
+              <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>B: <b style={{color:"var(--amber)"}}>{bCnt}</b></span>
+              <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>C: <b style={{color:"var(--red)"}}>{cCnt}</b></span>
+              {strike > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--green)",color:"var(--green)"}}>⚡ <b>{strike}</b> Strike</span>}
+              {near > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--amber)",color:"var(--amber)"}}>⌛ <b>{near}</b> Near Miss</span>}
+            </div>
+          );
+        })()}
+
+        <div className="controls-bar">
+          <div className="controls-left">
+            <div className="filter-group">
+              <span className="filter-label">Search</span>
+              <input className="filter-select" type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Index name…" style={{minWidth:140,color:'var(--text)'}}/>
+            </div>
+            <div className="filter-group">
+              <span className="filter-label">Category</span>
+              <select className="filter-select" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="filter-group">
+              <span className="filter-label">Regime</span>
+              <select className="filter-select" value={regimeFilter} onChange={e => setRegimeFilter(e.target.value)}>
+                <option value="ALL">All</option>
+                <option value="A">A - Bull</option>
+                <option value="B">B - Fatigue</option>
+                <option value="C">C - Break</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <span className="filter-label">Verdict</span>
+              <select className="filter-select" value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}>
+                <option value="ALL">All</option>
+                <option value="VERIFIED STRIKE">Strike</option>
+                <option value="NEAR MISS">Near Miss</option>
+                <option value="FAKE SUPPORT">Fake Support</option>
+                <option value="ABORT">Abort</option>
+              </select>
+            </div>
+            {vixPrice && (
+              <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
+                <span style={{color:"var(--text-dim)"}}>India VIX</span>
+                <span style={{padding:"3px 10px",borderRadius:2,fontWeight:600,
+                  background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
+                  color: vixPrice > 20 ? "var(--red)" : "var(--green)",
+                  border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
+                }}>{vixPrice.toFixed(1)}</span>
+              </div>
+            )}
+            <label className="auto-toggle">
+              <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)}/>
+              Auto (60s)
+            </label>
+          </div>
+          {phase !== 'rsi' && phase !== 'prices'
+            ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
+            : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button>
+          }
+        </div>
+
+        {(phase === 'rsi' || phase === 'prices') && (
+          <div className="progress-wrap">
+            <div className="progress-top">
+              <span className="progress-label">{progress.label} ({progress.done}/{progress.total})</span>
+              {phase === 'rsi' && <span className="progress-pct">{pct}%</span>}
+            </div>
+            {(phase === 'rsi') && (
+              <div className="progress-track"><div className="progress-fill" style={{width:pct+'%'}}/></div>
+            )}
+          </div>
+        )}
+
+        {hasData ? (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{width:30,cursor:'default',userSelect:'auto'}}>#</th>
+                  <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
+                  <th style={{fontSize:8}} onClick={() => requestSort('key')}>Cat{getSortIcon('key')}</th>
+                  <th onClick={() => requestSort('price')}>Price{getSortIcon('price')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('dRsi14')}>D RSI 4·8·14{getSortIcon('dRsi14')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('wRsi14')}>W RSI 4·8·14{getSortIcon('wRsi14')}</th>
+                  <th onClick={() => requestSort('wma20Rsi')}>WMA20{getSortIcon('wma20Rsi')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('priceVsWma')}>P&gt;WMA{getSortIcon('priceVsWma')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('regime')}>Regime{getSortIcon('regime')}</th>
+                  <th style={{textAlign:"center"}} onClick={() => requestSort('action')}>Action{getSortIcon('action')}</th>
+                  <th style={{minWidth:140}} onClick={() => requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
+                  <th style={{minWidth:180}} onClick={() => requestSort('detail')}>Detail{getSortIcon('detail')}</th>
+                  <th style={{textAlign:"center",minWidth:90}} onClick={() => requestSort('baPct')} title="% of index market-cap weight in Regime A (Gemini AI estimate, Regime A indices only)">% Wt Regime A{getSortIcon('baPct')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((r, i) => {
+                  const wmaClass = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no') : '';
+                  const wmaText = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'YES' : 'NO') : '—';
+                  const et = runExecutionTree(r, vixPrice);
+                  const vs = {green:{bg:"var(--green-dim)",color:"var(--green)",border:"var(--green)"},
+                    amber:{bg:"var(--amber-dim)",color:"var(--amber)",border:"var(--amber)"},
+                    red:{bg:"var(--red-dim)",color:"var(--red)",border:"var(--red)"},
+                    dim:{bg:"var(--surface2)",color:"var(--text-faint)",border:"var(--border2)"}}[et?.color||"dim"];
+                  return (
+                    <tr key={i}>
+                      <td style={{color:"var(--text-faint)",textAlign:"center"}}>{i+1}</td>
+                      <td className="name-col">{r.name}</td>
+                      <td style={{fontSize:9,color:"var(--text-faint)",maxWidth:80,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={r.key||""}>{(r.key||"").substring(0,14)}</td>
+                      <td style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
+                      <td style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "var(--text-dim)"}}>
+                        {r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`}
+                      </td>
+                      <td style={{textAlign:"center"}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          <ConfPill val={r.dRsi4}/><ConfPill val={r.dRsi8}/><ConfPill val={r.dRsi14}/>
+                        </div>
+                      </td>
+                      <td style={{textAlign:"center"}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          <ConfPill val={r.wRsi4}/><ConfPill val={r.wRsi8}/><ConfPill val={r.wRsi14}/>
+                        </div>
+                      </td>
+                      <td>{r.wma20Rsi ?? "—"}</td>
+                      <td className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
+                      <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime}/></td>
+                      <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action}/></td>
+                      <td style={{textAlign:"center"}}>
+                        {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
+                      </td>
+                      <td style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
+                      <td style={{textAlign:"center"}}>
+                        {(() => {
+                          if (r.regime !== 'A') return <span className="ba-pill ba-na">—</span>;
+                          const ba = baResults[r.name];
+                          if (!ba) {
+                            const hk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+                            const hk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+                            const hasKey = hk1.length >= 20 || hk2.length >= 20;
+                            return <span className="ba-pill ba-na" style={{fontSize:9}}>{hasKey ? 'Scan' : 'No key'}</span>;
+                          }
+                          if (ba.status === 'loading') return <span className="ba-loading" title="Gemini BA running…" />;
+                          if (ba.status === 'error' || ba.pct === null) return <span className="ba-pill ba-na" title={ba.note||''}>ERR</span>;
+                          const pct = ba.pct;
+                          const cls = pct >= 60 ? 'ba-strong' : pct >= 40 ? 'ba-moderate' : 'ba-weak';
+                          const confBadge = ba.conf === 'HIGH' ? '●' : ba.conf === 'MEDIUM' ? '◑' : '○';
+                          return (
+                            <span className={`ba-pill ${cls}`}
+                              title={`${pct}% in Regime A | ${ba.bull??'?'}/${ba.total??'?'} stocks | ${ba.conf} | ${ba.note||''}`}>
+                              {pct}% {confBadge}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : phase === 'init' && (
+          <div className="empty-state">
+            <div className="big-icon">📡</div>
+            <h2>Ready to Scan</h2>
+            <p>Fetches NSE live prices + index close files for all 139 indices.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Scanner />);
+</script>
 </body>
 </html>
