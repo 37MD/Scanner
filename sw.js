@@ -6,9 +6,9 @@ const PRECACHE = [
   './',
   './index.html',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './icon.svg',
   // CDN dependencies — cached on first load
   'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
   'https://unpkg.com/react@18/umd/react.production.min.js',
@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       // Cache local assets reliably; CDN with no-cors best-effort
-      const local = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
+      const local = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
       return cache.addAll(local).then(() => self.skipWaiting());
     })
   );
