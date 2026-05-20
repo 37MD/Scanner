@@ -2,15 +2,15 @@
   "name": "Lie Detector Scanner",
   "short_name": "LD Scanner",
   "description": "NSE Index RSI Regime Scanner — Two-Pass RSI · Breadth Analysis · Live Prices",
-  "start_url": "/index.html",
-  "id": "/index.html",
+  "start_url": "index.html",
+  "id": "index.html",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0a0a12",
   "theme_color": "#0a0a12",
   "lang": "en",
-  "scope": "/",
+  "scope": "./",
   "categories": ["finance", "productivity"],
   "icons": [
     {
@@ -58,7 +58,7 @@
       "name": "Run Scan",
       "short_name": "Scan",
       "description": "Launch and start X-Ray Audit",
-      "url": "/index.html?autostart=1",
+      "url": "index.html?autostart=1",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ],
