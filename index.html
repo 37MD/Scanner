@@ -350,6 +350,10 @@ Return ONLY valid JSON:
       { key: 1, model: 'gemini-3-flash' },
       { key: 1, model: 'gemini-3.5-flash' },
       { key: 1, model: 'gemini-3.1-pro' },
+      { key: 2, model: 'gemini-3.1-flash-lite' },
+      { key: 2, model: 'gemini-3-flash' },
+      { key: 2, model: 'gemini-3.5-flash' },
+      { key: 2, model: 'gemini-3.1-pro' },
     ];
 
     for (const entry of cascade) {
@@ -780,22 +784,10 @@ Return ONLY valid JSON:
               value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
             <button className="ba-key-save" onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
-            {geminiKey1 && (
-              <button className="ba-key-save" style={{background:"var(--red-dim)",border:"1px solid var(--red)",color:"var(--red)"}}
-                onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key1');}catch(_){} setGeminiKey1(''); setKeyStatus('Key1 cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
-                Clear 1
-              </button>
-            )}
-            <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade: 2.5-flash-lite → flash-lite)"
+            <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade fallback)"
               value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
             <button className="ba-key-save" onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
-            {geminiKey2 && (
-              <button className="ba-key-save" style={{background:"var(--red-dim)",border:"1px solid var(--red)",color:"var(--red)"}}
-                onClick={() => { try{localStorage.removeItem('ld_scanner_gemini_key2');}catch(_){} setGeminiKey2(''); setKeyStatus('Key2 cleared'); setTimeout(()=>setKeyStatus(''),2000); }}>
-                Clear 2
-              </button>
-            )}
           </div>
         </div>
 
