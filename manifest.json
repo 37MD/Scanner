@@ -5,7 +5,6 @@
   "start_url": "index.html",
   "id": "index.html",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0a0a12",
   "theme_color": "#0a0a12",
@@ -36,12 +35,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ],
   "screenshots": [
