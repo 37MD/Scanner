@@ -381,7 +381,8 @@ Return ONLY valid JSON:
 
   const categories = useMemo(() => {
     const s = new Set(nseData.map(i => i.key));
-    return ["ALL", ...Array.from(s).sort()];
+    const exclude = new Set(["Indices Eligible in Deravitives", "Indices Eligible in Derivatives"]);
+    return ["ALL", ...Array.from(s).filter(k => !exclude.has(k)).sort()];
   }, [nseData]);
 
   const indexNames = useMemo(() => {
@@ -390,6 +391,7 @@ Return ONLY valid JSON:
   }, [results]);
 
   const vixPrice = results["indiavix"]?.price ?? null;
+  const vixOpen = results["indiavix"]?.open ?? null;
 
   const handleScan = async () => {
     stopRef.current = false;
@@ -817,6 +819,16 @@ Return ONLY valid JSON:
               <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>C: <b style={{color:"var(--red)"}}>{cCnt}</b></span>
               {strike > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--green)",color:"var(--green)"}}>⚡ <b>{strike}</b> Strike</span>}
               {near > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--amber)",color:"var(--amber)"}}>⌛ <b>{near}</b> Near Miss</span>}
+              {vixPrice && (
+                <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto",fontFamily:"var(--mono)",fontSize:10}}>
+                  <span style={{color:"var(--text-dim)"}}>India VIX</span>
+                  <span style={{padding:"3px 8px",borderRadius:2,fontWeight:600,
+                    background: vixOpen != null && vixPrice > vixOpen ? "var(--green-dim)" : "var(--red-dim)",
+                    color: vixOpen != null && vixPrice > vixOpen ? "var(--green)" : "var(--red)",
+                    border: `1px solid ${vixOpen != null && vixPrice > vixOpen ? "var(--green)" : "var(--red)"}`,
+                  }}>{vixPrice.toFixed(1)}{vixOpen != null && <span style={{fontSize:9,opacity:0.7,marginLeft:4}}>{(vixPrice - vixOpen) > 0 ? '▲' : '▼'}{Math.abs(vixPrice - vixOpen).toFixed(2)}</span>}</span>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -828,10 +840,11 @@ Return ONLY valid JSON:
               <select className="filter-select" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{minWidth:140}}>
                 {indexNames.map(n => <option key={n} value={n === 'ALL' ? '' : n}>{n}</option>)}
               </select>
+              {phase === 'rsi' || phase === 'prices' ? <button className="btn-stop" style={{marginLeft:8}} onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button> : null}
             </div>
             <div className="filter-group">
               <span className="filter-label">Category</span>
-              <select className="filter-select" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+              <select className="filter-select" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{minWidth:80}}>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -854,17 +867,6 @@ Return ONLY valid JSON:
                 <option value="ABORT">Abort</option>
               </select>
             </div>
-            {vixPrice && (
-              <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:"var(--mono)",fontSize:11}}>
-                <span style={{color:"var(--text-dim)"}}>India VIX</span>
-                <span style={{padding:"3px 10px",borderRadius:2,fontWeight:600,
-                  background: vixPrice > 20 ? "var(--red-dim)" : "var(--green-dim)",
-                  color: vixPrice > 20 ? "var(--red)" : "var(--green)",
-                  border: `1px solid ${vixPrice > 20 ? "var(--red)" : "var(--green)"}`,
-                }}>{vixPrice.toFixed(1)}</span>
-              </div>
-            )}
-            {phase === 'rsi' || phase === 'prices' ? <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button> : null}
           </div>
           {phase !== 'rsi' && phase !== 'prices'
             ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
