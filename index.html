@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V2G</title>
+<title>Lie Detector Scanner V2H</title>
 <meta name="theme-color" content="#0a0a12">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -381,8 +381,7 @@ Return ONLY valid JSON:
 
   const categories = useMemo(() => {
     const s = new Set(nseData.map(i => i.key));
-    const exclude = new Set(["Indices Eligible in Deravitives", "Indices Eligible in Derivatives", "Indices eligible for Derivatives"]);
-    return ["ALL", ...Array.from(s).filter(k => !exclude.has(k)).sort()];
+    return ["ALL", ...Array.from(s).filter(k => !/derivative|eligible/i.test(k)).sort()];
   }, [nseData]);
 
   const indexNames = useMemo(() => {
@@ -757,7 +756,7 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V2G</h1>
+            <h1>Lie Detector Scanner V2H</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · Sort</p>
           </div>
         </div>
