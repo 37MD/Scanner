@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner v2E</title>
+<title>Lie Detector Scanner V2F</title>
 <meta name="theme-color" content="#0a0a12">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -90,7 +90,7 @@ tbody td:nth-child(2),thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0
   tbody td{padding:7px 6px;font-size:11px}
   thead th:nth-child(1),tbody td:nth-child(1){min-width:0;width:24px;padding-left:5px;padding-right:4px;font-size:9px}
   thead th:nth-child(2),tbody td:nth-child(2){left:28px}
-  td.name-col{min-width:70px;max-width:100px;font-size:11px}
+  td.name-col{min-width:80px;font-size:10px}
 }
 /* Row alternation — also update sticky cells */
 tbody tr:nth-child(even) td:nth-child(1),
@@ -118,7 +118,7 @@ tbody tr:nth-child(odd){background:var(--surface)}
 .pill-REDUCE{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
 .pill-HOLD{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2)}
 .conf-pill{display:inline-block;padding:2px 6px;font-family:var(--mono);font-size:10px;font-weight:500;border-radius:2px;min-width:30px;text-align:center;border:1px solid transparent}
-td.name-col{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text);min-width:90px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text);min-width:120px;word-break:break-word;overflow-wrap:break-word}
 .empty-state{padding:80px 20px;text-align:center}
 .empty-state .big-icon{font-size:48px;margin-bottom:16px}
 .empty-state h2{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
@@ -748,7 +748,7 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner v2E</h1>
+            <h1>Lie Detector Scanner V2F</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · Sort</p>
           </div>
         </div>
@@ -900,7 +900,6 @@ Return ONLY valid JSON:
                 <tr>
                   <th style={{width:30,cursor:'default',userSelect:'auto'}}>#</th>
                   <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
-                  <th style={{fontSize:8}} onClick={() => requestSort('key')}>Cat{getSortIcon('key')}</th>
                   <th onClick={() => requestSort('price')}>Price{getSortIcon('price')}</th>
                   <th style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
                   <th style={{textAlign:"center"}} onClick={() => requestSort('dRsi14')}>D RSI 4·8·14{getSortIcon('dRsi14')}</th>
@@ -927,7 +926,6 @@ Return ONLY valid JSON:
                     <tr key={i}>
                       <td style={{color:"var(--text-faint)",textAlign:"center"}}>{i+1}</td>
                       <td className="name-col">{r.name}</td>
-                      <td style={{fontSize:9,color:"var(--text-faint)",maxWidth:80,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={r.key||""}>{(r.key||"").substring(0,14)}</td>
                       <td style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
                       <td style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "var(--text-dim)"}}>
                         {r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`}
