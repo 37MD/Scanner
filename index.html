@@ -783,29 +783,11 @@ Return ONLY valid JSON:
             <input className="ba-key-input" type="password" placeholder="Key 1: AIza… (cascade: flash-lite → flash → pro)"
               value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
-            <button className="ba-key-save" onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
+            <button className="ba-key-save" style={{background:geminiKey1 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
             <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade fallback)"
               value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
-            <button className="ba-key-save" onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
-          </div>
-        </div>
-
-        <div className="regime-cards">
-          <div className="regime-card a">
-            <div className="regime-label">▲ Regime A</div>
-            <div className="regime-name">Structural Bull</div>
-            <div className="regime-desc">4W RSI ≥ 50 + Price above 20WMA<br/>Pullbacks to Daily RSI 40–50 are entries</div>
-          </div>
-          <div className="regime-card b">
-            <div className="regime-label">◆ Regime B</div>
-            <div className="regime-name">Fatigue Zone</div>
-            <div className="regime-desc">4W RSI 40–49<br/>Retail trap lookout — avoid dip buying</div>
-          </div>
-          <div className="regime-card c">
-            <div className="regime-label">▼ Regime C</div>
-            <div className="regime-name">Trust Break</div>
-            <div className="regime-desc">4W RSI &lt; 40<br/>Institutional exit — never average down</div>
+            <button className="ba-key-save" style={{background:geminiKey2 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
           </div>
         </div>
 
