@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V2H</title>
+<title>Lie Detector Scanner V2I</title>
 <meta name="theme-color" content="#0a0a12">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -287,6 +287,10 @@ const Scanner = () => {
   const tableWrapRef = useRef(null);
   const topScrollRef = useRef(null);
   const [basePeriod, setBasePeriod] = useState(4);
+  const [watchlist, setWatchlist] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(_) { return []; }
+  });
+  const [showWatchlist, setShowWatchlist] = useState(false);
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
 
@@ -299,6 +303,14 @@ const Scanner = () => {
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return '';
     return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+  };
+
+  const toggleWatchlist = (name) => {
+    setWatchlist(prev => {
+      const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name];
+      try { localStorage.setItem('ld_scanner_watchlist', JSON.stringify(next)); } catch(_) {}
+      return next;
+    });
   };
 
   const [baResults, setBaResults] = useState({});
@@ -716,6 +728,9 @@ Return ONLY valid JSON:
         return et && et.verdict === phaseFilter;
       });
     }
+    if (showWatchlist && watchlist.length) {
+      list = list.filter(r => watchlist.includes(r.name));
+    }
     if (sortConfig.key) {
       list.sort((a, b) => {
         let aVal, bVal;
@@ -759,7 +774,7 @@ Return ONLY valid JSON:
       if (ra !== rb) return ra - rb;
       return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
     });
-  }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, baResults]);
+  }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, baResults, showWatchlist, watchlist]);
 
   const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
   const pct = Math.round((progress.done / (progress.total || 1)) * 100);
@@ -770,7 +785,7 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V2H</h1>
+            <h1>Lie Detector Scanner V2I</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · Sort</p>
           </div>
         </div>
@@ -825,13 +840,18 @@ Return ONLY valid JSON:
           const strike = all.filter(r => { const e = runExecutionTree(r, vixPrice, basePeriod); return e?.verdict === 'VERIFIED STRIKE'; }).length;
           const near = all.filter(r => { const e = runExecutionTree(r, vixPrice, basePeriod); return e?.verdict === 'NEAR MISS'; }).length;
           return (
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12,fontFamily:"var(--mono)",fontSize:10}}>
+            <div style={{display:"flex",gap:8,flexWrap:"nowrap",marginBottom:12,fontFamily:"var(--mono)",fontSize:10,alignItems:"center"}}>
               <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>RSI: <b style={{color:"var(--green)"}}>{withRsi}</b>/{all.length}</span>
               <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>A: <b style={{color:"var(--green)"}}>{aCnt}</b></span>
               <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>B: <b style={{color:"var(--amber)"}}>{bCnt}</b></span>
               <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--border2)"}}>C: <b style={{color:"var(--red)"}}>{cCnt}</b></span>
               {strike > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--green)",color:"var(--green)"}}>⚡ <b>{strike}</b> Strike</span>}
               {near > 0 && <span style={{padding:"4px 10px",background:"var(--surface)",border:"1px solid var(--amber)",color:"var(--amber)"}}>⌛ <b>{near}</b> Near Miss</span>}
+              <label style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",userSelect:"none",padding:"3px 8px",background:showWatchlist?"var(--orange-dim)":"var(--surface)",border:`1px solid ${showWatchlist?"var(--orange)":"var(--border2)"}`,borderRadius:2,fontSize:10,fontWeight:600,color:showWatchlist?"var(--orange)":"var(--text-dim)",whiteSpace:"nowrap"}}>
+                <span>{showWatchlist ? 'Watchlist' : 'Full List'}</span>
+                <input type="checkbox" checked={showWatchlist} onChange={e => setShowWatchlist(e.target.checked)} style={{display:"none"}}/>
+                <span style={{display:"inline-block",width:14,height:14,borderRadius:2,border:`1px solid ${showWatchlist?"var(--orange)":"var(--border2)"}`,background:showWatchlist?"var(--orange)":"transparent",textAlign:"center",lineHeight:"14px",fontSize:9}}>{showWatchlist ? '✓' : ''}</span>
+              </label>
               {vixPrice && (
                 <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto",fontFamily:"var(--mono)",fontSize:10}}>
                   <span style={{color:"var(--text-dim)"}}>India VIX</span>
@@ -908,7 +928,7 @@ Return ONLY valid JSON:
             <table>
               <thead>
                 <tr>
-                  <th style={{width:30,cursor:'default',userSelect:'auto'}}>#</th>
+                  <th style={{width:34,textAlign:"center",cursor:'pointer',userSelect:'auto'}} title="Click to add/remove from Watchlist">#</th>
                   <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
                   <th onClick={() => requestSort('price')}>Price{getSortIcon('price')}</th>
                   <th style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
@@ -934,7 +954,9 @@ Return ONLY valid JSON:
                     dim:{bg:"var(--surface2)",color:"var(--text-faint)",border:"var(--border2)"}}[et?.color||"dim"];
                   return (
                     <tr key={i}>
-                      <td style={{color:"var(--text-faint)",textAlign:"center"}}>{i+1}</td>
+                      <td style={{textAlign:"center",padding:0}}>
+                        <button onClick={() => toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 6px",background:watchlist.includes(r.name)?"var(--orange)":"transparent",color:watchlist.includes(r.name)?"#000":"var(--text-faint)",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
+                      </td>
                       <td className="name-col">{r.name}</td>
                       <td style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
                       <td style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "var(--text-dim)"}}>
