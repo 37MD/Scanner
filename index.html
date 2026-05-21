@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Lie Detector Scanner V2I</title>
-<meta name="theme-color" content="#0a0a12">
+<meta name="theme-color" content="#f5f0e8">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
@@ -19,10 +19,9 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-:root{--bg:#0a0a12;--surface:#111120;--surface2:#181828;--border:#252538;--border2:#2e2e48;--text:#e8e8f0;--text-dim:#8888aa;--text-faint:#44445a;--orange:#f4a261;--orange-dim:#7a4e2d;--green:#3dffa0;--green-dim:#1a4a30;--red:#ff5370;--red-dim:#4a1a22;--amber:#ffcc44;--amber-dim:#443300;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
+:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#1a1a1a;--text-dim:#666666;--text-faint:#aaaaaa;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.3;pointer-events:none;z-index:0}
 #root{position:relative;z-index:1}
 .app-header{background:var(--surface);border-bottom:1px solid var(--border2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
 .brand{display:flex;align-items:center;gap:12px}
@@ -94,9 +93,9 @@ tbody td:nth-child(2),thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0
 }
 /* Row alternation — also update sticky cells */
 tbody tr:nth-child(even) td:nth-child(1),
-tbody tr:nth-child(even) td:nth-child(2){background:#0e0e1c}
+tbody tr:nth-child(even) td:nth-child(2){background:var(--bg)}
 tbody tr:nth-child(odd) td:nth-child(1),
-tbody tr:nth-child(odd) td:nth-child(2){background:var(--surface)}
+tbody tr:nth-child(odd) td:nth-child(2){background:var(--bg)}
 tbody tr:hover td:nth-child(1),
 tbody tr:hover td:nth-child(2){background:var(--surface2)!important}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
@@ -104,8 +103,7 @@ tbody tr:hover{background:var(--surface2)!important}
 tbody tr:last-child{border-bottom:none}
 tbody td{padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);white-space:nowrap;border-bottom:1px solid var(--border)}
 tbody td:last-child{border-right:none}
-tbody tr:nth-child(even){background:#0e0e1c}
-tbody tr:nth-child(odd){background:var(--surface)}
+tbody tr{background:var(--bg)}
 .rsi-green{background:var(--green-dim)!important;color:var(--green)!important}
 .rsi-amber{background:var(--amber-dim)!important;color:var(--amber)!important}
 .rsi-red{background:var(--red-dim)!important;color:var(--red)!important}
@@ -1059,16 +1057,16 @@ function showInstallBanner() {
   bar.id = 'pwa-install-bar';
   bar.style.cssText = `
     position:fixed;bottom:0;left:0;right:0;z-index:9999;
-    background:#111120;border-top:2px solid #f4a261;
+    background:#faf7f0;border-top:2px solid #d4880f;
     display:flex;align-items:center;justify-content:space-between;
     padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;
-    color:#e8e8f0;gap:12px;
+    color:#1a1a1a;gap:12px;
   `;
   bar.innerHTML = `
-    <span style="color:#f4a261;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
-    <span style="color:#8888aa;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
-    <button id="pwa-install-btn" style="background:#f4a261;color:#000;border:none;padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
-    <button id="pwa-dismiss-btn" style="background:transparent;color:#8888aa;border:1px solid #252538;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
+    <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
+    <span style="color:#666666;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
+    <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
+    <button id="pwa-dismiss-btn" style="background:transparent;color:#666666;border:1px solid #d0c8b8;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
   `;
   document.body.appendChild(bar);
   document.getElementById('pwa-install-btn').addEventListener('click', async () => {
