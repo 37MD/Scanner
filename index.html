@@ -696,9 +696,11 @@ Return ONLY valid JSON:
   }, [autoRefresh, phase]);
 
   useEffect(() => {
-    if (!tableWrapRef.current || !topScrollRef.current) return;
-    const inner = topScrollRef.current.firstElementChild;
-    if (inner) inner.style.width = Math.max(tableWrapRef.current.scrollWidth, topScrollRef.current.clientWidth + 1) + 'px';
+    const tw = tableWrapRef.current;
+    const ts = topScrollRef.current;
+    if (!tw || !ts) return;
+    const inner = ts.firstElementChild;
+    if (inner) inner.style.width = Math.max(tw.scrollWidth, ts.clientWidth + 1) + 'px';
   });
 
   const sortedRows = useMemo(() => {
@@ -984,6 +986,7 @@ Return ONLY valid JSON:
                 })}
               </tbody>
             </table>
+          </div>
           </div>
         ) : phase === 'init' && (
           <div className="empty-state">
