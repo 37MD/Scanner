@@ -696,18 +696,10 @@ Return ONLY valid JSON:
   }, [autoRefresh, phase]);
 
   useEffect(() => {
-    const tw = tableWrapRef.current;
-    const ts = topScrollRef.current;
-    if (!tw || !ts) return;
-    const sync = () => {
-      const inner = ts.firstElementChild;
-      if (inner) inner.style.width = tw.scrollWidth + 'px';
-    };
-    sync();
-    const ro = new ResizeObserver(sync);
-    ro.observe(tw);
-    return () => ro.disconnect();
-  }, [sortedRows.length, phase]);
+    if (!tableWrapRef.current || !topScrollRef.current) return;
+    const inner = topScrollRef.current.firstElementChild;
+    if (inner) inner.style.width = Math.max(tableWrapRef.current.scrollWidth, topScrollRef.current.clientWidth + 1) + 'px';
+  });
 
   const sortedRows = useMemo(() => {
     let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
