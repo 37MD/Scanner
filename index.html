@@ -661,21 +661,21 @@ Return ONLY valid JSON:
 
     setResults({ ...tempResults });
 
-    // BA Phase: Gemini breadth analysis for Regime A indices
+    // BA Phase: Gemini breadth analysis for Regime A + Watchlist indices
     const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
     const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
     if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
       baStopRef.current = false;
-      const regimeAList = indexList.filter(idx => {
+      const baTargets = indexList.filter(idx => {
         const d = tempResults[idx.key];
-        return d && !d.error && d.regime === 'A';
+        return d && !d.error && (d.regime === 'A' || watchlist.includes(idx.name));
       });
       const initBA = {};
-      regimeAList.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
+      baTargets.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
       setBaResults(prev => ({ ...prev, ...initBA }));
 
       let baIdx = 0;
-      for (const idx of regimeAList) {
+      for (const idx of baTargets) {
         if (stopRef.current || baStopRef.current) break;
         const tr = tempResults[idx.key];
         const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
@@ -692,8 +692,8 @@ Return ONLY valid JSON:
           }
         }));
         baIdx++;
-        setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${regimeAList.length}: ${idx.name}` });
-        if (baIdx < regimeAList.length) await new Promise(r => setTimeout(r, 4200));
+        setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
+        if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
       }
     }
 
@@ -988,8 +988,8 @@ Return ONLY valid JSON:
                       </td>
                       <td style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
                       <td style={{textAlign:"center"}}>
-                        {(() => {
-                          if (r.regime !== 'A') return <span className="ba-pill ba-na">—</span>;
+                          {(() => {
+                          if (r.regime !== 'A' && !watchlist.includes(r.name)) return <span className="ba-pill ba-na">—</span>;
                           const ba = baResults[r.name];
                           if (!ba) {
                             const hk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
