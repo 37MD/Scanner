@@ -19,7 +19,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#1a1a1a;--text-dim:#666666;--text-faint:#aaaaaa;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
+:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#000000;--text-dim:#222222;--text-faint:#444444;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
 #root{position:relative;z-index:1}
@@ -1064,9 +1064,9 @@ function showInstallBanner() {
   `;
   bar.innerHTML = `
     <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
-    <span style="color:#666666;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
+    <span style="color:#222222;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
     <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
-    <button id="pwa-dismiss-btn" style="background:transparent;color:#666666;border:1px solid #d0c8b8;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
+    <button id="pwa-dismiss-btn" style="background:transparent;color:#222222;border:1px solid #d0c8b8;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
   `;
   document.body.appendChild(bar);
   document.getElementById('pwa-install-btn').addEventListener('click', async () => {
