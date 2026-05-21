@@ -771,11 +771,6 @@ Return ONLY valid JSON:
           </div>
         )}
 
-        <div className="sacred-rule">
-          <span className="label">Sacred Rule</span>
-          <span className="rule-text">True compounders do NOT stay below 40 RSI — Base = {basePeriod}W RSI</span>
-        </div>
-
         <div className="ba-key-bar">
           <span className="ba-key-label">Gemini Keys</span>
           <span className="ba-key-status">
@@ -863,14 +858,11 @@ Return ONLY valid JSON:
                 }}>{vixPrice.toFixed(1)}</span>
               </div>
             )}
-            <label className="auto-toggle">
-              <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)}/>
-              Auto (60s)
-            </label>
+            {phase === 'rsi' || phase === 'prices' ? <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button> : null}
           </div>
           {phase !== 'rsi' && phase !== 'prices'
             ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
-            : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button>
+            : null
           }
         </div>
 
