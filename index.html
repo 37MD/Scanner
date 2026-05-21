@@ -815,15 +815,19 @@ Return ONLY valid JSON:
             {keyStatus && <span style={{marginLeft:8}}>{keyStatus}</span>}
           </span>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",width:"100%",alignItems:"center"}}>
-            <input className="ba-key-input" type="password" placeholder="Key 1: AIza… (cascade: flash-lite → flash → pro)"
-              value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
-            <button className="ba-key-save" style={{background:geminiKey1 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
-            <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade fallback)"
-              value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
-            <button className="ba-key-save" style={{background:geminiKey2 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto"}}>
+            <div style={{display:"flex",gap:6,flexWrap:"nowrap",alignItems:"center",flex:1,minWidth:180}}>
+              <input className="ba-key-input" type="password" placeholder="Key 1: AIza… (cascade: flash-lite → flash → pro)"
+                value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
+              <button className="ba-key-save" style={{background:geminiKey1 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"nowrap",alignItems:"center",flex:1,minWidth:180}}>
+              <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade fallback)"
+                value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
+              <button className="ba-key-save" style={{background:geminiKey2 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span className="ba-key-label">Base RSI</span>
               <select className="ba-period-select" value={basePeriod} onChange={e => setBasePeriod(Number(e.target.value))}>
                 <option value={4}>4</option>
