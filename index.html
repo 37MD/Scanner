@@ -127,6 +127,10 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 ::-webkit-scrollbar-track{background:var(--surface)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
+.table-top-scroll::-webkit-scrollbar{height:6px}
+.table-top-scroll::-webkit-scrollbar-track{background:var(--surface)}
+.table-top-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.table-top-scroll::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
 .ba-loading{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:baSpin .7s linear infinite;vertical-align:middle}
 @keyframes baSpin{to{transform:rotate(360deg)}}
 .ba-pill{display:inline-block;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:2px;min-width:48px;text-align:center;color:var(--text)}
@@ -692,11 +696,18 @@ Return ONLY valid JSON:
   }, [autoRefresh, phase]);
 
   useEffect(() => {
-    if (tableWrapRef.current && topScrollRef.current) {
-      const inner = topScrollRef.current.firstElementChild;
-      if (inner) inner.style.width = tableWrapRef.current.scrollWidth + 'px';
-    }
-  }, [sortedRows.length]);
+    const tw = tableWrapRef.current;
+    const ts = topScrollRef.current;
+    if (!tw || !ts) return;
+    const sync = () => {
+      const inner = ts.firstElementChild;
+      if (inner) inner.style.width = tw.scrollWidth + 'px';
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(tw);
+    return () => ro.disconnect();
+  }, [sortedRows.length, phase]);
 
   const sortedRows = useMemo(() => {
     let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
@@ -895,7 +906,7 @@ Return ONLY valid JSON:
 
         {hasData ? (
           <div>
-            <div ref={topScrollRef} style={{overflowX:"auto",overflowY:"hidden",height:10,background:"var(--surface)",border:"1px solid var(--border2)",borderBottom:"none"}}
+            <div ref={topScrollRef} className="table-top-scroll" style={{overflowX:"auto",overflowY:"hidden",height:12,background:"var(--surface)",border:"1px solid var(--border2)",borderBottom:"none"}}
               onScroll={e => { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }}>
               <div ref={el => { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; }} style={{height:1}}/>
             </div>
