@@ -384,6 +384,11 @@ Return ONLY valid JSON:
     return ["ALL", ...Array.from(s).sort()];
   }, [nseData]);
 
+  const indexNames = useMemo(() => {
+    const names = Object.values(results).map(r => r.name).filter(Boolean);
+    return ["ALL", ...Array.from(new Set(names)).sort()];
+  }, [results]);
+
   const vixPrice = results["indiavix"]?.price ?? null;
 
   const handleScan = async () => {
@@ -686,8 +691,7 @@ Return ONLY valid JSON:
   const sortedRows = useMemo(() => {
     let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(r => r.name.toLowerCase().includes(q));
+      list = list.filter(r => r.name === searchQuery);
     }
     if (catFilter !== "ALL") list = list.filter(r => r.key === catFilter);
     if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
@@ -821,7 +825,9 @@ Return ONLY valid JSON:
           <div className="controls-left">
             <div className="filter-group">
               <span className="filter-label">Search</span>
-              <input className="filter-select" type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Index name…" style={{minWidth:140,color:'var(--text)'}}/>
+              <select className="filter-select" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{minWidth:140}}>
+                {indexNames.map(n => <option key={n} value={n === 'ALL' ? '' : n}>{n}</option>)}
+              </select>
             </div>
             <div className="filter-group">
               <span className="filter-label">Category</span>
