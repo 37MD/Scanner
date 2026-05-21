@@ -280,6 +280,8 @@ const Scanner = () => {
   const stopRef = useRef(false);
   const autoRef = useRef(null);
   const baStopRef = useRef(false);
+  const tableWrapRef = useRef(null);
+  const topScrollRef = useRef(null);
   const [basePeriod, setBasePeriod] = useState(4);
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
@@ -689,6 +691,13 @@ Return ONLY valid JSON:
     }
   }, [autoRefresh, phase]);
 
+  useEffect(() => {
+    if (tableWrapRef.current && topScrollRef.current) {
+      const inner = topScrollRef.current.firstElementChild;
+      if (inner) inner.style.width = tableWrapRef.current.scrollWidth + 'px';
+    }
+  }, [sortedRows.length]);
+
   const sortedRows = useMemo(() => {
     let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
     if (searchQuery) {
@@ -885,7 +894,12 @@ Return ONLY valid JSON:
         )}
 
         {hasData ? (
-          <div className="table-wrap">
+          <div>
+            <div ref={topScrollRef} style={{overflowX:"auto",overflowY:"hidden",height:10,background:"var(--surface)",border:"1px solid var(--border2)",borderBottom:"none"}}
+              onScroll={e => { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }}>
+              <div ref={el => { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; }} style={{height:1}}/>
+            </div>
+            <div className="table-wrap" ref={tableWrapRef} onScroll={e => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; }}>
             <table>
               <thead>
                 <tr>
