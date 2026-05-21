@@ -381,7 +381,7 @@ Return ONLY valid JSON:
 
   const categories = useMemo(() => {
     const s = new Set(nseData.map(i => i.key));
-    const exclude = new Set(["Indices Eligible in Deravitives", "Indices Eligible in Derivatives"]);
+    const exclude = new Set(["Indices Eligible in Deravitives", "Indices Eligible in Derivatives", "Indices eligible for Derivatives"]);
     return ["ALL", ...Array.from(s).filter(k => !exclude.has(k)).sort()];
   }, [nseData]);
 
@@ -840,7 +840,6 @@ Return ONLY valid JSON:
               <select className="filter-select" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{minWidth:140}}>
                 {indexNames.map(n => <option key={n} value={n === 'ALL' ? '' : n}>{n}</option>)}
               </select>
-              {phase === 'rsi' || phase === 'prices' ? <button className="btn-stop" style={{marginLeft:8}} onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button> : null}
             </div>
             <div className="filter-group">
               <span className="filter-label">Category</span>
@@ -870,7 +869,7 @@ Return ONLY valid JSON:
           </div>
           {phase !== 'rsi' && phase !== 'prices'
             ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
-            : null
+            : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button>
           }
         </div>
 
