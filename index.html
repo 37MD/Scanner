@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V3A</title>
+<title>Lie Detector Scanner V3B</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -150,6 +150,17 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 .ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}}
+
+/* ── HA Band Signal columns (V3B Add-on) ── */
+.ha-signal-buy{background:var(--green-dim)!important;color:var(--green)!important;border:1px solid var(--green)!important}
+.ha-signal-sell{background:var(--red-dim)!important;color:var(--red)!important;border:1px solid var(--red)!important}
+.ha-signal-watch{background:var(--amber-dim)!important;color:var(--amber)!important;border:1px solid var(--amber)!important}
+.ha-signal-neutral{background:var(--surface2)!important;color:var(--text-faint)!important;border:1px solid var(--border2)!important}
+.ha-pill{display:inline-block;padding:3px 9px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:2px;min-width:52px;text-align:center;border:1px solid transparent}
+.ha-reason{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:220px;line-height:1.45;white-space:normal;word-break:break-word}
+.ha-zone{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:2px}
+/* Separator between existing cols and HA addon */
+th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </style>
 </head>
 <body>
@@ -263,6 +274,160 @@ function runExecutionTree(r, vixPrice, period) {
   if (vixPrice && vixPrice > 20) td.push("TD4: VIX > 20 (" + vixPrice.toFixed(1) + ")");
   if (td.length) return { phase: 5, verdict: "FAKE SUPPORT", label: "FAKE SUPPORT", detail: td.join(" | "), color: "red" };
   return { phase: 5, verdict: "VERIFIED STRIKE", label: "VERIFIED STRIKE", detail: "All 3 D-RSI in zone. No trapdoors.", color: "green" };
+}
+
+// ─────────────────────────────────────────────────────────────
+// HA BAND ADD-ON (V3B) — Heiken Ashi + 8 SMA Band + 21 SMA Low
+// Uses daily close + open/high/low data already fetched for RSI
+// Inputs: row object with arrays haCloses, haHighs, haLows, haOpens
+// These are computed during scan from daily OHLC if available,
+// or approximated from close-only data (fallback: HA=close bands)
+// ─────────────────────────────────────────────────────────────
+
+function calcSMA(arr, period) {
+  if (!arr || arr.length < period) return null;
+  const sl = arr.slice(-period);
+  return sl.reduce((a, b) => a + b, 0) / period;
+}
+
+function computeHACandles(closes) {
+  // Close-only fallback: HA_close = close, HA_open = avg of prev two closes
+  if (!closes || closes.length < 3) return null;
+  const haCloses = closes.map(c => c); // HA close ≈ actual close (no OHLC)
+  const haOpens = [closes[0]];
+  for (let i = 1; i < closes.length; i++) {
+    haOpens.push((haOpens[i-1] + haCloses[i-1]) / 2);
+  }
+  return { haCloses, haOpens };
+}
+
+function computeHABandSignal(row, vixPrice) {
+  // Needs at least 21 daily closes for 21 SMA Low (band anchor)
+  const closes = row._dailyCloses;
+  if (!closes || closes.length < 22) return null;
+
+  const ha = computeHACandles(closes);
+  if (!ha) return null;
+
+  const { haCloses, haOpens } = ha;
+  const n = haCloses.length;
+
+  // Current and previous HA candle
+  const haCurClose = haCloses[n - 1];
+  const haCurOpen  = haOpens[n - 1];
+  const haPrevClose = haCloses[n - 2];
+  const haPrevOpen  = haOpens[n - 2];
+
+  const haBull     = haCurClose >= haCurOpen;
+  const haPrevBull = haPrevClose >= haPrevOpen;
+
+  // 8 SMA of closes (proxy for SMA High/Low band using closes)
+  // Since we only have closes (no OHLC), we use ±0.5% of SMA as band width approximation
+  const sma8 = calcSMA(haCloses, 8);
+  const sma21 = calcSMA(haCloses, 21);
+  if (sma8 == null || sma21 == null) return null;
+
+  const bandWidth = sma8 * 0.005; // 0.5% of SMA8 as band half-width
+  const smaHigh = sma8 + bandWidth;   // 8 SMA High proxy
+  const smaLow  = sma8 - bandWidth;   // 8 SMA Low proxy
+
+  // Zone classification
+  const aboveBand  = haCurClose > smaHigh;
+  const insideBand = haCurClose >= smaLow && haCurClose <= smaHigh;
+  const belowBand  = haCurClose < smaLow && haCurClose > sma21;
+  const belowAnchor = haCurClose < sma21;
+
+  let zone, zoneClass;
+  if (aboveBand)   { zone = "BULL";      zoneClass = "green"; }
+  else if (insideBand)  { zone = "CAUTION";  zoneClass = "amber"; }
+  else if (belowBand)   { zone = "BEAR";     zoneClass = "red"; }
+  else                  { zone = "BREAKDOWN";zoneClass = "red"; }
+
+  // ── SIGNAL LOGIC ──
+  let signal = null;
+  let signalClass = "neutral";
+  const reasons = [];
+
+  // BUY signals
+  const buyTrendEntry  = haBull && aboveBand && !haPrevBull;
+  const buyPullback    = haBull && aboveBand && !haPrevBull; // same as trend entry in close-only
+  const buyDeep        = haBull && haCurClose > smaLow && haPrevClose <= sma21 * 1.005;
+
+  // SELL signals
+  const sellWeak       = !haBull && insideBand && haPrevBull;
+  const sellBreakdown  = !haBull && haCurClose < smaLow;
+  const sellAnchor     = !haBull && belowAnchor;
+
+  if (sellAnchor) {
+    signal = "STRONG SELL";
+    signalClass = "sell";
+    reasons.push("HA red · Closed below 21 SMA anchor → Trust break");
+    reasons.push(`Price ${row.price?.toFixed(0)} | Anchor ${sma21.toFixed(0)}`);
+  } else if (sellBreakdown) {
+    signal = "SELL";
+    signalClass = "sell";
+    reasons.push("HA red · Closed below 8 SMA Band → Bear zone");
+    reasons.push(`SMA8 band floor: ${smaLow.toFixed(0)}`);
+    if (row.dRsi4 && row.dRsi4 < 40) reasons.push("D-RSI(4) confirming weakness: " + row.dRsi4?.toFixed(1));
+  } else if (sellWeak) {
+    signal = "CAUTION";
+    signalClass = "watch";
+    reasons.push("HA turned red · Re-entered 8 SMA band from above → Momentum fading");
+    if (row.dRsi14 && row.dRsi14 > 60) reasons.push("D-RSI(14) still elevated (" + row.dRsi14?.toFixed(1) + ") — may recover");
+  } else if (buyDeep) {
+    signal = "BUY";
+    signalClass = "buy";
+    reasons.push("HA green · Deep pullback to 21 SMA anchor, price recovering → High R:R entry");
+    reasons.push(`Anchor: ${sma21.toFixed(0)} | D-RSI zone: ${row.dRsi4?.toFixed(1) ?? '–'}/${row.dRsi8?.toFixed(1) ?? '–'}`);
+  } else if (buyTrendEntry) {
+    signal = "BUY";
+    signalClass = "buy";
+    reasons.push("HA turned green · Reclaimed above 8 SMA band → Trend resumption");
+    if (row.dRsi4 >= 40 && row.dRsi4 <= 50) reasons.push("D-RSI(4) in optimal strike zone: " + row.dRsi4?.toFixed(1));
+    if (row.regime === 'A') reasons.push("Regime A confirmed — high probability setup");
+  } else if (haBull && aboveBand) {
+    signal = "HOLD";
+    signalClass = "buy";
+    reasons.push("HA green · Price riding above 8 SMA band → Trend intact, hold position");
+    if (row.dRsi4 > 70) reasons.push("⚠ D-RSI(4) overheated (" + row.dRsi4?.toFixed(1) + ") — trail stop advised");
+    else reasons.push(`SMA8: ${sma8.toFixed(0)} | 21 SMA: ${sma21.toFixed(0)}`);
+  } else if (!haBull && insideBand) {
+    signal = "WATCH";
+    signalClass = "watch";
+    reasons.push("HA red inside band → Consolidation / indecision zone");
+    reasons.push(`Band: ${smaLow.toFixed(0)}–${smaHigh.toFixed(0)} | Wait for breakout direction`);
+  } else {
+    // Default based on zone
+    if (aboveBand && haBull) {
+      signal = "HOLD"; signalClass = "buy";
+      reasons.push("Above band with green HA — trend intact");
+    } else if (belowAnchor) {
+      signal = "AVOID"; signalClass = "sell";
+      reasons.push("Below 21 SMA anchor — avoid new longs");
+    } else {
+      signal = "NEUTRAL"; signalClass = "neutral";
+      reasons.push("No clear HA band signal — insufficient pattern");
+    }
+  }
+
+  // Extra confluences
+  if (row.divergence && (signalClass === "buy")) {
+    reasons.push("✓ RSI divergence detected (bullish)");
+  }
+  if (vixPrice && vixPrice > 20 && signalClass === "buy") {
+    reasons.push(`⚠ VIX elevated (${vixPrice?.toFixed(1)}) — size down`);
+  }
+
+  return {
+    signal,
+    signalClass,
+    zone,
+    zoneClass,
+    sma8: sma8.toFixed(0),
+    sma21: sma21.toFixed(0),
+    haBull,
+    reason: reasons.join(" · ")
+  };
 }
 
 function Pill({v,logic}) { return <span className={`pill pill-${logic||v}`}>{v}</span>; }
@@ -489,6 +654,7 @@ Return ONLY valid JSON:
           row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
           row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
           row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+          row._dailyCloses = closes.slice(-30); // store last 30 for HA Band addon
           const weekly = [];
           for (let i = 0; i < closes.length; i += 5) weekly.push(closes[Math.min(i + 4, closes.length - 1)]);
           if (weekly.length >= 14) {
@@ -568,6 +734,7 @@ Return ONLY valid JSON:
           row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
           row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
           row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+          row._dailyCloses = closes.slice(-30); // store for HA Band addon
           const weekly = [];
           for (let j = 0; j < closes.length; j += 5) weekly.push(closes[Math.min(j + 4, closes.length - 1)]);
           if (weekly.length >= 14) {
@@ -642,6 +809,7 @@ Return ONLY valid JSON:
                 row.dRsi4 = dA.length ? dA[dA.length-1] : null;
                 row.dRsi8 = dB.length ? dB[dB.length-1] : null;
                 row.dRsi14 = dC2.length ? dC2[dC2.length-1] : null;
+                row._dailyCloses = dC.slice(-30); // store for HA Band addon
               }
             }
           } catch (e) {}
@@ -753,6 +921,12 @@ Return ONLY valid JSON:
         } else if (sortConfig.key === 'baPct') {
           aVal = baResults[a.name]?.pct ?? -1;
           bVal = baResults[b.name]?.pct ?? -1;
+        } else if (sortConfig.key === 'haSignal') {
+          const sigOrder = {'STRONG SELL':1,'SELL':2,'CAUTION':3,'WATCH':4,'NEUTRAL':5,'HOLD':6,'BUY':7};
+          const haA = computeHABandSignal(a, vixPrice);
+          const haB = computeHABandSignal(b, vixPrice);
+          aVal = sigOrder[haA?.signal] ?? 5;
+          bVal = sigOrder[haB?.signal] ?? 5;
         } else if (sortConfig.key === 'dRsi14') {
           aVal = a.dRsi14 ?? -1;
           bVal = b.dRsi14 ?? -1;
@@ -788,8 +962,8 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V3A</h1>
-            <p>NSE Official Index Close Files · Two-Pass RSI · BA · Sort</p>
+            <h1>Lie Detector Scanner V3B</h1>
+            <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
         <div className="header-right">
@@ -948,6 +1122,8 @@ Return ONLY valid JSON:
                   <th style={{minWidth:140}} onClick={() => requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
                   <th style={{minWidth:180}} onClick={() => requestSort('detail')}>Detail{getSortIcon('detail')}</th>
                   <th style={{textAlign:"center",minWidth:90}} onClick={() => requestSort('baPct')} title="% of index market-cap weight in Regime A (Gemini AI estimate, Regime A indices only)">% Wt Regime A{getSortIcon('baPct')}</th>
+                  <th className="ha-sep" style={{textAlign:"center",minWidth:100}} onClick={() => requestSort('haSignal')} title="Heiken Ashi + 8 SMA Band + 21 SMA Low Signal (V3B Add-on)">HA Signal{getSortIcon('haSignal')}</th>
+                  <th style={{minWidth:240}} title="HA Band reasoning — zone, SMA levels, confluence">HA Reasoning{getSortIcon('haReason')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1010,6 +1186,42 @@ Return ONLY valid JSON:
                           );
                         })()}
                       </td>
+                      {/* ── V3B ADD-ON: HA Band Signal + Reasoning ── */}
+                      {(() => {
+                        const ha = computeHABandSignal(r, vixPrice);
+                        if (!ha) return (
+                          <>
+                            <td className="ha-sep" style={{textAlign:"center"}}><span className="ha-pill ha-signal-neutral">NO DATA</span></td>
+                            <td><span className="ha-reason" style={{color:"var(--text-faint)"}}>Insufficient daily close history for HA Band computation (need 22+ days)</span></td>
+                          </>
+                        );
+                        const pillCls = ha.signalClass === 'buy' ? 'ha-signal-buy'
+                          : ha.signalClass === 'sell' ? 'ha-signal-sell'
+                          : ha.signalClass === 'watch' ? 'ha-signal-watch'
+                          : 'ha-signal-neutral';
+                        const zoneBadge = ha.zone === 'BULL' ? '🟢'
+                          : ha.zone === 'CAUTION' ? '🟡'
+                          : ha.zone === 'BEAR' ? '🔴'
+                          : '🟣';
+                        return (
+                          <>
+                            <td className="ha-sep" style={{textAlign:"center",verticalAlign:"middle"}}>
+                              <span className={`ha-pill ${pillCls}`} title={`Zone: ${ha.zone} | SMA8: ${ha.sma8} | 21SMA: ${ha.sma21}`}>
+                                {ha.signal}
+                              </span>
+                              <div style={{marginTop:3,fontSize:9,fontFamily:"var(--mono)",color:"var(--text-faint)"}}>
+                                {zoneBadge} {ha.zone}
+                              </div>
+                            </td>
+                            <td style={{verticalAlign:"middle"}}>
+                              <span className="ha-reason">{ha.reason}</span>
+                              <div style={{marginTop:3,fontFamily:"var(--mono)",fontSize:9,color:"var(--text-faint)"}}>
+                                SMA8: {ha.sma8} · 21SMA: {ha.sma21} · HA: {ha.haBull ? '🟢 Bull' : '🔴 Bear'}
+                              </div>
+                            </td>
+                          </>
+                        );
+                      })()}
                     </tr>
                   );
                 })}
