@@ -1031,14 +1031,13 @@ Return ONLY valid JSON:
               </select>
             </div>
             <div className="filter-group">
-              <span className="filter-label">Decision</span>
+              <span className="filter-label">Verdict</span>
               <select className="filter-select" value={phaseFilter} onChange={e=>setPhaseFilter(e.target.value)}>
                 <option value="ALL">All</option>
-                <option value="VERIFIED STRIKE">⚡ BUY — Strike</option>
-                <option value="NEAR MISS">⚡ BUY — Near Miss</option>
-                <option value="NOT READY">⌛ Wait</option>
-                <option value="FAKE SUPPORT">✗ Fake Support</option>
-                <option value="ABORT">✗ Abort</option>
+                <option value="VERIFIED STRIKE">Strike</option>
+                <option value="NEAR MISS">Near Miss</option>
+                <option value="FAKE SUPPORT">Fake Support</option>
+                <option value="ABORT">Abort</option>
               </select>
             </div>
             <button className={`btn-wl ${showWatchlist?'active':''}`} onClick={()=>setShowWatchlist(v=>!v)}>
@@ -1071,76 +1070,63 @@ Return ONLY valid JSON:
             <table>
               <thead>
                 <tr>
-                  <th style={{width:34,textAlign:'center'}}>#</th>
+                  <th style={{width:34,textAlign:"center",cursor:'pointer',userSelect:'auto'}} title="Click to add/remove from Watchlist">#</th>
                   <th onClick={()=>requestSort('name')}>Index{getSortIcon('name')}</th>
                   <th onClick={()=>requestSort('price')}>Price{getSortIcon('price')}</th>
-                  <th style={{textAlign:'center'}} onClick={()=>requestSort('changePct')}>%Chg{getSortIcon('changePct')}</th>
-                  <th style={{textAlign:'center'}} onClick={()=>requestSort('regime')}>Regime{getSortIcon('regime')}</th>
-                  <th style={{textAlign:'center'}} onClick={()=>requestSort('wRsi14')}>W-RSI 4·8·14{getSortIcon('wRsi14')}</th>
-                  <th style={{textAlign:'center'}} onClick={()=>requestSort('dRsi14')}>D-RSI 4·8·14{getSortIcon('dRsi14')}</th>
-                  <th style={{textAlign:'center',borderLeft:'2px solid var(--green)',minWidth:110}} onClick={()=>requestSort('verdict')}>DECISION{getSortIcon('verdict')}</th>
-                  <th style={{minWidth:160}}>Reason</th>
-                  <th style={{textAlign:'center',minWidth:86}} onClick={()=>requestSort('baPct')}>Breadth{getSortIcon('baPct')}</th>
-                  <th className="ha-sep" style={{textAlign:'center',minWidth:80}} onClick={()=>requestSort('haSignal')}>Validation{getSortIcon('haSignal')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('dRsi14')}>D RSI 4·8·14{getSortIcon('dRsi14')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('wRsi14')}>W RSI 4·8·14{getSortIcon('wRsi14')}</th>
+                  <th onClick={()=>requestSort('wma20Rsi')}>WMA20{getSortIcon('wma20Rsi')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('priceVsWma')}>P&gt;WMA{getSortIcon('priceVsWma')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('regime')}>Regime{getSortIcon('regime')}</th>
+                  <th style={{textAlign:"center"}} onClick={()=>requestSort('action')}>Action{getSortIcon('action')}</th>
+                  <th style={{minWidth:140}} onClick={()=>requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
+                  <th style={{minWidth:180}} onClick={()=>requestSort('detail')}>Detail{getSortIcon('detail')}</th>
+                  <th style={{textAlign:"center",minWidth:86}} onClick={()=>requestSort('baPct')} title="% of index market-cap weight in Regime A">% Wt Regime A{getSortIcon('baPct')}</th>
+                  <th className="ha-sep" style={{textAlign:"center",minWidth:80}} onClick={()=>requestSort('haSignal')}>Validation{getSortIcon('haSignal')}</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((r,i) => {
+                {sortedRows.map((r,i)=>{
+                  const wmaClass = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no') : '';
+                  const wmaText = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'YES' : 'NO') : '—';
                   const et = runExecutionTree(r, vixPrice, basePeriod);
                   const ha = computeHABandSignal(r, vixPrice);
                   const haCls = ha ? (ha.signalClass==='buy'?'ha-signal-buy':ha.signalClass==='sell'?'ha-signal-sell':ha.signalClass==='watch'?'ha-signal-watch':'ha-signal-neutral') : 'ha-signal-neutral';
-
-                  // ── Master Decision ──
-                  let decVerdict, decCls, decReason;
-                  if (!et) {
-                    decVerdict='WAIT'; decCls='WAIT'; decReason='Insufficient RSI data';
-                  } else if (et.verdict==='VERIFIED STRIKE') {
-                    decVerdict='BUY'; decCls='BUY'; decReason='Strike · All 3 D-RSI in zone';
-                  } else if (et.verdict==='NEAR MISS') {
-                    decVerdict='BUY'; decCls='BUY'; decReason='Near Miss · ' + et.detail;
-                  } else if (et.verdict==='FAKE SUPPORT') {
-                    decVerdict='SELL'; decCls='SELL'; decReason='Fake Support · ' + (et.detail||'').split('|')[0].trim();
-                  } else if (et.verdict==='ABORT') {
-                    decVerdict='SELL'; decCls='SELL'; decReason='Abort · ' + et.detail;
-                  } else if (et.verdict==='NOT READY' && r.regime==='A') {
-                    decVerdict='HOLD'; decCls='HOLD'; decReason='Regime A · D-RSI not in zone yet';
-                  } else {
-                    decVerdict='WAIT'; decCls='WAIT'; decReason=et.detail||'Stand aside';
-                  }
-
+                  const vs = {green:{bg:"var(--green-dim)",color:"var(--green)",border:"var(--green)"},
+                    amber:{bg:"var(--amber-dim)",color:"var(--amber)",border:"var(--amber)"},
+                    red:{bg:"var(--red-dim)",color:"var(--red)",border:"var(--red)"},
+                    dim:{bg:"var(--surface2)",color:"var(--text-faint)",border:"var(--border2)"}}[et?.color||"dim"];
                   return (
                     <tr key={i}>
-                      <td style={{textAlign:'center',padding:0}}>
-                        <button onClick={()=>toggleWatchlist(r.name)} style={{display:'inline-block',width:'100%',height:'100%',padding:'9px 6px',background:watchlist.includes(r.name)?'var(--amber)':'transparent',color:watchlist.includes(r.name)?'#000':'var(--text-faint)',border:'none',cursor:'pointer',fontFamily:'var(--mono)',fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
+                      <td style={{textAlign:"center",padding:0}}>
+                        <button onClick={()=>toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 6px",background:watchlist.includes(r.name)?"var(--amber)":"transparent",color:watchlist.includes(r.name)?"#000":"var(--text-faint)",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
                       </td>
                       <td className="name-col">{r.name}</td>
-                      <td style={{fontWeight:600}}>{r.price?.toFixed(2)??'—'}</td>
-                      <td style={{textAlign:'center',fontWeight:600,color:r.changePct>0?'var(--green)':r.changePct<0?'var(--red)':'var(--text-dim)'}}>
-                        {r.changePct==null?'—':`${r.changePct>0?'▲':r.changePct<0?'▼':''}${Math.abs(r.changePct).toFixed(2)}%`}
+                      <td style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
+                      <td style={{textAlign:"center",fontWeight:600,color:r.changePct>0?"var(--green)":r.changePct<0?"var(--red)":"var(--text-dim)"}}>
+                        {r.changePct==null?"—":`${r.changePct>0?"▲":r.changePct<0?"▼":""}${Math.abs(r.changePct).toFixed(2)}%`}
                       </td>
-                      <td style={{textAlign:'center'}}><span className={`pill pill-${r.regime||'?'}`}>{r.regime||'—'}</span></td>
-                      <td style={{textAlign:'center'}}>
-                        <div style={{display:'flex',gap:3,justifyContent:'center'}}>
-                          <span className={`conf-pill ${r.wRsi4==null?'':r.wRsi4>=50?'rsi-green':r.wRsi4>=40?'rsi-amber':'rsi-red'}`}>{r.wRsi4?.toFixed(0)??'—'}</span>
-                          <span className={`conf-pill ${r.wRsi8==null?'':r.wRsi8>=50?'rsi-green':r.wRsi8>=40?'rsi-amber':'rsi-red'}`}>{r.wRsi8?.toFixed(0)??'—'}</span>
-                          <span className={`conf-pill ${r.wRsi14==null?'':r.wRsi14>=50?'rsi-green':r.wRsi14>=40?'rsi-amber':'rsi-red'}`}>{r.wRsi14?.toFixed(0)??'—'}</span>
+                      <td style={{textAlign:"center"}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          <ConfPill val={r.dRsi4}/><ConfPill val={r.dRsi8}/><ConfPill val={r.dRsi14}/>
                         </div>
                       </td>
-                      <td style={{textAlign:'center'}}>
-                        <div style={{display:'flex',gap:3,justifyContent:'center'}}>
-                          <span className={`conf-pill ${r.dRsi4==null?'':r.dRsi4>=40&&r.dRsi4<=50?'rsi-green':r.dRsi4>50?'rsi-amber':'rsi-red'}`}>{r.dRsi4?.toFixed(0)??'—'}</span>
-                          <span className={`conf-pill ${r.dRsi8==null?'':r.dRsi8>=40&&r.dRsi8<=50?'rsi-green':r.dRsi8>50?'rsi-amber':'rsi-red'}`}>{r.dRsi8?.toFixed(0)??'—'}</span>
-                          <span className={`conf-pill ${r.dRsi14==null?'':r.dRsi14>=40&&r.dRsi14<=50?'rsi-green':r.dRsi14>50?'rsi-amber':'rsi-red'}`}>{r.dRsi14?.toFixed(0)??'—'}</span>
+                      <td style={{textAlign:"center"}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          <ConfPill val={r.wRsi4}/><ConfPill val={r.wRsi8}/><ConfPill val={r.wRsi14}/>
                         </div>
                       </td>
-                      <td style={{textAlign:'center',borderLeft:'2px solid var(--green)'}}>
-                        <div className="decision-cell">
-                          <span className={`dec-badge dec-${decCls}`}>{decVerdict}</span>
-                        </div>
+                      <td>{r.wma20Rsi ?? "—"}</td>
+                      <td style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
+                      <td style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime}/></td>
+                      <td style={{textAlign:"center"}}><Pill v={r.action} logic={r.action}/></td>
+                      <td style={{textAlign:"center"}}>
+                        {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
                       </td>
-                      <td style={{fontSize:10,color:'var(--text-dim)',maxWidth:180,whiteSpace:'normal',lineHeight:1.4}}>{decReason}</td>
-                      <td style={{textAlign:'center'}}>
-                        {(() => {
+                      <td style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
+                      <td style={{textAlign:"center"}}>
+                        {(()=>{
                           if (r.regime!=='A'&&!watchlist.includes(r.name)) return <span className="ba-pill ba-na">—</span>;
                           const ba = baResults[r.name];
                           if (!ba) { const hk1=(localStorage.getItem('ld_scanner_gemini_key1')||'').trim(); const hk2=(localStorage.getItem('ld_scanner_gemini_key2')||'').trim(); return <span className="ba-pill ba-na" style={{fontSize:9}}>{hk1.length>=20||hk2.length>=20?'Scan':'No key'}</span>; }
@@ -1150,7 +1136,7 @@ Return ONLY valid JSON:
                           return <span className={`ba-pill ${cls}`} title={`${p}% Regime A | ${ba.bull??'?'}/${ba.total??'?'} | ${ba.conf} | ${ba.note||''}`}>{p}% {cb}</span>;
                         })()}
                       </td>
-                      <td className="ha-sep" style={{textAlign:'center'}}>
+                      <td className="ha-sep" style={{textAlign:"center"}}>
                         {ha ? <span className={`ha-pill ${haCls}`} title={ha.reason}>{ha.signal}</span> : <span className="ha-pill ha-signal-neutral">—</span>}
                       </td>
                     </tr>
@@ -1164,7 +1150,7 @@ Return ONLY valid JSON:
           <div className="empty-state">
             <div className="big-icon">📡</div>
             <h2>Ready to Scan</h2>
-            <p>Bull-Only Profit Engine<br/>Regime A/B/C · Strike Zone · Breadth Analysis<br/><br/><strong style={{color:'var(--green)'}}>BUY only when all signals align. Sit out the rest.</strong></p>
+            <p>Fetches NSE live prices + index close files for all 139 indices.</p>
           </div>
         )}
 
