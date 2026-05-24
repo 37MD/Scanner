@@ -1,1402 +1,2803 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Lie Detector Scanner V3C</title>
+
 <meta name="theme-color" content="#f5f0e8">
+
   <!-- PWA -->
+
   <link rel="manifest" href="manifest.json">
+
   <meta name="mobile-web-app-capable" content="yes">
+
   <meta name="apple-mobile-web-app-capable" content="yes">
+
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <meta name="apple-mobile-web-app-title" content="LD Scanner">
+
   <link rel="apple-touch-icon" href="icons/icon-180.png">
+
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon.png">
+
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
 <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
 <style>
+
 :root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#000000;--text-dim:#222222;--text-faint:#444444;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
+
 *{box-sizing:border-box;margin:0;padding:0}
+
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
 #root{position:relative;z-index:1}
+
 .app-header{background:var(--surface);border-bottom:1px solid var(--border2);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+
 .brand{display:flex;align-items:center;gap:12px}
+
 .brand-icon{width:36px;height:36px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:600;color:#000;clip-path:polygon(10% 0%,90% 0%,100% 10%,100% 90%,90% 100%,10% 100%,0% 90%,0% 10%)}
+
 .brand-text h1{font-size:18px;font-weight:800;color:var(--text);line-height:1}
+
 .brand-text p{font-size:11px;color:var(--text-dim);font-family:var(--mono);margin-top:2px}
+
 .header-right{display:flex;align-items:center;gap:16px}
+
 .live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
 .live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
+
 .live-dot.active::before{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
 .main-wrap{max-width:1500px;margin:0 auto;padding:24px 20px}
+
 .sacred-rule{background:linear-gradient(135deg,var(--orange-dim) 0%,transparent 60%);border:1px solid var(--orange);border-left:4px solid var(--orange);padding:12px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+
 .sacred-rule .label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--orange);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+
 .sacred-rule .rule-text{font-family:var(--mono);font-size:12px;color:var(--text)}
+
 .regime-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+
 .regime-card{background:var(--surface);border:1px solid var(--border2);padding:14px 16px}
+
 .regime-card .regime-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+
 .regime-card.a .regime-label{color:var(--green)}
+
 .regime-card.b .regime-label{color:var(--amber)}
+
 .regime-card.c .regime-label{color:var(--red)}
+
 .regime-card .regime-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+
 .regime-card .regime-desc{font-size:11px;color:var(--text-dim);font-family:var(--mono);line-height:1.5}
+
 .controls-bar{background:var(--surface);border:1px solid var(--border2);padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
 .controls-left{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
 .btn-scan{background:var(--orange);color:#000;font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+
 .btn-scan:hover{background:#ffb87d;transform:translateY(-1px)}
+
 .btn-stop{background:transparent;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:1px solid var(--red);cursor:pointer;letter-spacing:1px;text-transform:uppercase}
+
 .filter-group{display:flex;align-items:center;gap:8px}
+
 .filter-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase}
+
 .filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:12px;padding:6px 10px;cursor:pointer;outline:none;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+
 .filter-select:focus{border-color:var(--orange)}
+
 .auto-toggle{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text-dim);cursor:pointer;letter-spacing:1px;text-transform:uppercase;user-select:none}
+
 .auto-toggle input[type="checkbox"]{appearance:none;width:32px;height:18px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;cursor:pointer;position:relative;transition:background .2s}
+
 .auto-toggle input[type="checkbox"]::before{content:'';position:absolute;width:12px;height:12px;background:var(--text-faint);border-radius:50%;top:2px;left:2px;transition:all .2s}
+
 .auto-toggle input[type="checkbox"]:checked{background:var(--orange-dim);border-color:var(--orange)}
+
 .auto-toggle input[type="checkbox"]:checked::before{background:var(--orange);left:16px}
+
 .progress-wrap{background:var(--surface);border:1px solid var(--border2);padding:10px 18px;border-top:none;margin-top:-20px;margin-bottom:20px}
+
 .progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
 .progress-label{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+
 .progress-pct{font-family:var(--mono);font-size:11px;color:var(--orange);font-weight:600}
+
 .progress-track{height:3px;background:var(--border2);width:100%}
+
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ffcc66);transition:width .3s ease;box-shadow:0 0 8px var(--orange)}
+
 .table-wrap{border:1px solid var(--border2);overflow-x:auto;background:var(--surface);position:relative}
+
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+
 /* ── Freeze: sticky headers ── */
+
 thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:3;background:var(--surface2)}
+
 thead th:last-child{border-right:none}
+
 /* ── Freeze: col 1 (#) ── */
+
 thead th:nth-child(1),
+
 tbody td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--surface2)}
+
 tbody td:nth-child(1){background:var(--surface);z-index:1}
+
 /* ── Freeze: col 2 (Index) ── */
+
 thead th:nth-child(2),
+
 tbody td:nth-child(2){position:sticky;left:30px;z-index:2;background:var(--surface2)}
+
 tbody td:nth-child(2){background:var(--surface);z-index:1}
+
 /* Header corner: col 1+2 must be above everything */
+
 thead th:nth-child(1){z-index:5}
+
 thead th:nth-child(2){z-index:5}
+
 /* Shadow on frozen cols to show scroll */
+
 tbody td:nth-child(2),thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,0.5)}
+
 /* ── Mobile: compact frozen cols ── */
+
 @media(max-width:600px){
+
   thead th{padding:8px 6px;font-size:9px;letter-spacing:0.6px}
+
   tbody td{padding:7px 6px;font-size:11px}
+
   thead th:nth-child(1),tbody td:nth-child(1){min-width:0;width:24px;padding-left:5px;padding-right:4px;font-size:9px}
+
   thead th:nth-child(2),tbody td:nth-child(2){left:28px}
+
   td.name-col{min-width:60px;max-width:80px;font-size:9px;white-space:normal}
+
   .controls-bar{padding:6px 8px;gap:4px}
+
   .controls-left{gap:4px}
+
   .controls-left .filter-select{font-size:9px;padding:4px 6px;min-width:50px!important}
+
   .controls-left .filter-label{font-size:8px}
+
   .btn-scan,.btn-stop{font-size:10px;padding:5px 10px}
+
 }
+
 /* Row alternation — also update sticky cells */
+
 tbody tr:nth-child(even) td:nth-child(1),
+
 tbody tr:nth-child(even) td:nth-child(2){background:var(--bg)}
+
 tbody tr:nth-child(odd) td:nth-child(1),
+
 tbody tr:nth-child(odd) td:nth-child(2){background:var(--bg)}
+
 tbody tr:hover td:nth-child(1),
+
 tbody tr:hover td:nth-child(2){background:var(--surface2)!important}
+
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+
 tbody tr:hover{background:var(--surface2)!important}
+
 tbody tr:last-child{border-bottom:none}
+
 tbody td{padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--text);border-right:1px solid var(--border);white-space:nowrap;border-bottom:1px solid var(--border)}
+
 tbody td:last-child{border-right:none}
+
 tbody tr{background:var(--bg)}
+
 .rsi-green{background:var(--green-dim)!important;color:var(--green)!important}
+
 .rsi-amber{background:var(--amber-dim)!important;color:var(--amber)!important}
+
 .rsi-red{background:var(--red-dim)!important;color:var(--red)!important}
+
 .pill{display:inline-block;padding:3px 10px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-radius:2px;min-width:44px;text-align:center}
+
 .pill-A{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+
 .pill-B{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+
 .pill-C{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+
 .pill-BUY{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+
 .pill-SELL{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+
 .pill-REDUCE{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber)}
+
 .pill-HOLD{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border2)}
+
 .conf-pill{display:inline-block;padding:2px 6px;font-family:var(--mono);font-size:10px;font-weight:500;border-radius:2px;min-width:30px;text-align:center;border:1px solid transparent}
+
 td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text);min-width:120px;word-break:break-word;overflow-wrap:break-word;white-space:normal}
+
 .empty-state{padding:80px 20px;text-align:center}
+
 .empty-state .big-icon{font-size:48px;margin-bottom:16px}
+
 .empty-state h2{font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px}
+
 .empty-state p{font-family:var(--mono);font-size:12px;color:var(--text-dim)}
+
 ::-webkit-scrollbar{width:6px;height:6px}
+
 ::-webkit-scrollbar-track{background:var(--surface)}
+
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
 ::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
+
 .table-top-scroll::-webkit-scrollbar{height:6px}
+
 .table-top-scroll::-webkit-scrollbar-track{background:var(--surface)}
+
 .table-top-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
 .table-top-scroll::-webkit-scrollbar-thumb:hover{background:var(--text-faint)}
+
 .ba-loading{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:baSpin .7s linear infinite;vertical-align:middle}
+
 @keyframes baSpin{to{transform:rotate(360deg)}}
+
 .ba-pill{display:inline-block;padding:3px 10px;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:2px;min-width:48px;text-align:center;color:var(--text)}
+
 .ba-strong{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
+
 .ba-moderate{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber)}
+
 .ba-weak{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
+
 .ba-na{background:var(--surface2);border:1px solid var(--border2);color:var(--text-faint)}
+
 .ba-key-bar{background:var(--surface);border:1px solid var(--orange);border-left:4px solid var(--orange);padding:8px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
 .ba-key-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);white-space:nowrap}
+
 .ba-period-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:5px 10px;cursor:pointer;outline:none;appearance:none;padding-right:24px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;min-width:60px}
+
 .ba-period-select:focus{border-color:var(--orange)}
+
 .ba-key-input{flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:5px 10px;color:var(--text);outline:none}
+
 .ba-key-input:focus{border-color:var(--orange)}
+
 .ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}}
 
+
+
 /* ── Column Group Backgrounds ── */
+
 th[data-group="1"], td[data-group="1"]{background:rgba(180,180,180,0.08)}
+
 th[data-group="2"], td[data-group="2"]{background:rgba(100,150,200,0.06)}
+
 th[data-group="3"], td[data-group="3"]{background:rgba(140,200,100,0.06)}
+
 th[data-group="4"], td[data-group="4"]{background:rgba(200,140,100,0.06)}
+
 th[data-group="5"], td[data-group="5"]{background:rgba(200,100,140,0.06)}
+
 .group-start{border-left:3px solid rgba(80,80,80,0.5)!important}
 
+
+
 /* ── HA Band Signal columns (V3C Add-on) ── */
+
 .ha-signal-buy{background:var(--green-dim)!important;color:var(--green)!important;border:1px solid var(--green)!important}
+
 .ha-signal-sell{background:var(--red-dim)!important;color:var(--red)!important;border:1px solid var(--red)!important}
+
 .ha-signal-watch{background:var(--amber-dim)!important;color:var(--amber)!important;border:1px solid var(--amber)!important}
+
 .ha-signal-neutral{background:var(--surface2)!important;color:var(--text-faint)!important;border:1px solid var(--border2)!important}
+
 .ha-pill{display:inline-block;padding:3px 9px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:2px;min-width:52px;text-align:center;border:1px solid transparent}
+
 .ha-reason{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:220px;line-height:1.45;white-space:normal;word-break:break-word}
+
 .ha-zone{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:2px}
+
 /* Separator between existing cols and HA addon */
+
 th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 
+
+
 /* ── Summary Tiles ── */
+
 .summary-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
+
 .s-tile{background:var(--surface);border:1px solid var(--border2);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;border-left:3px solid var(--border2)}
+
 .s-tile:hover{border-color:var(--text-dim)}
+
 .s-tile.active-buy{background:var(--green-dim);border-color:var(--green);border-left-color:var(--green)}
+
 .s-tile.active-hold{background:var(--amber-dim);border-color:var(--amber);border-left-color:var(--amber)}
+
 .s-tile.active-sell{background:var(--red-dim);border-color:var(--red);border-left-color:var(--red)}
+
 .s-tile.active-miss{background:var(--blue-dim);border-color:var(--blue);border-left-color:var(--blue)}
+
 .s-tile-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);margin-bottom:5px}
+
 .s-tile-num{font-size:26px;font-weight:700;line-height:1}
+
 .s-tile-num.g{color:var(--green)} .s-tile-num.y{color:var(--amber)} .s-tile-num.r{color:var(--red)} .s-tile-num.b{color:var(--blue)} .s-tile-num.d{color:var(--text-dim)}
+
 .s-tile-sub{font-family:var(--mono);font-size:9px;color:var(--text-faint);margin-top:3px}
+
 @media(max-width:768px){.summary-row{grid-template-columns:repeat(3,1fr)}}
+
 @media(max-width:480px){.summary-row{grid-template-columns:repeat(2,1fr)}}
+
 </style>
+
 </head>
+
 <body>
+
 <div id="root"></div>
 
+
+
 <script type="text/babel">
+
 const { useState, useRef, useMemo, useEffect } = React;
 
+
+
 const CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+
 const NSE_API = 'https://www.nseindia.com/api/allIndices';
+
+
 
 function normalize(n) { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
 
+
+
 const YAHOO = {
+
   nifty50:"^NSEI", niftynext50:"^NIFTYNXT50", nifty100:"^CNX100", nifty200:"^CNX200",
+
   nifty500:"^CNX500", niftymidcap50:"^CNXMIDCAP50", niftymidcap100:"^NSMIDCP100",
+
   niftymidcap150:"^CNXMIDCAP150", niftymidselect:"^NIFTYMIDSEL",
+
   niftysmallcap100:"^CNXSC", niftysmallcap50:"^CNXSC50", niftysmallcap250:"^CNXSC250",
+
   niftymidsmallcap400:"^CNXMIDSMALL400", niftylargemidcap250:"^CNXLARGEMID250",
+
   niftymicrocap250:"^NIFTYMICROCAP250", niftytotalmarket:"^NIFTYTOTALMKT",
+
   niftybank:"^NSEBANK", niftypsubank:"^CNXPSUBNK", niftyprivatebank:"^CNXPVTBNK",
+
   niftyfinancialservices:"^CNXFINANCE", niftyfinancialservices2550:"^CNXFIN2550",
+
   niftyit:"^CNXIT", niftyauto:"^CNXAUTO", niftypharma:"^CNXPHARMA",
+
   niftyhealthcareindex:"^NIFTYHC", niftyfmcg:"^CNXFMCG",
+
   niftymetal:"^CNXMETAL", niftyrealty:"^CNXREALTY", niftyenergy:"^CNXENERGY",
+
   niftyoilgas:"^CNXOILGAS", niftycpse:"^CNXCPSE", niftypse:"^CNXPSE",
+
   niftymedia:"^CNXMEDIA", niftyinfrastructure:"^CNXINFRA",
+
   niftyservicessector:"^CNXSERVICE", niftymnc:"^CNXMNC",
+
   niftycommodities:"^CNXCOMMODITIES", indiavix:"^INDIAVIX",
+
   niftyalpha50:"^CNXALPHA50", nifty50equalweight:"^NIFTY50EW",
+
   nifty100equalweight:"^CNX100EW", nifty100qualty30:"^NIFTY100QU30",
+
   nifty100lowvolatility30:"^NIFTY100LV30",
+
   nifty200quality30:"^NIFTY200QU30", nifty200momentum30:"^NIFTY200MO30",
+
   nifty200alpha30:"^NIFTY200AL30", nifty200value30:"^NIFTY200VA30",
+
   nifty50value20:"^NIFTY50VA20",
+
   niftyconsumerd:"^CNXCONSUMER", niftyconsumption:"^CNXCONSUMPTION",
+
 };
 
+
+
 function calcRSI(closes, period) {
+
   const v = closes.filter(x => x != null && !isNaN(x));
+
   if (v.length < period + 1) return [];
+
   const rsis = []; let gains = 0, losses = 0;
+
   for (let i = 1; i <= period; i++) {
+
     const d = v[i] - v[i - 1];
+
     if (d > 0) gains += d; else losses -= d;
+
   }
+
   let ag = gains / period, al = losses / period;
+
   rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
+
   for (let i = period + 1; i < v.length; i++) {
+
     const d = v[i] - v[i - 1];
+
     ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+
     al = (al * (period - 1) + Math.abs(Math.min(d, 0))) / period;
+
     rsis.push(al === 0 ? 100 : parseFloat((100 - 100 / (1 + ag / al)).toFixed(2)));
+
   }
+
   return rsis;
+
 }
+
+
 
 function calcWMA(data, period) {
+
   if (!data || data.length < period) return null;
+
   const ws = (period * (period + 1)) / 2;
+
   const sl = data.slice(-period); let sum = 0;
+
   for (let i = 0; i < period; i++) sum += sl[i] * (i + 1);
+
   return parseFloat((sum / ws).toFixed(2));
+
 }
+
+
 
 function computeRegime(wRsi, price, wma20Price) {
+
   if (wRsi == null) return null;
+
   if (wRsi >= 50 && price && (!wma20Price || price > wma20Price)) return "A";
+
   if (wRsi >= 40 && wRsi < 50) return "B";
+
   return "C";
+
 }
+
+
 
 function genTradingDays(n) {
+
   const days = []; const d = new Date();
+
   while (days.length < n) {
+
     if (d.getDay() !== 0 && d.getDay() !== 6) days.push(new Date(d));
+
     d.setDate(d.getDate() - 1);
+
   }
+
   return days;
+
 }
+
+
 
 function fmtDDMMYYYY(d) {
+
   const pad = v => String(v).padStart(2, '0');
+
   return `${pad(d.getDate())}${pad(d.getMonth()+1)}${d.getFullYear()}`;
+
 }
+
+
 
 function computeAction(regime, dRsi) {
+
   if (regime === "A" && dRsi >= 40 && dRsi <= 50) return { action: "BUY", rec: "STRIKE — Optimal Entry" };
+
   if (regime === "A" && dRsi > 70) return { action: "HOLD", rec: "OVERHEATED — Wait for daily dip" };
+
   if (regime === "B") return { action: "REDUCE", rec: "TRAP — Fatigue" };
+
   return { action: "SELL", rec: "AVOID — Trust Break" };
+
 }
+
+
 
 function runExecutionTree(r, vixPrice, period) {
+
   if (!r || !r['wRsi'+period]) return null;
+
   if (!(r['wRsi'+period] >= 50 && (!r.wma20Price || r.price > r.wma20Price)))
+
     return { phase: 1, verdict: "ABORT", label: "ABORT", detail: r.wma20Price ? "W-RSI("+period+") < 50 or Price below 20WMA" : "W-RSI("+period+") < 50", color: "red" };
+
   if (!r.dRsi4 || !r.dRsi8 || !r.dRsi14)
+
     return { phase: 2, verdict: "NO DATA", label: "NO DATA", detail: "Daily RSI insufficient", color: "dim" };
+
   const inZ = v => v >= 40 && v <= 50;
+
   const ok = [inZ(r.dRsi4), inZ(r.dRsi8), inZ(r.dRsi14)];
+
   const cnt = ok.filter(Boolean).length;
+
   if (!ok.every(Boolean)) {
+
     if (cnt >= 1) return { phase: 3, verdict: "NEAR MISS", label: "NEAR MISS", detail: `D-RSI ${r.dRsi4}/${r.dRsi8}/${r.dRsi14} — ${cnt}/3 in zone`, color: "amber" };
+
     return { phase: 3, verdict: "NOT READY", label: "NOT READY", detail: `D-RSI ${r.dRsi4}/${r.dRsi8}/${r.dRsi14} not in zone`, color: "dim" };
+
   }
+
   const td = [];
+
   if (r['wRsi'+period] >= 50 && r['wRsi'+period] <= 52) td.push("TD1: W-RSI("+period+") barely holding (" + r['wRsi'+period] + ")");
+
   if (r.wma20Price && r.price < r.wma20Price) td.push("TD2: Price below 20WMA");
+
   if (r.divergence) td.push("TD3: RSI(4) rising below 20WMA");
+
   if (vixPrice && vixPrice > 20) td.push("TD4: VIX > 20 (" + vixPrice.toFixed(1) + ")");
+
   if (td.length) return { phase: 5, verdict: "FAKE SUPPORT", label: "FAKE SUPPORT", detail: td.join(" | "), color: "red" };
+
   return { phase: 5, verdict: "VERIFIED STRIKE", label: "VERIFIED STRIKE", detail: "All 3 D-RSI in zone. No trapdoors.", color: "green" };
+
 }
 
+
+
 // ─────────────────────────────────────────────────────────────
+
 // HA BAND ADD-ON (V3C) — Heiken Ashi + 8 SMA Band + 21 SMA Low
+
 // Uses daily close + open/high/low data already fetched for RSI
+
 // Inputs: row object with arrays haCloses, haHighs, haLows, haOpens
+
 // These are computed during scan from daily OHLC if available,
+
 // or approximated from close-only data (fallback: HA=close bands)
+
 // ─────────────────────────────────────────────────────────────
+
+
 
 function calcSMA(arr, period) {
+
   if (!arr || arr.length < period) return null;
+
   const sl = arr.slice(-period);
+
   return sl.reduce((a, b) => a + b, 0) / period;
+
 }
+
+
 
 function computeHACandles(closes) {
+
   // Close-only fallback: HA_close = close, HA_open = avg of prev two closes
+
   if (!closes || closes.length < 3) return null;
+
   const haCloses = closes.map(c => c); // HA close ≈ actual close (no OHLC)
+
   const haOpens = [closes[0]];
+
   for (let i = 1; i < closes.length; i++) {
+
     haOpens.push((haOpens[i-1] + haCloses[i-1]) / 2);
+
   }
+
   return { haCloses, haOpens };
+
 }
+
+
 
 function computeHABandSignal(row, vixPrice) {
+
   // Needs at least 21 daily closes for 21 SMA Low (band anchor)
+
   const closes = row._dailyCloses;
+
   if (!closes || closes.length < 22) return null;
 
+
+
   const ha = computeHACandles(closes);
+
   if (!ha) return null;
 
+
+
   const { haCloses, haOpens } = ha;
+
   const n = haCloses.length;
 
+
+
   // Current and previous HA candle
+
   const haCurClose = haCloses[n - 1];
+
   const haCurOpen  = haOpens[n - 1];
+
   const haPrevClose = haCloses[n - 2];
+
   const haPrevOpen  = haOpens[n - 2];
 
+
+
   const haBull     = haCurClose >= haCurOpen;
+
   const haPrevBull = haPrevClose >= haPrevOpen;
 
+
+
   // 8 SMA of closes (proxy for SMA High/Low band using closes)
+
   // Since we only have closes (no OHLC), we use ±0.5% of SMA as band width approximation
+
   const sma8 = calcSMA(haCloses, 8);
+
   const sma21 = calcSMA(haCloses, 21);
+
   if (sma8 == null || sma21 == null) return null;
 
+
+
   const bandWidth = sma8 * 0.005; // 0.5% of SMA8 as band half-width
+
   const smaHigh = sma8 + bandWidth;   // 8 SMA High proxy
+
   const smaLow  = sma8 - bandWidth;   // 8 SMA Low proxy
 
+
+
   // Zone classification
+
   const aboveBand  = haCurClose > smaHigh;
+
   const insideBand = haCurClose >= smaLow && haCurClose <= smaHigh;
+
   const belowBand  = haCurClose < smaLow && haCurClose > sma21;
+
   const belowAnchor = haCurClose < sma21;
 
+
+
   let zone, zoneClass;
+
   if (aboveBand)   { zone = "BULL";      zoneClass = "green"; }
+
   else if (insideBand)  { zone = "CAUTION";  zoneClass = "amber"; }
+
   else if (belowBand)   { zone = "BEAR";     zoneClass = "red"; }
+
   else                  { zone = "BREAKDOWN";zoneClass = "red"; }
 
+
+
   // ── SIGNAL LOGIC ──
+
   let signal = null;
+
   let signalClass = "neutral";
+
   const reasons = [];
 
+
+
   // BUY signals
+
   const buyTrendEntry  = haBull && aboveBand && !haPrevBull;
+
   const buyPullback    = haBull && aboveBand && !haPrevBull; // same as trend entry in close-only
+
   const buyDeep        = haBull && haCurClose > smaLow && haPrevClose <= sma21 * 1.005;
 
+
+
   // SELL signals
+
   const sellWeak       = !haBull && insideBand && haPrevBull;
+
   const sellBreakdown  = !haBull && haCurClose < smaLow;
+
   const sellAnchor     = !haBull && belowAnchor;
 
+
+
   if (sellAnchor) {
+
     signal = "STRONG SELL";
+
     signalClass = "sell";
+
     reasons.push("HA red · Closed below 21 SMA anchor → Trust break");
+
     reasons.push(`Price ${row.price?.toFixed(0)} | Anchor ${sma21.toFixed(0)}`);
+
   } else if (sellBreakdown) {
+
     signal = "SELL";
+
     signalClass = "sell";
+
     reasons.push("HA red · Closed below 8 SMA Band → Bear zone");
+
     reasons.push(`SMA8 band floor: ${smaLow.toFixed(0)}`);
+
     if (row.dRsi4 && row.dRsi4 < 40) reasons.push("D-RSI(4) confirming weakness: " + row.dRsi4?.toFixed(1));
+
   } else if (sellWeak) {
+
     signal = "CAUTION";
+
     signalClass = "watch";
+
     reasons.push("HA turned red · Re-entered 8 SMA band from above → Momentum fading");
+
     if (row.dRsi14 && row.dRsi14 > 60) reasons.push("D-RSI(14) still elevated (" + row.dRsi14?.toFixed(1) + ") — may recover");
+
   } else if (buyDeep) {
+
     signal = "BUY";
+
     signalClass = "buy";
+
     reasons.push("HA green · Deep pullback to 21 SMA anchor, price recovering → High R:R entry");
+
     reasons.push(`Anchor: ${sma21.toFixed(0)} | D-RSI zone: ${row.dRsi4?.toFixed(1) ?? '–'}/${row.dRsi8?.toFixed(1) ?? '–'}`);
+
   } else if (buyTrendEntry) {
+
     signal = "BUY";
+
     signalClass = "buy";
+
     reasons.push("HA turned green · Reclaimed above 8 SMA band → Trend resumption");
+
     if (row.dRsi4 >= 40 && row.dRsi4 <= 50) reasons.push("D-RSI(4) in optimal strike zone: " + row.dRsi4?.toFixed(1));
+
     if (row.regime === 'A') reasons.push("Regime A confirmed — high probability setup");
+
   } else if (haBull && aboveBand) {
+
     signal = "HOLD";
+
     signalClass = "buy";
+
     reasons.push("HA green · Price riding above 8 SMA band → Trend intact, hold position");
+
     if (row.dRsi4 > 70) reasons.push("⚠ D-RSI(4) overheated (" + row.dRsi4?.toFixed(1) + ") — trail stop advised");
+
     else reasons.push(`SMA8: ${sma8.toFixed(0)} | 21 SMA: ${sma21.toFixed(0)}`);
+
   } else if (!haBull && insideBand) {
+
     signal = "WATCH";
+
     signalClass = "watch";
+
     reasons.push("HA red inside band → Consolidation / indecision zone");
+
     reasons.push(`Band: ${smaLow.toFixed(0)}–${smaHigh.toFixed(0)} | Wait for breakout direction`);
+
   } else {
+
     // Default based on zone
+
     if (aboveBand && haBull) {
+
       signal = "HOLD"; signalClass = "buy";
+
       reasons.push("Above band with green HA — trend intact");
+
     } else if (belowAnchor) {
+
       signal = "AVOID"; signalClass = "sell";
+
       reasons.push("Below 21 SMA anchor — avoid new longs");
+
     } else {
+
       signal = "NEUTRAL"; signalClass = "neutral";
+
       reasons.push("No clear HA band signal — insufficient pattern");
+
     }
+
   }
+
+
 
   // Extra confluences
+
   if (row.divergence && (signalClass === "buy")) {
+
     reasons.push("✓ RSI divergence detected (bullish)");
+
   }
+
   if (vixPrice && vixPrice > 20 && signalClass === "buy") {
+
     reasons.push(`⚠ VIX elevated (${vixPrice?.toFixed(1)}) — size down`);
+
   }
+
+
 
   return {
+
     signal,
+
     signalClass,
+
     zone,
+
     zoneClass,
+
     sma8: sma8.toFixed(0),
+
     sma21: sma21.toFixed(0),
+
     haBull,
+
     reason: reasons.join(" · ")
+
   };
+
 }
+
+
 
 function Pill({v,logic}) { return <span className={`pill pill-${logic||v}`}>{v}</span>; }
+
 function ConfPill({val}) {
+
   const cls = `conf-pill ${val == null ? '' : val >= 50 ? 'rsi-green' : val >= 40 ? 'rsi-amber' : 'rsi-red'}`;
+
   return <span className={cls}>{val ?? "—"}</span>;
+
 }
 
+
+
 const Scanner = () => {
+
   const [phase, setPhase] = useState('init');
+
   const [progress, setProgress] = useState({ done: 0, total: 0, label: "" });
+
   const [results, setResults] = useState({});
+
   const [nseData, setNseData] = useState([]);
+
   const [lastUpdated, setLastUpdated] = useState(null);
+
   const [searchQuery, setSearchQuery] = useState('');
+
   const [regimeFilter, setRegimeFilter] = useState("ALL");
+
   const [phaseFilter, setPhaseFilter] = useState("ALL");
+
   const [catFilter, setCatFilter] = useState("ALL");
+
   const [baFilter, setBaFilter] = useState(null);
+
   const [autoRefresh, setAutoRefresh] = useState(false);
+
   const [error, setError] = useState(null);
+
   const [dataSource, setDataSource] = useState(null);
+
   const stopRef = useRef(false);
+
   const autoRef = useRef(null);
+
   const baStopRef = useRef(false);
+
   const tableWrapRef = useRef(null);
+
   const topScrollRef = useRef(null);
+
   const [basePeriod, setBasePeriod] = useState(4);
+
   const [watchlist, setWatchlist] = useState(() => {
+
     try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(_) { return []; }
+
   });
+
   const [showWatchlist, setShowWatchlist] = useState(false);
+
+
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
 
+
+
   const requestSort = (key) => {
+
     let direction = 'asc';
+
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+
     setSortConfig({ key, direction });
+
   };
+
+
 
   const getSortIcon = (key) => {
+
     if (sortConfig.key !== key) return '';
+
     return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+
   };
+
+
 
   const toggleWatchlist = (name) => {
+
     setWatchlist(prev => {
+
       const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name];
+
       try { localStorage.setItem('ld_scanner_watchlist', JSON.stringify(next)); } catch(_) {}
+
       return next;
+
     });
+
   };
 
+
+
   const [baResults, setBaResults] = useState({});
+
   const [geminiKey1, setGeminiKey1] = useState(() => {
+
     try { return localStorage.getItem('ld_scanner_gemini_key1') || ''; } catch(_) { return ''; }
+
   });
+
   const [geminiKey2, setGeminiKey2] = useState(() => {
+
     try { return localStorage.getItem('ld_scanner_gemini_key2') || ''; } catch(_) { return ''; }
+
   });
+
   const [keyInput1, setKeyInput1] = useState('');
+
   const [keyInput2, setKeyInput2] = useState('');
+
   const [keyStatus, setKeyStatus] = useState('');
 
+
+
   function saveGeminiKey1() {
+
     const k = keyInput1.trim();
+
     if (!k || k.length < 20) { setKeyStatus('Key1 too short'); setTimeout(() => setKeyStatus(''), 2500); return; }
+
     try { localStorage.setItem('ld_scanner_gemini_key1', k); } catch(_) {}
+
     setGeminiKey1(k);
+
     setKeyInput1('');
+
     setKeyStatus('Key1 saved');
+
     setTimeout(() => setKeyStatus(''), 2500);
+
   }
+
+
 
   function saveGeminiKey2() {
+
     const k = keyInput2.trim();
+
     if (!k || k.length < 20) { setKeyStatus('Key2 too short'); setTimeout(() => setKeyStatus(''), 2500); return; }
+
     try { localStorage.setItem('ld_scanner_gemini_key2', k); } catch(_) {}
+
     setGeminiKey2(k);
+
     setKeyInput2('');
+
     setKeyStatus('Key2 saved');
+
     setTimeout(() => setKeyStatus(''), 2500);
+
   }
 
+
+
   async function callGeminiBA(indexName, wRsiVal, period) {
+
     const k1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+
     const k2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+
     const keys = { 1: k1.length >= 20 ? k1 : null, 2: k2.length >= 20 ? k2 : null };
+
     const regime = wRsiVal >= 50 ? 'A (Hope)' : wRsiVal >= 40 ? 'B (Watch)' : 'C (Fear)';
+
     const prompt = `You are a constituent breadth analyst for Indian equity indices.
 
+
+
 INDEX: ${indexName}
+
 Index W-RSI(${period}): ${Math.round(wRsiVal)} → Regime ${regime}
+
+
 
 TASK: Estimate the percentage of this index's total market-cap weight whose constituent stocks are currently in Regime A (Weekly RSI ≥ 50, price above 20-week MA — i.e. genuine uptrend / Hope regime).
 
+
+
 Use your knowledge of current constituent weights and recent price behaviour.
 
+
+
 Return ONLY valid JSON:
+
 {"regime_a_weight_pct": <number 0-100>, "bull_count": <integer>, "total_count": <integer>, "top_regime_a": ["Stock1","Stock2","Stock3"], "confidence": "HIGH or MEDIUM or LOW", "note": "one sentence"}`;
 
+
+
     const payload = {
+
       contents: [{ parts: [{ text: prompt }] }],
+
       generationConfig: { responseMimeType: "application/json" }
+
     };
 
+
+
     const cascade = [
+
       { key: 1, model: 'gemini-3.1-flash-lite' },
+
       { key: 1, model: 'gemini-3-flash' },
+
       { key: 1, model: 'gemini-3.5-flash' },
+
       { key: 1, model: 'gemini-3.1-pro' },
+
       { key: 2, model: 'gemini-3.1-flash-lite' },
+
       { key: 2, model: 'gemini-3-flash' },
+
       { key: 2, model: 'gemini-3.5-flash' },
+
       { key: 2, model: 'gemini-3.1-pro' },
+
     ];
 
+
+
     for (const entry of cascade) {
+
       const apiKey = keys[entry.key];
+
       if (!apiKey) continue;
+
       try {
+
         const ep = `https://generativelanguage.googleapis.com/v1beta/models/${entry.model}:generateContent?key=${apiKey}`;
+
         const res = await fetch(ep, {
+
           method: 'POST',
+
           headers: { 'Content-Type': 'application/json' },
+
           body: JSON.stringify(payload),
+
           signal: AbortSignal.timeout(20000)
+
         });
+
         const data = await res.json();
+
         if (data.error) { if (data.error.code === 429) continue; continue; }
+
         const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
         return JSON.parse(raw);
+
       } catch(err) { continue; }
+
     }
+
     return null;
+
   }
 
+
+
   const categories = useMemo(() => {
+
     const s = new Set(nseData.map(i => i.key));
+
     return ["ALL", ...Array.from(s).filter(k => !/derivative|eligible/i.test(k)).sort()];
+
   }, [nseData]);
 
+
+
   const indexNames = useMemo(() => {
+
     const names = Object.values(results).map(r => r.name).filter(Boolean);
+
     return ["ALL", ...Array.from(new Set(names)).sort()];
+
   }, [results]);
 
+
+
   const vixPrice = results["indiavix"]?.price ?? null;
+
   const vixOpen = results["indiavix"]?.open ?? null;
 
+
+
   const handleScan = async () => {
+
     stopRef.current = false;
+
     setError(null);
 
+
+
     // Phase 1: Fetch NSE prices via CORS proxy
+
     setPhase('prices');
+
     setProgress({ done: 0, total: 1, label: "Fetching NSE indices…" });
 
+
+
     let nseRaw = [];
+
     try {
+
       const res = await fetch(CORS + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) });
+
       if (!res.ok) throw new Error('HTTP ' + res.status);
+
       const json = await res.json();
+
       nseRaw = json.data || [];
+
     } catch (e) {
+
       setError('Failed to fetch NSE data: ' + e.message + '. Try refreshing or check your internet connection.');
+
       setPhase('init');
+
       return;
+
     }
+
+
 
     setNseData(nseRaw);
+
     setProgress({ done: 1, total: 1, label: `${nseRaw.length} indices loaded` });
 
+
+
     // Build price map from NSE data
+
     const priceMap = {};
+
     const indexList = [];
+
     nseRaw.forEach(idx => {
+
       const key = normalize(idx.index || idx.indexSymbol);
+
       priceMap[key] = {
+
         price: parseFloat(idx.last) || null,
+
         changePct: parseFloat(idx.percentChange) || null,
+
         variation: parseFloat(idx.variation) || null,
+
         open: parseFloat(idx.open) || null,
+
         high: parseFloat(idx.high) || null,
+
         low: parseFloat(idx.low) || null,
+
         prevClose: parseFloat(idx.previousClose) || null,
+
         yearHigh: parseFloat(idx.yearHigh) || null,
+
         yearLow: parseFloat(idx.yearLow) || null,
+
         perChange30d: parseFloat(idx.perChange30d) || null,
+
         perChange365d: parseFloat(idx.perChange365d) || null,
+
         pe: idx.pe || null,
+
         pb: idx.pb || null,
+
         dy: idx.dy || null,
+
         key: idx.key,
+
         _nseName: idx.index,
+
       };
+
       indexList.push({ name: idx.index, key, nseKey: idx.key });
+
     });
 
+
+
     // Phase 2: Fetch NSE index close files via proxy, fallback Yahoo
+
     setPhase('rsi');
+
     let tempResults = {};
+
     let done = 0;
+
     let historicalData = null;
 
+
+
     try {
+
       const res = await fetch('nse_history/nse_historical.json', { signal: AbortSignal.timeout(5000) });
+
       if (res.ok) historicalData = await res.json();
+
     } catch (e) {}
 
+
+
     if (historicalData) {
+
       setDataSource('NSE JSON');
+
       const total = indexList.length;
+
       for (const idx of indexList) {
+
         if (stopRef.current) break;
+
         setProgress({ done, total, label: `RSI: ${idx.name}` });
+
         const priceInfo = priceMap[idx.key] || {};
+
         let row = { name: idx.name, ...priceInfo };
+
         row.divergence = false;
+
         const sym = idx.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
         const closes = historicalData[sym];
+
         if (closes && closes.length >= 15) {
+
           const dA4 = calcRSI(closes, 4), dA8 = calcRSI(closes, 8), dA14 = calcRSI(closes, 14);
+
           row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
+
           row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
+
           row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+
           row._dailyCloses = closes.slice(-30); // store last 30 for HA Band addon
+
           const weekly = [];
+
           for (let i = 0; i < closes.length; i += 5) weekly.push(closes[Math.min(i + 4, closes.length - 1)]);
+
           if (weekly.length >= 14) {
+
             const wA4 = calcRSI(weekly, 4), wA8 = calcRSI(weekly, 8), wA14 = calcRSI(weekly, 14);
+
             row.wRsi4 = wA4.length ? wA4[wA4.length-1] : null;
+
             row.wRsi8 = wA8.length ? wA8[wA8.length-1] : null;
+
             row.wRsi14 = wA14.length ? wA14[wA14.length-1] : null;
+
             row.wma20Price = calcWMA(weekly, 20);
+
             row.wma20Rsi = calcWMA(wA4, 20);
+
             if (dA4.length > 2) {
+
               const p = dA4[dA4.length-2], c = dA4[dA4.length-1];
+
               if (p != null && c > p && row.wma20Price && row.price < row.wma20Price)
+
                 row.divergence = true;
+
             }
+
           }
+
         }
+
         row.regime = computeRegime(row['wRsi'+basePeriod], row.price, row.wma20Price);
+
         const ac = computeAction(row.regime, row['dRsi'+basePeriod]);
+
         row.action = ac.action; row.rec = ac.rec;
+
         tempResults[idx.key] = row;
+
         setResults({ ...tempResults });
+
         done++;
+
       }
+
     } else {
+
       // Two-pass: first 25 files for D-RSI, then 75 more for W-RSI
+
       const tradingDays = genTradingDays(100);
+
       const dailyMap = {};
+
       const total = tradingDays.length;
 
+
+
       const fetchBatch = async (start, end) => {
+
         const datesOk = [];
+
         for (let bs = start; bs < end; bs += 5) {
+
           if (stopRef.current) break;
+
           await Promise.all(tradingDays.slice(bs, bs + 5).map(async (td) => {
+
             const ds = fmtDDMMYYYY(td);
+
             try {
+
               const res = await fetch(CORS + encodeURIComponent(`https://archives.nseindia.com/content/indices/ind_close_all_${ds}.csv`), { signal: AbortSignal.timeout(10000) });
+
               if (!res.ok) return;
+
               const text = await res.text();
+
               const lines = text.trim().split('\n').filter(l => l.trim());
+
               if (lines.length < 2) return;
+
               for (let i = 1; i < lines.length; i++) {
+
                 const v = lines[i].split(',');
+
                 const name = v[0]?.trim().toLowerCase();
+
                 const close = parseFloat(v[5]);
+
                 if (name && !isNaN(close)) {
+
                   if (!dailyMap[name]) dailyMap[name] = [];
+
                   dailyMap[name].push(ds + '|' + close);
+
                 }
+
               }
+
               datesOk.push(ds);
+
             } catch (e) {}
+
           }));
+
         }
+
         return datesOk;
+
       };
+
+
 
       const getCloses = (name) => {
+
         const key = name.toLowerCase();
+
         const entries = dailyMap[key];
+
         if (!entries || entries.length < 15) return null;
+
         entries.sort((a, b) => {
+
           const da = a.substring(4,8) + a.substring(2,4) + a.substring(0,2);
+
           const db = b.substring(4,8) + b.substring(2,4) + b.substring(0,2);
+
           return da < db ? -1 : da > db ? 1 : 0;
+
         });
+
         return entries.map(e => parseFloat(e.split('|')[1]));
+
       };
+
+
 
       const processIndex = (idx) => {
+
         const priceInfo = priceMap[idx.key] || {};
+
         let row = { name: idx.name, ...priceInfo };
+
         row.divergence = false;
+
         const closes = getCloses(idx.name);
+
         if (closes) {
+
           const dA4 = calcRSI(closes, 4), dA8 = calcRSI(closes, 8), dA14 = calcRSI(closes, 14);
+
           row.dRsi4 = dA4.length ? dA4[dA4.length-1] : null;
+
           row.dRsi8 = dA8.length ? dA8[dA8.length-1] : null;
+
           row.dRsi14 = dA14.length ? dA14[dA14.length-1] : null;
+
           row._dailyCloses = closes.slice(-30); // store for HA Band addon
+
           const weekly = [];
+
           for (let j = 0; j < closes.length; j += 5) weekly.push(closes[Math.min(j + 4, closes.length - 1)]);
+
           if (weekly.length >= 14) {
+
             const wA4 = calcRSI(weekly, 4), wA8 = calcRSI(weekly, 8), wA14 = calcRSI(weekly, 14);
+
             row.wRsi4 = wA4.length ? wA4[wA4.length-1] : null;
+
             row.wRsi8 = wA8.length ? wA8[wA8.length-1] : null;
+
             row.wRsi14 = wA14.length ? wA14[wA14.length-1] : null;
+
             row.wma20Price = calcWMA(weekly, Math.min(20, weekly.length));
+
             row.wma20Rsi = calcWMA(wA4, Math.min(20, wA4.length));
+
             if (dA4.length > 2) {
+
               const p = dA4[dA4.length-2], c = dA4[dA4.length-1];
+
               if (p != null && c > p && row.wma20Price && row.price < row.wma20Price)
+
                 row.divergence = true;
+
             }
+
           }
+
         }
+
         return row;
+
       };
 
+
+
       // Pass 1: fetch 25 days, compute D-RSI
+
       const dates1 = await fetchBatch(0, 25);
+
       setProgress({ done: 25, total, label: `Pass 1: ${dates1.length} days loaded` });
+
       for (const idx of indexList) {
+
         if (stopRef.current) break;
+
         const row = processIndex(idx);
+
         row.regime = computeRegime(row['wRsi'+basePeriod], row.price, row.wma20Price);
+
         const ac = computeAction(row.regime, row['dRsi'+basePeriod]);
+
         row.action = ac.action; row.rec = ac.rec;
+
         tempResults[idx.key] = row;
+
       }
+
       setResults({ ...tempResults });
+
       setPhase('rsi');
 
+
+
       // Pass 2: fetch 75 more days, compute W-RSI, Yahoo fallback for gaps
+
       const dates2 = await fetchBatch(25, total);
+
       const allDates = dates1.concat(dates2);
+
       setProgress({ done: allDates.length, total, label: `Pass 2: ${allDates.length} days` });
+
       setDataSource(`NSE ${allDates.length}d`);
 
+
+
       const totalIdx = indexList.length;
+
       for (let i = 0; i < totalIdx; i++) {
+
         if (stopRef.current) break;
+
         const idx = indexList[i];
+
         setProgress({ done: i + 1, total: totalIdx, label: `RSI: ${idx.name}` });
+
         const row = processIndex(idx);
 
+
+
         // Yahoo fallback for indices without W-RSI
+
         if (row.wRsi14 == null && YAHOO[idx.key]) {
+
           try {
+
             const symbol = YAHOO[idx.key];
+
             const [wkRes, dRes] = await Promise.all([
+
               fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
+
               fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
+
             ]);
+
             if (wkRes?.ok) {
+
               const wJson = await wkRes.json();
+
               const wC = (wJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(x => x != null);
+
               if (wC.length >= 14) {
+
                 const wA = calcRSI(wC, 4), wB = calcRSI(wC, 8), wC2 = calcRSI(wC, 14);
+
                 row.wRsi4 = wA.length ? wA[wA.length-1] : null;
+
                 row.wRsi8 = wB.length ? wB[wB.length-1] : null;
+
                 row.wRsi14 = wC2.length ? wC2[wC2.length-1] : null;
+
                 row.wma20Price = calcWMA(wC, 20);
+
                 row.wma20Rsi = calcWMA(wA, 20);
+
               }
+
             }
+
             if (dRes?.ok && row.dRsi14 == null) {
+
               const dJson = await dRes.json();
+
               const dC = (dJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(x => x != null);
+
               if (dC.length >= 14) {
+
                 const dA = calcRSI(dC, 4), dB = calcRSI(dC, 8), dC2 = calcRSI(dC, 14);
+
                 row.dRsi4 = dA.length ? dA[dA.length-1] : null;
+
                 row.dRsi8 = dB.length ? dB[dB.length-1] : null;
+
                 row.dRsi14 = dC2.length ? dC2[dC2.length-1] : null;
+
                 row._dailyCloses = dC.slice(-30); // store for HA Band addon
+
               }
+
             }
+
           } catch (e) {}
+
         }
 
+
+
         row.regime = computeRegime(row['wRsi'+basePeriod], row.price, row.wma20Price);
+
         const ac = computeAction(row.regime, row['dRsi'+basePeriod]);
+
         row.action = ac.action; row.rec = ac.rec;
+
         tempResults[idx.key] = row;
+
         setResults({ ...tempResults });
+
         done = i + 1;
+
       }
 
+
+
       const remaining = indexList.filter(idx => !tempResults[idx.key]);
+
       remaining.forEach(idx => { tempResults[idx.key] = { name: idx.name, ...priceMap[idx.key] }; });
+
     }
+
+
 
     setResults({ ...tempResults });
 
+
+
     // BA Phase: Gemini breadth analysis for Regime A + Watchlist indices
+
     const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+
     const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+
     if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
+
       baStopRef.current = false;
+
       const baTargets = indexList.filter(idx => {
+
         const d = tempResults[idx.key];
+
         return d && !d.error && (d.regime === 'A' || watchlist.includes(idx.name));
+
       });
+
       const initBA = {};
+
       baTargets.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
+
       setBaResults(prev => ({ ...prev, ...initBA }));
 
+
+
       let baIdx = 0;
+
       for (const idx of baTargets) {
+
         if (stopRef.current || baStopRef.current) break;
+
         const tr = tempResults[idx.key];
+
         const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
+
         const pct = result?.regime_a_weight_pct ?? null;
+
         setBaResults(prev => ({
+
           ...prev,
+
           [idx.name]: {
+
             status: pct !== null ? 'done' : 'error',
+
             pct,
+
             bull: result?.bull_count ?? null,
+
             total: result?.total_count ?? null,
+
             conf: result?.confidence ?? '',
+
             note: result?.note ?? ''
+
           }
+
         }));
+
         baIdx++;
+
         setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
+
         if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
+
       }
+
     }
+
+
 
     setProgress({ done: 0, total: 0, label: "" });
+
     setLastUpdated(new Date());
+
     setPhase('done');
+
   };
 
+
+
   // Auto-refresh
+
   useEffect(() => {
+
     if (autoRefresh && phase === 'done') {
+
       autoRef.current = setTimeout(() => { handleScan(); }, 60000);
+
       return () => clearTimeout(autoRef.current);
+
     }
+
   }, [autoRefresh, phase]);
 
+
+
   useEffect(() => {
+
     const tw = tableWrapRef.current;
+
     const ts = topScrollRef.current;
+
     if (!tw || !ts) return;
+
     const inner = ts.firstElementChild;
+
     if (inner) inner.style.width = Math.max(tw.scrollWidth, ts.clientWidth + 1) + 'px';
+
   });
+
+
 
   const sortedRows = useMemo(() => {
+
     let list = Object.keys(results).map(k => results[k]).filter(r => r.price != null);
+
     if (searchQuery) {
+
       list = list.filter(r => r.name === searchQuery);
+
     }
+
     if (catFilter !== "ALL") list = list.filter(r => r.key === catFilter);
+
     if (regimeFilter !== "ALL") list = list.filter(r => r.regime === regimeFilter);
+
     if (phaseFilter !== "ALL") {
+
       list = list.filter(r => {
+
         const et = runExecutionTree(r, vixPrice, basePeriod);
+
         return et && et.verdict === phaseFilter;
+
       });
+
     }
+
     if (baFilter) {
+
       list = list.filter(r => {
+
         const ba = baResults[r.name];
+
         if (!ba || ba.pct === null) return false;
+
         if (baFilter === 'strong') return ba.pct >= 60;
+
         if (baFilter === 'moderate') return ba.pct >= 40 && ba.pct < 60;
+
         if (baFilter === 'weak') return ba.pct < 40;
+
         return true;
+
       });
+
     }
+
     if (showWatchlist && watchlist.length) {
+
       list = list.filter(r => watchlist.includes(r.name));
+
     }
+
     if (sortConfig.key) {
+
       list.sort((a, b) => {
+
         let aVal, bVal;
+
         if (sortConfig.key === 'priceVsWma') {
+
           aVal = (a.price && a.wma20Price) ? (a.price > a.wma20Price ? 1 : -1) : 0;
+
           bVal = (b.price && b.wma20Price) ? (b.price > b.wma20Price ? 1 : -1) : 0;
+
         } else if (sortConfig.key === 'verdict') {
+
           const etA = runExecutionTree(a, vixPrice, basePeriod);
+
           const etB = runExecutionTree(b, vixPrice, basePeriod);
+
           aVal = etA ? etA.label : '';
+
           bVal = etB ? etB.label : '';
+
         } else if (sortConfig.key === 'detail') {
+
           const etA = runExecutionTree(a, vixPrice, basePeriod);
+
           const etB = runExecutionTree(b, vixPrice, basePeriod);
+
           aVal = etA ? etA.detail : '';
+
           bVal = etB ? etB.detail : '';
+
         } else if (sortConfig.key === 'baPct') {
+
           aVal = baResults[a.name]?.pct ?? -1;
+
           bVal = baResults[b.name]?.pct ?? -1;
+
         } else if (sortConfig.key === 'haSignal') {
+
           const sigOrder = {'STRONG SELL':1,'SELL':2,'CAUTION':3,'WATCH':4,'NEUTRAL':5,'HOLD':6,'BUY':7};
+
           const haA = computeHABandSignal(a, vixPrice);
+
           const haB = computeHABandSignal(b, vixPrice);
+
           aVal = sigOrder[haA?.signal] ?? 5;
+
           bVal = sigOrder[haB?.signal] ?? 5;
+
         } else if (sortConfig.key === 'dRsi14') {
+
           aVal = a.dRsi14 ?? -1;
+
           bVal = b.dRsi14 ?? -1;
+
         } else if (sortConfig.key === 'wRsi14') {
+
           aVal = a.wRsi14 ?? -1;
+
           bVal = b.wRsi14 ?? -1;
+
         } else {
+
           aVal = a[sortConfig.key];
+
           bVal = b[sortConfig.key];
+
         }
+
         if (aVal == null) return 1;
+
         if (bVal == null) return -1;
+
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+
         return 0;
+
       });
+
       return list;
+
     }
+
     return list.sort((a, b) => {
+
       const ord = { A: 1, B: 2, C: 3 };
+
       const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
+
       if (ra !== rb) return ra - rb;
+
       return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
+
     });
+
   }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, baResults, showWatchlist, watchlist, baFilter]);
 
+
+
   const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
+
   const pct = Math.round((progress.done / (progress.total || 1)) * 100);
 
+
+
   return (
+
     <div>
+
       <header className="app-header">
+
         <div className="brand">
+
           <div className="brand-icon">LD</div>
+
           <div className="brand-text">
+
             <h1>Lie Detector Scanner V3C</h1>
+
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
+
           </div>
+
         </div>
+
         <div className="header-right">
+
           {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)"}}>Updated {lastUpdated.toLocaleTimeString('en-IN')}</span>}
+
           {hasData && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-dim)"}}>{sortedRows.length} idx</span>}
+
           <span className={`live-dot ${phase === 'rsi' ? 'active' : ''}`}>
+
             {phase === 'rsi' ? `Daily RSI ✓` : phase === 'done' ? (dataSource||'READY') : phase === 'prices' ? 'LOADING' : 'INIT'}
+
           </span>
+
         </div>
+
       </header>
 
+
+
       <div className="main-wrap">
+
         {error && (
+
           <div style={{background:"var(--red-dim)",border:"1px solid var(--red)",padding:"10px 16px",marginBottom:16,fontFamily:"var(--mono)",fontSize:12,color:"var(--red)",borderRadius:2}}>
+
             {error}
+
           </div>
+
         )}
+
+
 
         <div className="ba-key-bar">
+
           <span className="ba-key-label">Gemini Keys</span>
+
           <span className="ba-key-status">
+
             {geminiKey1 || geminiKey2 ? 'Keys saved — cascade BA runs for Regime A indices' : <span style={{color:"var(--orange)"}}>No keys — BA column will be empty</span>}
+
             {keyStatus && <span style={{marginLeft:8}}>{keyStatus}</span>}
+
           </span>
+
           <div style={{display:"flex",gap:8,flexWrap:"wrap",width:"100%",alignItems:"center"}}>
+
             <div style={{display:"flex",gap:6,flexWrap:"nowrap",alignItems:"center",flex:1,minWidth:180}}>
+
               <input className="ba-key-input" type="password" placeholder="Key 1: AIza… (cascade: flash-lite → flash → pro)"
+
                 value={keyInput1} onChange={e => setKeyInput1(e.target.value)}
+
                 onKeyDown={e => e.key === 'Enter' && saveGeminiKey1()}/>
+
               <button className="ba-key-save" style={{background:geminiKey1 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey1}>{geminiKey1 ? 'Update 1' : 'Save 1'}</button>
+
             </div>
+
             <div style={{display:"flex",gap:6,flexWrap:"nowrap",alignItems:"center",flex:1,minWidth:180}}>
+
               <input className="ba-key-input" type="password" placeholder="Key 2: AIza… (cascade fallback)"
+
                 value={keyInput2} onChange={e => setKeyInput2(e.target.value)}
+
                 onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
+
               <button className="ba-key-save" style={{background:geminiKey2 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
+
             </div>
+
             <div style={{display:"flex",alignItems:"center",gap:6}}>
+
               <span className="ba-key-label">Base RSI</span>
+
               <select className="ba-period-select" value={basePeriod} onChange={e => setBasePeriod(Number(e.target.value))}>
+
                 <option value={4}>4</option>
+
                 <option value={8}>8</option>
+
                 <option value={14}>14</option>
+
               </select>
+
             </div>
+
           </div>
+
         </div>
+
+
 
         <div className="controls-bar">
+
           <div className="controls-left">
+
             <div className="filter-group">
+
               <span className="filter-label">Search</span>
+
               <select className="filter-select" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{minWidth:110}}>
+
                 {indexNames.map(n => <option key={n} value={n === 'ALL' ? '' : n}>{n}</option>)}
+
               </select>
+
             </div>
+
             <div className="filter-group">
+
               <span className="filter-label">Category</span>
+
               <select className="filter-select" value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{minWidth:70}}>
+
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
+
               </select>
+
             </div>
+
             <div className="filter-group">
+
               <span className="filter-label">Regime</span>
+
               <select className="filter-select" value={regimeFilter} onChange={e => setRegimeFilter(e.target.value)}>
+
                 <option value="ALL">All</option>
+
                 <option value="A">A - Bull</option>
+
                 <option value="B">B - Fatigue</option>
+
                 <option value="C">C - Break</option>
+
               </select>
+
             </div>
+
             <div className="filter-group">
+
               <span className="filter-label">Verdict</span>
+
               <select className="filter-select" value={phaseFilter} onChange={e => setPhaseFilter(e.target.value)}>
+
                 <option value="ALL">All</option>
+
                 <option value="VERIFIED STRIKE">Strike</option>
+
                 <option value="NEAR MISS">Near Miss</option>
+
                 <option value="FAKE SUPPORT">Fake Support</option>
+
                 <option value="ABORT">Abort</option>
+
               </select>
+
             </div>
+
           </div>
+
           {phase !== 'rsi' && phase !== 'prices'
+
             ? <button className="btn-scan" onClick={handleScan}>⚡ Execute X-Ray Audit</button>
+
             : <button className="btn-stop" onClick={() => { stopRef.current = true; baStopRef.current = true; }}>■ Stop ({pct}%)</button>
+
           }
+
         </div>
 
+
+
         {hasData && (() => {
+
           const all = Object.values(results).filter(r => r.price != null);
+
           const counts = { BUY:0, HOLD:0, WAIT:0, SELL:0 };
+
           all.forEach(r => {
+
             const et = runExecutionTree(r, vixPrice, basePeriod);
+
             let d = 'WAIT';
+
             if (!et) { d = 'WAIT'; }
+
             else if (et.verdict === 'VERIFIED STRIKE') d = 'BUY';
+
             else if (et.verdict === 'NEAR MISS') d = 'BUY';
+
             else if (et.verdict === 'FAKE SUPPORT' || et.verdict === 'ABORT') d = 'SELL';
+
             else if (r.regime === 'A' && et.verdict === 'NOT READY') d = 'HOLD';
+
             else if (r.regime === 'B' || r.regime === 'C') d = 'SELL';
+
             counts[d] = (counts[d]||0) + 1;
+
           });
+
           const aCnt = all.filter(r=>r.regime==='A').length;
+
           const activeVerdict = phaseFilter;
+
           return (
+
             <div className="summary-row">
+
               <div className={`s-tile ${activeVerdict==='VERIFIED STRIKE'||activeVerdict==='NEAR MISS'?'active-buy':''}`}
+
                 onClick={()=>setPhaseFilter(v=>v==='VERIFIED STRIKE'?'ALL':'VERIFIED STRIKE')}>
+
                 <div className="s-tile-lbl">⚡ BUY</div>
+
                 <div className="s-tile-num g">{counts.BUY}</div>
+
                 <div className="s-tile-sub">Strike + Near Miss</div>
+
               </div>
+
               <div className={`s-tile ${activeVerdict==='HOLD'?'active-hold':''}`}
+
                 onClick={()=>setPhaseFilter(v=>v==='HOLD'?'ALL':'HOLD')}>
+
                 <div className="s-tile-lbl">⏸ HOLD</div>
+
                 <div className="s-tile-num y">{counts.HOLD}</div>
+
                 <div className="s-tile-sub">Regime A · Trend on</div>
+
               </div>
+
               <div className={`s-tile ${activeVerdict==='NOT READY'?'active-miss':''}`}
+
                 onClick={()=>setPhaseFilter(v=>v==='NOT READY'?'ALL':'NOT READY')}>
+
                 <div className="s-tile-lbl">⌛ WAIT</div>
+
                 <div className="s-tile-num b">{counts.WAIT}</div>
+
                 <div className="s-tile-sub">Not in zone yet</div>
+
               </div>
+
               <div className={`s-tile ${activeVerdict==='ABORT'||activeVerdict==='FAKE SUPPORT'?'active-sell':''}`}
+
                 onClick={()=>setPhaseFilter(v=>v==='ABORT'?'ALL':'ABORT')}>
+
                 <div className="s-tile-lbl">✗ SELL/AVOID</div>
+
                 <div className="s-tile-num r">{counts.SELL}</div>
+
                 <div className="s-tile-sub">Regime B/C · Trust break</div>
+
               </div>
+
               <div className="s-tile">
+
                 <div className="s-tile-lbl">🟢 Regime A</div>
+
                 <div className="s-tile-num g">{aCnt}</div>
+
                 <div className="s-tile-sub">of {all.length} total</div>
+
               </div>
+
               <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:6}}>
+
                 <div className="s-tile-lbl">% Wt Regime A</div>
+
                 {baFilter ? (
+
                   <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"center"}}>
+
                     <span style={{fontSize:10,fontWeight:600,color:"var(--orange)",whiteSpace:"nowrap"}}>
+
                       {baFilter === 'strong' ? '>60%' : baFilter === 'moderate' ? '40-60%' : '<40%'}
+
                     </span>
+
                     <button onClick={()=>setBaFilter(null)}
+
                       style={{background:"var(--surface2)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,fontWeight:600,padding:"3px 10px",cursor:"pointer",color:"var(--text)"}}>← Back</button>
+
                   </div>
+
                 ) : (
+
                   <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+
                     {[
+
                       {key:'strong',label:'>60%',cls:'ba-strong'},
+
                       {key:'moderate',label:'40-60%',cls:'ba-moderate'},
+
                       {key:'weak',label:'<40%',cls:'ba-weak'},
+
                     ].map(b => (
+
                       <span key={b.key}
+
                         onClick={()=>setBaFilter(b.key)}
+
                         style={{cursor:"pointer",fontFamily:"var(--mono)",fontSize:9,fontWeight:600,padding:"2px 8px",borderRadius:2,border:"1px solid",whiteSpace:"nowrap"}}
+
                         className={`ba-pill ${b.cls}`}>{b.label}</span>
+
                     ))}
+
                   </div>
+
                 )}
+
               </div>
+
               <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:10}}>
+
                 <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",fontSize:10,fontWeight:600,color:"var(--text)"}}>
+
                   <span style={{whiteSpace:"nowrap"}}>{showWatchlist ? 'Watchlist' : 'Full List'}</span>
+
                   <input type="checkbox" checked={showWatchlist} onChange={e => setShowWatchlist(e.target.checked)} style={{display:"none"}}/>
+
                   <span style={{display:"inline-block",width:16,height:16,borderRadius:2,border:`2px solid ${showWatchlist?"var(--orange)":"var(--border2)"}`,background:showWatchlist?"var(--orange)":"transparent",textAlign:"center",lineHeight:"16px",fontSize:9,fontWeight:700,flexShrink:0,color:"#000"}}>{showWatchlist ? '✓' : ''}</span>
+
                 </label>
+
                 <div style={{height:1,background:"var(--border2)",margin:"2px 0"}}/>
+
                 {vixPrice && (
+
                   <div style={{display:"flex",alignItems:"center",gap:6,fontSize:10}}>
+
                     <span style={{color:"var(--text-dim)"}}>VIX</span>
+
                     <span style={{fontWeight:700,
+
                       color: vixOpen != null && vixPrice > vixOpen ? "var(--green)" : "var(--red)",
+
                     }}>{vixPrice.toFixed(1)}</span>
+
                     {vixOpen != null && <span style={{fontSize:9,color:"var(--text-dim)"}}>{(vixPrice - vixOpen) > 0 ? '▲' : '▼'}{Math.abs((vixPrice - vixOpen) / vixOpen * 100).toFixed(1)}%</span>}
+
                   </div>
+
                 )}
+
               </div>
+
             </div>
+
           );
+
         })()}
 
+
+
         {(phase === 'rsi' || phase === 'prices') && (
+
           <div className="progress-wrap">
+
             <div className="progress-top">
+
               <span className="progress-label">{progress.label} ({progress.done}/{progress.total})</span>
+
               {phase === 'rsi' && <span className="progress-pct">{pct}%</span>}
+
             </div>
+
             {(phase === 'rsi') && (
+
               <div className="progress-track"><div className="progress-fill" style={{width:pct+'%'}}/></div>
+
             )}
+
           </div>
+
         )}
+
+
 
         {hasData ? (
+
           <div>
+
             <div ref={topScrollRef} className="table-top-scroll" style={{overflowX:"auto",overflowY:"hidden",height:12,background:"var(--surface)",border:"1px solid var(--border2)",borderBottom:"none"}}
+
               onScroll={e => { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }}>
+
               <div ref={el => { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; }} style={{height:1}}/>
+
             </div>
+
             <div className="table-wrap" ref={tableWrapRef} onScroll={e => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; }}>
+
             <table>
+
               <thead>
+
                 <tr>
+
                   <th style={{width:34,textAlign:"center",cursor:'pointer',userSelect:'auto'}} title="Click to add/remove from Watchlist">#</th>
+
                   <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
+
                   <th data-group="1" className="group-start" onClick={() => requestSort('price')}>Price{getSortIcon('price')}</th>
+
                   <th data-group="1" style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
+
                   <th data-group="2" className="group-start" style={{textAlign:"center"}} onClick={() => requestSort('dRsi14')}>D RSI 4·8·14{getSortIcon('dRsi14')}</th>
+
                   <th data-group="2" style={{textAlign:"center"}} onClick={() => requestSort('wRsi14')}>W RSI 4·8·14{getSortIcon('wRsi14')}</th>
+
                   <th data-group="2" style={{textAlign:"center"}} onClick={() => requestSort('regime')}>Regime{getSortIcon('regime')}</th>
+
                   <th data-group="2" style={{textAlign:"center",minWidth:90}} onClick={() => requestSort('baPct')} title="% of index market-cap weight in Regime A (Gemini AI estimate, Regime A indices only)">% Wt Regime A{getSortIcon('baPct')}</th>
+
                   <th data-group="3" className="group-start" onClick={() => requestSort('wma20Rsi')}>WMA20{getSortIcon('wma20Rsi')}</th>
+
                   <th data-group="3" style={{textAlign:"center"}} onClick={() => requestSort('priceVsWma')}>P&gt;WMA{getSortIcon('priceVsWma')}</th>
+
                   <th data-group="4" className="group-start" style={{textAlign:"center"}} onClick={() => requestSort('action')}>Action{getSortIcon('action')}</th>
+
                   <th data-group="4" style={{minWidth:140}} onClick={() => requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
+
                   <th data-group="4" style={{minWidth:180}} onClick={() => requestSort('detail')}>Detail{getSortIcon('detail')}</th>
+
                   <th data-group="5" className="ha-sep group-start" style={{textAlign:"center",minWidth:100}} onClick={() => requestSort('haSignal')} title="Heiken Ashi + 8 SMA Band + 21 SMA Low Signal (V3C Add-on)">HA Signal{getSortIcon('haSignal')}</th>
+
                   <th data-group="5" style={{minWidth:240}} title="HA Band reasoning — zone, SMA levels, confluence">HA Reasoning{getSortIcon('haReason')}</th>
+
                 </tr>
+
               </thead>
+
               <tbody>
+
                 {sortedRows.map((r, i) => {
+
                   const wmaClass = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'wma-yes' : 'wma-no') : '';
+
                   const wmaText = r.price && r.wma20Price ? (r.price > r.wma20Price ? 'YES' : 'NO') : '—';
+
                   const et = runExecutionTree(r, vixPrice, basePeriod);
+
                   const vs = {green:{bg:"var(--green-dim)",color:"var(--green)",border:"var(--green)"},
+
                     amber:{bg:"var(--amber-dim)",color:"var(--amber)",border:"var(--amber)"},
+
                     red:{bg:"var(--red-dim)",color:"var(--red)",border:"var(--red)"},
+
                     dim:{bg:"var(--surface2)",color:"var(--text-faint)",border:"var(--border2)"}}[et?.color||"dim"];
+
                   return (
+
                     <tr key={i}>
+
                       <td style={{textAlign:"center",padding:0}}>
+
                         <button onClick={() => toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 6px",background:watchlist.includes(r.name)?"var(--orange)":"transparent",color:watchlist.includes(r.name)?"#000":"var(--text-faint)",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
+
                       </td>
+
                       <td className="name-col">{r.name}</td>
+
                       <td data-group="1" className="group-start" style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
+
                       <td data-group="1" style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "var(--text-dim)"}}>
+
                         {r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`}
+
                       </td>
+
                       <td data-group="2" className="group-start" style={{textAlign:"center"}}>
+
                         <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+
                           <ConfPill val={r.dRsi4}/><ConfPill val={r.dRsi8}/><ConfPill val={r.dRsi14}/>
+
                         </div>
+
                       </td>
+
                       <td data-group="2" style={{textAlign:"center"}}>
+
                         <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+
                           <ConfPill val={r.wRsi4}/><ConfPill val={r.wRsi8}/><ConfPill val={r.wRsi14}/>
+
                         </div>
+
                       </td>
+
                       <td data-group="2" style={{textAlign:"center"}}><Pill v={r.regime} logic={r.regime}/></td>
+
                       <td data-group="2" style={{textAlign:"center"}}>
+
                           {(() => {
+
                           if (r.regime !== 'A' && !watchlist.includes(r.name)) return <span className="ba-pill ba-na">—</span>;
+
                           const ba = baResults[r.name];
+
                           if (!ba) {
+
                             const hk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+
                             const hk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+
                             const hasKey = hk1.length >= 20 || hk2.length >= 20;
+
                             return <span className="ba-pill ba-na" style={{fontSize:9}}>{hasKey ? 'Scan' : 'No key'}</span>;
+
                           }
+
                           if (ba.status === 'loading') return <span className="ba-loading" title="Gemini BA running…" />;
+
                           if (ba.status === 'error' || ba.pct === null) return <span className="ba-pill ba-na" title={ba.note||''}>ERR</span>;
+
                           const pct = ba.pct;
+
                           const cls = pct >= 60 ? 'ba-strong' : pct >= 40 ? 'ba-moderate' : 'ba-weak';
+
                           const confBadge = ba.conf === 'HIGH' ? '●' : ba.conf === 'MEDIUM' ? '◑' : '○';
+
                           return (
+
                             <span className={`ba-pill ${cls}`}
+
                               title={`${pct}% in Regime A | ${ba.bull??'?'}/${ba.total??'?'} stocks | ${ba.conf} | ${ba.note||''}`}>
+
                               {pct}% {confBadge}
+
                             </span>
+
                           );
+
                         })()}
+
                       </td>
+
                       <td data-group="3" className="group-start">{r.wma20Rsi ?? "—"}</td>
+
                       <td data-group="3" className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
+
                       <td data-group="4" className="group-start" style={{textAlign:"center"}}><Pill v={r.action} logic={r.action}/></td>
+
                       <td data-group="4" style={{textAlign:"center"}}>
+
                         {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
+
                       </td>
+
                       <td data-group="4" style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
+
                       {/* ── V3C ADD-ON: HA Band Signal + Reasoning ── */}
+
                       {(() => {
+
                         const ha = computeHABandSignal(r, vixPrice);
+
                         if (!ha) return (
+
                           <>
+
                             <td data-group="5" className="ha-sep group-start" style={{textAlign:"center"}}><span className="ha-pill ha-signal-neutral">NO DATA</span></td>
+
                             <td data-group="5"><span className="ha-reason" style={{color:"var(--text-faint)"}}>Insufficient daily close history for HA Band computation (need 22+ days)</span></td>
+
                           </>
+
                         );
+
                         const pillCls = ha.signalClass === 'buy' ? 'ha-signal-buy'
+
                           : ha.signalClass === 'sell' ? 'ha-signal-sell'
+
                           : ha.signalClass === 'watch' ? 'ha-signal-watch'
+
                           : 'ha-signal-neutral';
+
                         const zoneBadge = ha.zone === 'BULL' ? '🟢'
+
                           : ha.zone === 'CAUTION' ? '🟡'
+
                           : ha.zone === 'BEAR' ? '🔴'
+
                           : '🟣';
+
                         return (
+
                           <>
+
                             <td data-group="5" className="ha-sep group-start" style={{textAlign:"center",verticalAlign:"middle"}}>
+
                               <span className={`ha-pill ${pillCls}`} title={`Zone: ${ha.zone} | SMA8: ${ha.sma8} | 21SMA: ${ha.sma21}`}>
+
                                 {ha.signal}
+
                               </span>
+
                               <div style={{marginTop:3,fontSize:9,fontFamily:"var(--mono)",color:"var(--text-faint)"}}>
+
                                 {zoneBadge} {ha.zone}
+
                               </div>
+
                             </td>
+
                             <td data-group="5" style={{verticalAlign:"middle"}}>
+
                               <span className="ha-reason">{ha.reason}</span>
+
                               <div style={{marginTop:3,fontFamily:"var(--mono)",fontSize:9,color:"var(--text-faint)"}}>
+
                                 SMA8: {ha.sma8} · 21SMA: {ha.sma21} · HA: {ha.haBull ? '🟢 Bull' : '🔴 Bear'}
+
                               </div>
+
                             </td>
+
                           </>
+
                         );
+
                       })()}
+
                     </tr>
+
                   );
+
                 })}
+
               </tbody>
+
             </table>
+
           </div>
+
           </div>
+
         ) : phase === 'init' && (
+
           <div className="empty-state">
+
             <div className="big-icon">📡</div>
+
             <h2>Ready to Scan</h2>
+
             <p>Fetches NSE live prices + index close files for all 139 indices.</p>
+
           </div>
+
         )}
+
       </div>
+
     </div>
+
   );
+
 };
 
+
+
 ReactDOM.createRoot(document.getElementById('root')).render(<Scanner />);
+
 </script>
+
+
 
 <script>
+
 // ── PWA: Service Worker registration ──────────────────────────────
+
 if ('serviceWorker' in navigator) {
+
   // Skip SW in sandboxed preview environments (e.g. Claude, CodePen, StackBlitz)
+
   const _swHost = location.hostname;
+
   const _swSkip = _swHost.includes('claudeusercontent.com') ||
+
                   _swHost.includes('codepen.io') ||
+
                   _swHost.includes('stackblitz.io') ||
+
                   _swHost === '';
+
   if (!_swSkip) {
+
     window.addEventListener('load', () => {
+
       navigator.serviceWorker.register('./sw.js').then(reg => {
+
         console.log('[LD Scanner] SW registered:', reg.scope);
+
       }).catch(err => console.warn('[LD Scanner] SW failed:', err));
+
     });
+
   } else {
+
     console.log('[LD Scanner] SW skipped — preview environment detected (' + _swHost + ')');
+
   }
+
 }
+
+
 
 // ── PWA: Install prompt (deferred) ────────────────────────────────
+
 let deferredPrompt = null;
+
 window.addEventListener('beforeinstallprompt', e => {
+
   e.preventDefault();
+
   deferredPrompt = e;
+
   showInstallBanner();
+
 });
+
+
 
 function showInstallBanner() {
+
   if (document.getElementById('pwa-install-bar')) return;
+
   const bar = document.createElement('div');
+
   bar.id = 'pwa-install-bar';
+
   bar.style.cssText = `
+
     position:fixed;bottom:0;left:0;right:0;z-index:9999;
+
     background:#faf7f0;border-top:2px solid #d4880f;
+
     display:flex;align-items:center;justify-content:space-between;
+
     padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+
     color:#1a1a1a;gap:12px;
+
   `;
+
   bar.innerHTML = `
+
     <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
+
     <span style="color:#222222;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
+
     <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
+
     <button id="pwa-dismiss-btn" style="background:transparent;color:#222222;border:1px solid #d0c8b8;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
+
   `;
+
   document.body.appendChild(bar);
+
   document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+
     if (!deferredPrompt) return;
+
     deferredPrompt.prompt();
+
     const { outcome } = await deferredPrompt.userChoice;
+
     deferredPrompt = null;
+
     bar.remove();
+
   });
+
   document.getElementById('pwa-dismiss-btn').addEventListener('click', () => bar.remove());
+
 }
 
+
+
 window.addEventListener('appinstalled', () => {
+
   const bar = document.getElementById('pwa-install-bar');
+
   if (bar) bar.remove();
+
   console.log('[LD Scanner] App installed!');
+
 });
+
 </script>
+
 </body>
+
 </html>
