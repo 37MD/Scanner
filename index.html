@@ -1037,14 +1037,6 @@ Return ONLY valid JSON:
                 onKeyDown={e => e.key === 'Enter' && saveGeminiKey2()}/>
               <button className="ba-key-save" style={{background:geminiKey2 ? 'var(--green)' : 'var(--red)'}} onClick={saveGeminiKey2}>{geminiKey2 ? 'Update 2' : 'Save 2'}</button>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <span className="ba-key-label">Base RSI</span>
-              <select className="ba-period-select" value={basePeriod} onChange={e => setBasePeriod(Number(e.target.value))}>
-                <option value={4}>4</option>
-                <option value={8}>8</option>
-                <option value={14}>14</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -1176,6 +1168,15 @@ Return ONLY valid JSON:
                     {vixOpen != null && <span style={{fontSize:9,color:"var(--text-dim)"}}>{(vixPrice - vixOpen) > 0 ? '▲' : '▼'}{Math.abs((vixPrice - vixOpen) / vixOpen * 100).toFixed(1)}%</span>}
                   </div>
                 )}
+                <div style={{display:"flex",alignItems:"center",gap:4,fontSize:9}}>
+                  <span style={{color:"var(--text-dim)"}}>RSI</span>
+                  <select value={basePeriod} onChange={e => setBasePeriod(Number(e.target.value))}
+                    style={{background:"var(--surface2)",color:"var(--text)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,padding:"2px 4px",outline:"none"}}>
+                    <option value={4}>4</option>
+                    <option value={8}>8</option>
+                    <option value={14}>14</option>
+                  </select>
+                </div>
               </div>
             </div>
           );
