@@ -508,12 +508,13 @@ const Scanner = () => {
       if (raw) {
         const snap = JSON.parse(raw);
         if (snap.results && Object.keys(snap.results).length) {
+          console.log('[LD] Restored cache:', Object.keys(snap.results).length, 'indices,', snap.baResults ? Object.keys(snap.baResults).length+' BA' : 'no BA');
           setResults(snap.results);
           if (snap.baResults) setBaResults(snap.baResults);
           setLastUpdated(new Date());
           setPhase('done');
         }
-      }
+      } else { console.log('[LD] No cache found'); }
     } catch(_) {}
   }, []);
 
@@ -928,7 +929,21 @@ Return ONLY valid JSON:
     setLastUpdated(new Date());
     setPhase('done');
     // Cache snapshot for offline use
-    try { localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: tempResults, baResults: baSnap })); } catch(_) {}
+    try {
+      // Save only display-critical fields (omit _dailyCloses to save space)
+      const slimResults = {};
+      for (const k of Object.keys(tempResults)) {
+        const r = tempResults[k];
+        slimResults[k] = { name: r.name, price: r.price, change: r.change, pctChange: r.pctChange,
+          open: r.open, dayHigh: r.dayHigh, dayLow: r.dayLow, regime: r.regime,
+          dRsi4: r.dRsi4, dRsi8: r.dRsi8, dRsi14: r.dRsi14,
+          wRsi4: r.wRsi4, wRsi8: r.wRsi8, wRsi14: r.wRsi14,
+          wma20Price: r.wma20Price, wma20Rsi: r.wma20Rsi, divergence: r.divergence,
+          action: r.action, rec: r.rec };
+      }
+      localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: slimResults, baResults: baSnap }));
+      console.log('[LD] Cache saved:', Object.keys(slimResults).length, 'indices,', Object.keys(baSnap).length, 'BA entries');
+    } catch(e) { console.warn('[LD] Cache save failed:', e); }
   };
 
   // Auto-refresh
