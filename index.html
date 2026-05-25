@@ -1058,11 +1058,14 @@ Return ONLY valid JSON:
         return 0;
       });
     } else {
+      const sigOrder = {'STRONG SELL':1,'SELL':2,'CAUTION':3,'WATCH':4,'NEUTRAL':5,'HOLD':6,'BUY':7};
       list.sort((a, b) => {
-        const ord = { A: 1, B: 2, C: 3 };
-        const ra = ord[a.regime] || 4, rb = ord[b.regime] || 4;
-        if (ra !== rb) return ra - rb;
-        return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity);
+        const va = baResults[a.name]?.pct ?? -1;
+        const vb = baResults[b.name]?.pct ?? -1;
+        if (va !== vb) return (vb - va);
+        const haA = sigOrder[computeHABandSignal(a, vixPrice)?.signal] ?? 5;
+        const haB = sigOrder[computeHABandSignal(b, vixPrice)?.signal] ?? 5;
+        return (haB - haA);
       });
     }
     return list;
