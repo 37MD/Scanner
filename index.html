@@ -509,6 +509,7 @@ const Scanner = () => {
         const snap = JSON.parse(raw);
         if (snap.results && Object.keys(snap.results).length) {
           setResults(snap.results);
+          if (snap.baResults) setBaResults(snap.baResults);
           setLastUpdated(new Date());
           setPhase('done');
         }
@@ -886,6 +887,7 @@ Return ONLY valid JSON:
     // BA Phase: Gemini breadth analysis for Regime A + Watchlist indices
     const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
     const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    let baSnap = {};
     if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
       baStopRef.current = false;
       const baTargets = indexList.filter(idx => {
@@ -893,7 +895,11 @@ Return ONLY valid JSON:
         return d && !d.error && (d.regime === 'A' || watchlist.includes(idx.name));
       });
       const initBA = {};
-      baTargets.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
+      baTargets.forEach(idx => {
+        const loading = { status: 'loading', pct: null };
+        initBA[idx.name] = loading;
+        baSnap[idx.name] = loading;
+      });
       setBaResults(prev => ({ ...prev, ...initBA }));
 
       let baIdx = 0;
@@ -902,17 +908,16 @@ Return ONLY valid JSON:
         const tr = tempResults[idx.key];
         const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
         const pct = result?.regime_a_weight_pct ?? null;
-        setBaResults(prev => ({
-          ...prev,
-          [idx.name]: {
-            status: pct !== null ? 'done' : 'error',
-            pct,
-            bull: result?.bull_count ?? null,
-            total: result?.total_count ?? null,
-            conf: result?.confidence ?? '',
-            note: result?.note ?? ''
-          }
-        }));
+        const entry = {
+          status: pct !== null ? 'done' : 'error',
+          pct,
+          bull: result?.bull_count ?? null,
+          total: result?.total_count ?? null,
+          conf: result?.confidence ?? '',
+          note: result?.note ?? ''
+        };
+        baSnap[idx.name] = entry;
+        setBaResults(prev => ({ ...prev, [idx.name]: entry }));
         baIdx++;
         setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
         if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
@@ -923,7 +928,7 @@ Return ONLY valid JSON:
     setLastUpdated(new Date());
     setPhase('done');
     // Cache snapshot for offline use
-    try { localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: tempResults })); } catch(_) {}
+    try { localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: tempResults, baResults: baSnap })); } catch(_) {}
   };
 
   // Auto-refresh
