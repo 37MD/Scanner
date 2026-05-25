@@ -503,32 +503,17 @@ const Scanner = () => {
 
   // Restore cached snapshot on mount
   useEffect(() => {
-    // Request persistent storage — prevents browser from clearing data
-    if (navigator.storage?.persist) navigator.storage.persist();
-    const doRestore = (snap) => {
-      if (!snap.results || !Object.keys(snap.results).length) return;
-      setResults(snap.results);
-      setBaResults(snap.baResults || {});
-      setNseData(snap.nseData || []);
-      setLastUpdated(snap.lastUpdated ? new Date(snap.lastUpdated) : null);
-      setDataSource(snap.dataSource || null);
-      if (snap.basePeriod) setBasePeriod(snap.basePeriod);
-      setPhase('done');
-    };
     try {
       const raw = localStorage.getItem('ld_scanner_cache');
-      if (raw) { doRestore(JSON.parse(raw)); return; }
+      if (raw) {
+        const snap = JSON.parse(raw);
+        if (snap.results && Object.keys(snap.results).length) {
+          setResults(snap.results);
+          setLastUpdated(new Date());
+          setPhase('done');
+        }
+      }
     } catch(_) {}
-    // Fallback: try Cache API (more persistent than localStorage)
-    if ('caches' in window) {
-      caches.open('ld-scanner-data').then(cache =>
-        cache.match('/ld-scanner-snapshot').then(resp => {
-          if (resp) resp.text().then(text => {
-            try { doRestore(JSON.parse(text)); } catch(_) {}
-          });
-        })
-      ).catch(() => {});
-    }
   }, []);
 
   const requestSort = (key) => {
@@ -899,58 +884,47 @@ Return ONLY valid JSON:
     setResults({ ...tempResults });
 
     // BA Phase: Gemini breadth analysis for Regime A + Watchlist indices
-      const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
-      const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
-      let localBA = {};
-      if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
-        baStopRef.current = false;
-        const baTargets = indexList.filter(idx => {
-          const d = tempResults[idx.key];
-          return d && !d.error && (d.regime === 'A' || watchlist.includes(idx.name));
-        });
-        baTargets.forEach(idx => { localBA[idx.name] = { status: 'loading', pct: null }; });
-        setBaResults(prev => ({ ...prev, ...localBA }));
+    const sk1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+    const sk2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    if ((sk1.length >= 20 || sk2.length >= 20) && !stopRef.current) {
+      baStopRef.current = false;
+      const baTargets = indexList.filter(idx => {
+        const d = tempResults[idx.key];
+        return d && !d.error && (d.regime === 'A' || watchlist.includes(idx.name));
+      });
+      const initBA = {};
+      baTargets.forEach(idx => { initBA[idx.name] = { status: 'loading', pct: null }; });
+      setBaResults(prev => ({ ...prev, ...initBA }));
 
-        let baIdx = 0;
-        for (const idx of baTargets) {
-          if (stopRef.current || baStopRef.current) break;
-          const tr = tempResults[idx.key];
-          const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
-          const pct = result?.regime_a_weight_pct ?? null;
-          localBA[idx.name] = {
+      let baIdx = 0;
+      for (const idx of baTargets) {
+        if (stopRef.current || baStopRef.current) break;
+        const tr = tempResults[idx.key];
+        const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
+        const pct = result?.regime_a_weight_pct ?? null;
+        setBaResults(prev => ({
+          ...prev,
+          [idx.name]: {
             status: pct !== null ? 'done' : 'error',
             pct,
             bull: result?.bull_count ?? null,
             total: result?.total_count ?? null,
             conf: result?.confidence ?? '',
             note: result?.note ?? ''
-          };
-          setBaResults(prev => ({ ...prev, [idx.name]: localBA[idx.name] }));
-          baIdx++;
-          setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
-          if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
-        }
+          }
+        }));
+        baIdx++;
+        setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
+        if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
       }
+    }
 
-      setProgress({ done: 0, total: 0, label: "" });
-      setLastUpdated(new Date());
-      setPhase('done');
-      // Cache snapshot for offline use
-      try {
-        const snap = JSON.stringify({
-          results: tempResults, baResults: localBA || {},
-          nseData: nseRaw, lastUpdated: new Date().toISOString(),
-          dataSource, basePeriod,
-        });
-        localStorage.setItem('ld_scanner_cache', snap);
-        // Also write to Cache API (more persistent than localStorage)
-        if ('caches' in window) {
-          caches.open('ld-scanner-data').then(cache =>
-            cache.put('/ld-scanner-snapshot', new Response(snap, {headers:{'Content-Type':'application/json'}}))
-          ).catch(() => {});
-        }
-      } catch(_) {}
-    };
+    setProgress({ done: 0, total: 0, label: "" });
+    setLastUpdated(new Date());
+    setPhase('done');
+    // Cache snapshot for offline use
+    try { localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: tempResults })); } catch(_) {}
+  };
 
   // Auto-refresh
   useEffect(() => {
