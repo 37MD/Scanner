@@ -69,6 +69,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
 /* ── Freeze: sticky headers ── */
 thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:3;background:var(--surface2)}
+thead tr.group-header th{padding:6px 12px;font-size:9px;letter-spacing:1.5px;color:var(--text);background:var(--surface);border-bottom:2px solid var(--border2);cursor:default;top:0;z-index:4}
+thead tr.group-header th:first-child,
+thead tr.group-header th:nth-child(2){z-index:6}
 thead th:last-child{border-right:none}
 /* ── Freeze: col 1 (#) ── */
 thead th:nth-child(1),
@@ -86,6 +89,7 @@ tbody td:nth-child(2),thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0
 /* ── Mobile: compact frozen cols ── */
 @media(max-width:600px){
   thead th{padding:8px 6px;font-size:9px;letter-spacing:0.6px}
+  thead tr.group-header th{padding:4px 6px;font-size:8px}
   tbody td{padding:7px 6px;font-size:11px}
   thead th:nth-child(1),tbody td:nth-child(1){min-width:0;width:24px;padding-left:5px;padding-right:4px;font-size:9px}
   thead th:nth-child(2),tbody td:nth-child(2){left:28px}
@@ -1204,6 +1208,14 @@ Return ONLY valid JSON:
             <div className="table-wrap" ref={tableWrapRef} onScroll={e => { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; }}>
             <table>
               <thead>
+                <tr className="group-header">
+                  <th></th>
+                  <th></th>
+                  <th colSpan="6">Core Condition</th>
+                  <th colSpan="2">Confirmation 1</th>
+                  <th colSpan="3">Final Decision</th>
+                  <th colSpan="2">Validation</th>
+                </tr>
                 <tr>
                   <th style={{width:34,textAlign:"center",cursor:'pointer',userSelect:'auto'}} title="Click to add/remove from Watchlist">#</th>
                   <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
