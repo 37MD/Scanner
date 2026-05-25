@@ -494,9 +494,12 @@ const Scanner = () => {
   const [showWatchlist, setShowWatchlist] = useState(false);
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
-  const [sortBy1, setSortBy1] = useState('');
-  const [sortBy2, setSortBy2] = useState('');
-  const [sortDir, setSortDir] = useState('asc');
+  const [sortField1, setSortField1] = useState('');
+  const [sortDir1, setSortDir1] = useState('asc');
+  const [sortField2, setSortField2] = useState('');
+  const [sortDir2, setSortDir2] = useState('asc');
+  const [sortField3, setSortField3] = useState('');
+  const [sortDir3, setSortDir3] = useState('asc');
 
   const requestSort = (key) => {
     let direction = 'asc';
@@ -948,7 +951,7 @@ Return ONLY valid JSON:
     if (showWatchlist && watchlist.length) {
       list = list.filter(r => watchlist.includes(r.name));
     }
-    if (sortBy1) {
+    if (sortField1) {
       const getVal = (row, key) => {
         if (key === 'priceVsWma') return (row.price && row.wma20Price) ? (row.price > row.wma20Price ? 1 : -1) : 0;
         if (key === 'verdict') { const et = runExecutionTree(row, vixPrice, basePeriod); return et ? et.label : ''; }
@@ -962,23 +965,19 @@ Return ONLY valid JSON:
         if (key === 'regime') return row.regime||'';
         if (key === 'price') return row.price ?? -1;
         if (key === 'changePct') return row.changePct ?? -Infinity;
-        if (key === 'wma') return row.wma20Price ?? -1;
-        if (key === 'rsi') return row.dRsi ?? row.wRsi ?? -1;
+        if (key === 'wma20Price') return row.wma20Price ?? -1;
+        if (key === 'dRsi') return row.dRsi ?? -1;
+        if (key === 'wRsi') return row.wRsi ?? -1;
         return row[key];
       };
-      const dir = sortDir === 'asc' ? 1 : -1;
+      const fields = [[sortField1,sortDir1],[sortField2,sortDir2],[sortField3,sortDir3]].filter(([k])=>k);
       list.sort((a, b) => {
-        let cmp = 0;
-        if (sortBy1) {
-          const va = getVal(a, sortBy1), vb = getVal(b, sortBy1);
-          if (va < vb) cmp = -1; else if (va > vb) cmp = 1;
-          cmp *= dir;
+        for (const [key, dir] of fields) {
+          const va = getVal(a, key), vb = getVal(b, key);
+          if (va < vb) return dir === 'asc' ? -1 : 1;
+          if (va > vb) return dir === 'asc' ? 1 : -1;
         }
-        if (cmp === 0 && sortBy2) {
-          const va = getVal(a, sortBy2), vb = getVal(b, sortBy2);
-          if (va < vb) cmp = -dir; else if (va > vb) cmp = dir;
-        }
-        return cmp;
+        return 0;
       });
     } else if (sortConfig.key) {
       list.sort((a, b) => {
@@ -1030,7 +1029,7 @@ Return ONLY valid JSON:
       });
     }
     return list;
-  }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, sortBy1, sortBy2, sortDir, baResults, showWatchlist, watchlist, baFilter]);
+  }, [results, searchQuery, regimeFilter, phaseFilter, catFilter, vixPrice, sortConfig, sortField1, sortDir1, sortField2, sortDir2, sortField3, sortDir3, baResults, showWatchlist, watchlist, baFilter]);
 
   const hasData = sortedRows.length > 0 && Object.keys(results).length > 0;
   const pct = Math.round((progress.done / (progress.total || 1)) * 100);
@@ -1195,41 +1194,34 @@ Return ONLY valid JSON:
                   </div>
                 )}
               </div>
-              <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:4,cursor:"default"}}>
+              <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:3,cursor:"default"}}>
                 <div className="s-tile-lbl">SORT</div>
-                <select value={sortBy1} onChange={e=>setSortBy1(e.target.value)}
-                  style={{background:"var(--surface2)",color:"var(--text)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,padding:"2px 4px",outline:"none",cursor:"pointer",width:"100%"}}>
-                  <option value="">—</option>
-                  <option value="regime">Regime</option>
-                  <option value="verdict">Verdict</option>
-                  <option value="category">Category</option>
-                  <option value="price">Price</option>
-                  <option value="changePct">% Chg</option>
-                  <option value="wma">WMA</option>
-                  <option value="rsi">RSI</option>
-                  <option value="haSignal">HA Sig</option>
-                  <option value="dRsi14">dRSI14</option>
-                  <option value="name">Name</option>
-                </select>
-                <select value={sortBy2} onChange={e=>setSortBy2(e.target.value)}
-                  style={{background:"var(--surface2)",color:"var(--text)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,padding:"2px 4px",outline:"none",cursor:"pointer",width:"100%"}}>
-                  <option value="">—</option>
-                  <option value="regime">Regime</option>
-                  <option value="verdict">Verdict</option>
-                  <option value="category">Category</option>
-                  <option value="price">Price</option>
-                  <option value="changePct">% Chg</option>
-                  <option value="wma">WMA</option>
-                  <option value="rsi">RSI</option>
-                  <option value="haSignal">HA Sig</option>
-                  <option value="dRsi14">dRSI14</option>
-                  <option value="name">Name</option>
-                </select>
-                <select value={sortDir} onChange={e=>setSortDir(e.target.value)}
-                  style={{background:"var(--surface2)",color:"var(--text)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,padding:"2px 4px",outline:"none",cursor:"pointer",width:"100%"}}>
-                  <option value="asc">▲ Asc</option>
-                  <option value="desc">▼ Desc</option>
-                </select>
+                {[[sortField1,setSortField1,sortDir1,setSortDir1],[sortField2,setSortField2,sortDir2,setSortDir2],[sortField3,setSortField3,sortDir3,setSortDir3]].map(([f,setF,d,setD],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:2}}>
+                    <select value={f} onChange={e=>setF(e.target.value)}
+                      style={{flex:1,minWidth:0,background:"var(--surface2)",color:"var(--text)",border:"1px solid var(--border2)",fontFamily:"var(--mono)",fontSize:9,padding:"2px 4px",outline:"none",cursor:"pointer"}}>
+                      <option value="">—</option>
+                      <option value="regime">Regime</option>
+                      <option value="verdict">Verdict</option>
+                      <option value="category">Category</option>
+                      <option value="price">Price</option>
+                      <option value="changePct">% Chg</option>
+                      <option value="wma20Price">WMA</option>
+                      <option value="dRsi">dRSI</option>
+                      <option value="wRsi">wRSI</option>
+                      <option value="dRsi14">dRSI14</option>
+                      <option value="wRsi14">wRSI14</option>
+                      <option value="name">Name</option>
+                      <option value="baPct">BA %</option>
+                      <option value="haSignal">HA Sig</option>
+                      <option value="detail">Detail</option>
+                    </select>
+                    <span onClick={()=>setD(v=>v==='asc'?'desc':'asc')}
+                      style={{fontSize:11,cursor:"pointer",userSelect:"none",color:"var(--text)",lineHeight:1,flexShrink:0,padding:"2px 4px"}}>
+                      {d==='asc'?'▲':'▼'}
+                    </span>
+                  </div>
+                ))}
               </div>
               <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:10}}>
                 <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",fontSize:10,fontWeight:600,color:"var(--text)"}}>
