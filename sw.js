@@ -1,20 +1,5 @@
-// Lie Detector Scanner — Service Worker v2E
-const CACHE_NAME = 'ld-scanner-v2e';
-
-// Assets to pre-cache for offline use
-const PRECACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  './icon.svg',
-  // CDN dependencies — cached on first load
-  'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
-  'https://unpkg.com/react@18/umd/react.production.min.js',
-  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-  'https://unpkg.com/@babel/standalone/babel.min.js',
-];
+// Lie Detector Scanner — Service Worker v3C
+const CACHE_NAME = 'ld-scanner-v3c';
 
 // Install: pre-cache shell assets
 self.addEventListener('install', event => {
