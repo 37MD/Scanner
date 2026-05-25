@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V3C</title>
+<title>Lie Detector Scanner V3D</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -72,6 +72,8 @@ thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:60
 thead tr.group-header th{padding:6px 12px;font-size:9px;letter-spacing:1.5px;color:var(--text);background:var(--surface);border-bottom:2px solid var(--border2);cursor:default;top:0;z-index:4}
 thead tr.group-header th:first-child,
 thead tr.group-header th:nth-child(2){z-index:6}
+thead tr:not(.group-header) th{top:26px!important}
+@media(max-width:600px){thead tr:not(.group-header) th{top:20px!important}}
 thead th:last-child{border-right:none}
 /* ── Freeze: col 1 (#) ── */
 thead th:nth-child(1),
@@ -166,7 +168,7 @@ th[data-group="4"], td[data-group="4"]{background:rgba(200,140,100,0.06)}
 th[data-group="5"], td[data-group="5"]{background:rgba(200,100,140,0.06)}
 .group-start{border-left:3px solid rgba(80,80,80,0.5)!important}
 
-/* ── HA Band Signal columns (V3C Add-on) ── */
+/* ── HA Band Signal columns (V3D Add-on) ── */
 .ha-signal-buy{background:var(--green-dim)!important;color:var(--green)!important;border:1px solid var(--green)!important}
 .ha-signal-sell{background:var(--red-dim)!important;color:var(--red)!important;border:1px solid var(--red)!important}
 .ha-signal-watch{background:var(--amber-dim)!important;color:var(--amber)!important;border:1px solid var(--amber)!important}
@@ -307,7 +309,7 @@ function runExecutionTree(r, vixPrice, period) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// HA BAND ADD-ON (V3C) — Heiken Ashi + 8 SMA Band + 21 SMA Low
+// HA BAND ADD-ON (V3D) — Heiken Ashi + 8 SMA Band + 21 SMA Low
 // Uses daily close + open/high/low data already fetched for RSI
 // Inputs: row object with arrays haCloses, haHighs, haLows, haOpens
 // These are computed during scan from daily OHLC if available,
@@ -1003,7 +1005,7 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V3C</h1>
+            <h1>Lie Detector Scanner V3D</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -1230,7 +1232,7 @@ Return ONLY valid JSON:
                   <th data-group="4" className="group-start" style={{textAlign:"center"}} onClick={() => requestSort('action')}>Action{getSortIcon('action')}</th>
                   <th data-group="4" style={{minWidth:140}} onClick={() => requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
                   <th data-group="4" style={{minWidth:180}} onClick={() => requestSort('detail')}>Detail{getSortIcon('detail')}</th>
-                  <th data-group="5" className="ha-sep group-start" style={{textAlign:"center",minWidth:100}} onClick={() => requestSort('haSignal')} title="Heiken Ashi + 8 SMA Band + 21 SMA Low Signal (V3C Add-on)">HA Signal{getSortIcon('haSignal')}</th>
+                  <th data-group="5" className="ha-sep group-start" style={{textAlign:"center",minWidth:100}} onClick={() => requestSort('haSignal')} title="Heiken Ashi + 8 SMA Band + 21 SMA Low Signal (V3D Add-on)">HA Signal{getSortIcon('haSignal')}</th>
                   <th data-group="5" style={{minWidth:240}} title="HA Band reasoning — zone, SMA levels, confluence">HA Reasoning{getSortIcon('haReason')}</th>
                 </tr>
               </thead>
@@ -1294,7 +1296,7 @@ Return ONLY valid JSON:
                         {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
                       </td>
                       <td data-group="4" style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
-                      {/* ── V3C ADD-ON: HA Band Signal + Reasoning ── */}
+                      {/* ── V3D ADD-ON: HA Band Signal + Reasoning ── */}
                       {(() => {
                         const ha = computeHABandSignal(r, vixPrice);
                         if (!ha) return (
