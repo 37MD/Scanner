@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V4</title>
+<title>Lie Detector Scanner V4A</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -621,6 +621,63 @@ Return ONLY valid JSON:
     return null;
   }
 
+  async function callGeminiBA_Batch(batch, period) {
+    const k1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+    const k2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    const keys = { 1: k1.length >= 20 ? k1 : null, 2: k2.length >= 20 ? k2 : null };
+
+    const batchLines = batch.map((idx, i) => {
+      const wRsi = idx.wRsi ?? 0;
+      const rg = wRsi >= 50 ? 'A (Hope)' : wRsi >= 40 ? 'B (Watch)' : 'C (Fear)';
+      return `[${i + 1}] ${idx.name}: W-RSI(${period}) = ${Math.round(wRsi)} → Regime ${rg}`;
+    }).join('\n');
+
+    const prompt = `You are a constituent breadth analyst for Indian equity indices.
+
+TASK: For EACH of the ${batch.length} indices below, estimate what percentage of that index's total market-cap weight has its constituent stocks in Regime A (Weekly RSI ≥ 50, price above 20-week MA — i.e. genuine uptrend / Hope regime).
+
+Return ONLY a JSON object where each key is the index name (exactly as shown) and the value is:
+{"regime_a_weight_pct": <0-100>, "bull_count": <integer>, "total_count": <integer>, "top_regime_a": ["Stock1","Stock2","Stock3"], "confidence": "HIGH|MEDIUM|LOW", "note": "one sentence"}
+
+Indices:
+${batchLines}`;
+
+    const payload = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    };
+
+    const cascade = [
+      { key: 1, model: 'gemini-3.1-flash-lite' },
+      { key: 1, model: 'gemini-3-flash' },
+      { key: 1, model: 'gemini-3.5-flash' },
+      { key: 1, model: 'gemini-3.1-pro' },
+      { key: 2, model: 'gemini-3.1-flash-lite' },
+      { key: 2, model: 'gemini-3-flash' },
+      { key: 2, model: 'gemini-3.5-flash' },
+      { key: 2, model: 'gemini-3.1-pro' },
+    ];
+
+    for (const entry of cascade) {
+      const apiKey = keys[entry.key];
+      if (!apiKey) continue;
+      try {
+        const ep = `https://generativelanguage.googleapis.com/v1beta/models/${entry.model}:generateContent?key=${apiKey}`;
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(45000)
+        });
+        const data = await res.json();
+        if (data.error) { if (data.error.code === 429) continue; continue; }
+        const raw = (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        return JSON.parse(raw);
+      } catch(err) { continue; }
+    }
+    return null;
+  }
+
   const categories = useMemo(() => {
     const s = new Set(nseData.map(i => i.key));
     return ["ALL", ...Array.from(s).filter(k => !/derivative|eligible/i.test(k)).sort()];
@@ -903,25 +960,42 @@ Return ONLY valid JSON:
       });
       setBaResults(prev => ({ ...prev, ...initBA }));
 
-      let baIdx = 0;
-      for (const idx of baTargets) {
+      const BATCH_SIZE = 10;
+      let baDone = 0;
+      for (let batchStart = 0; batchStart < baTargets.length; batchStart += BATCH_SIZE) {
         if (stopRef.current || baStopRef.current) break;
-        const tr = tempResults[idx.key];
-        const result = await callGeminiBA(idx.name, tr?.['wRsi'+basePeriod], basePeriod);
-        const pct = result?.regime_a_weight_pct ?? null;
-        const entry = {
-          status: pct !== null ? 'done' : 'error',
-          pct,
-          bull: result?.bull_count ?? null,
-          total: result?.total_count ?? null,
-          conf: result?.confidence ?? '',
-          note: result?.note ?? ''
-        };
-        baSnap[idx.name] = entry;
-        setBaResults(prev => ({ ...prev, [idx.name]: entry }));
-        baIdx++;
-        setProgress({ done: 0, total: 0, label: `BA ${baIdx}/${baTargets.length}: ${idx.name}` });
-        if (baIdx < baTargets.length) await new Promise(r => setTimeout(r, 4200));
+        const batch = baTargets.slice(batchStart, batchStart + BATCH_SIZE).map(idx => ({
+          name: idx.name, key: idx.key,
+          wRsi: tempResults[idx.key]?.['wRsi'+basePeriod] ?? 0,
+          regime: tempResults[idx.key]?.regime ?? ''
+        }));
+        setProgress({ done: 0, total: 0, label: `BA batch ${Math.floor(batchStart/BATCH_SIZE)+1}/${Math.ceil(baTargets.length/BATCH_SIZE)} (${batch.length} idx)` });
+        const batchResult = await callGeminiBA_Batch(batch, basePeriod);
+        if (batchResult && typeof batchResult === 'object') {
+          for (const idx of batch) {
+            const result = batchResult[idx.name];
+            const pct = result?.regime_a_weight_pct ?? null;
+            const entry = {
+              status: pct !== null ? 'done' : 'error',
+              pct,
+              bull: result?.bull_count ?? null,
+              total: result?.total_count ?? null,
+              conf: result?.confidence ?? '',
+              note: result?.note ?? ''
+            };
+            baSnap[idx.name] = entry;
+            baDone++;
+          }
+          setBaResults(prev => ({ ...prev, ...baSnap }));
+        } else {
+          for (const idx of batch) {
+            baSnap[idx.name] = { status: 'error', pct: null, bull: null, total: null, conf: '', note: 'Batch call failed' };
+            baDone++;
+          }
+          setBaResults(prev => ({ ...prev, ...baSnap }));
+        }
+        setProgress({ done: 0, total: 0, label: `BA ${baDone}/${baTargets.length}` });
+        if (batchStart + BATCH_SIZE < baTargets.length) await new Promise(r => setTimeout(r, 4200));
       }
     }
 
@@ -1080,7 +1154,7 @@ Return ONLY valid JSON:
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V4</h1>
+            <h1>Lie Detector Scanner V4A</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
