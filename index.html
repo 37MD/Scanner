@@ -838,6 +838,7 @@ const Scanner = () => {
     try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(_) { return []; }
   });
   const [showWatchlist, setShowWatchlist] = useState(false);
+  const [auditModal, setAuditModal] = useState({ show: false, loading: false, name: '', result: '', error: '' });
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
   const [sortField1, setSortField1] = useState('');
@@ -1022,6 +1023,121 @@ ${batchLines}`;
       } catch(err) { continue; }
     }
     return null;
+  }
+
+  async function callGeminiAudit(promptText) {
+    const k1 = (localStorage.getItem('ld_scanner_gemini_key1') || '').trim();
+    const k2 = (localStorage.getItem('ld_scanner_gemini_key2') || '').trim();
+    const keys = { 1: k1.length >= 20 ? k1 : null, 2: k2.length >= 20 ? k2 : null };
+
+    const payload = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: { responseMimeType: "text/plain" }
+    };
+
+    const cascade = [
+      { key: 1, model: 'gemini-3.1-flash-lite' },
+      { key: 1, model: 'gemini-3-flash' },
+      { key: 1, model: 'gemini-3.5-flash' },
+      { key: 1, model: 'gemini-3.1-pro' },
+      { key: 2, model: 'gemini-3.1-flash-lite' },
+      { key: 2, model: 'gemini-3-flash' },
+      { key: 2, model: 'gemini-3.5-flash' },
+      { key: 2, model: 'gemini-3.1-pro' },
+    ];
+
+    for (const entry of cascade) {
+      const apiKey = keys[entry.key];
+      if (!apiKey) continue;
+      try {
+        const ep = `https://generativelanguage.googleapis.com/v1beta/models/${entry.model}:generateContent?key=${apiKey}`;
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(30000)
+        });
+        const data = await res.json();
+        if (data.error) { if (data.error.code === 429) continue; continue; }
+        return (data.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+      } catch(err) { continue; }
+    }
+    return null;
+  }
+
+  async function runAudit(row) {
+    if (!row || !row.name) return;
+    const nifty50 = results["nifty50"];
+    const bankNifty = results["niftybank"];
+    const today = new Date().toLocaleDateString('en-IN', { year:'numeric', month:'short', day:'numeric' });
+
+    const promptText = `You are the "Nifty Portfolio & Psychology Auditor." Your purpose is to help me monitor my NSE index trading by applying the "Sacred RSI Regime" rules to identify earnings quality, structural trends, and durability.
+
+STRICT RULE: USE ONLY THE DATA PROVIDED BELOW. NO ASSUMPTIONS. NO HALLUCINATIONS. IF DATA IS MISSING OR NULL, STATE IT.
+
+## ACTUAL DATA FOR ${row.name}
+- Date: ${today}
+- Index Close: ${row.price != null ? row.price.toFixed(2) : 'NOT AVAILABLE'}
+- D-RSI(4): ${row.dRsi4 != null ? row.dRsi4.toFixed(2) : 'NOT AVAILABLE'}
+- D-RSI(8): ${row.dRsi8 != null ? row.dRsi8.toFixed(2) : 'NOT AVAILABLE'}
+- D-RSI(14): ${row.dRsi14 != null ? row.dRsi14.toFixed(2) : 'NOT AVAILABLE'}
+- W-RSI(4): ${row.wRsi4 != null ? row.wRsi4.toFixed(2) : 'NOT AVAILABLE'}
+- W-RSI(8): ${row.wRsi8 != null ? row.wRsi8.toFixed(2) : 'NOT AVAILABLE'}
+- W-RSI(14): ${row.wRsi14 != null ? row.wRsi14.toFixed(2) : 'NOT AVAILABLE'}
+- 20WMA Price: ${row.wma20Price != null ? row.wma20Price.toFixed(2) : 'NOT AVAILABLE'}
+- Regime: ${row.regime || 'NOT AVAILABLE'}
+- NIFTY 50 Close: ${nifty50?.price != null ? nifty50.price.toFixed(2) : 'NOT AVAILABLE'}
+- BANKNIFTY Close: ${bankNifty?.price != null ? bankNifty.price.toFixed(2) : 'NOT AVAILABLE'}
+
+## Core Analysis Framework:
+- Regime A (Weekly RSI ≥ 50 + Price > 20WMA): Structural Bull. Institutions are defending earnings. Orderly pullbacks to Daily RSI 40-50 are Optimal Entry points.
+- Regime B (Weekly RSI 40-49): Fatigue. Earnings quality is suspect or rotating. Lookout for RSI failing to reclaim 50 — this is a retail trap.
+- Regime C (Weekly RSI < 40): Trust Break. Institutional exit. Never average down.
+
+## Audit Guidelines (The "Lie Detector"):
+1. The Sacred Rule: True compounders do NOT stay below 40 RSI. If an index breaks 40 and can't reclaim 45, the earnings trust is broken.
+2. Divergence Check: If price hits a new high but Daily RSI shows a lower high, warn of "Cosmetic Growth".
+3. Psychology Filter: "Price moves first; earnings explanations come later."
+
+## Micro Alignment Confluence Filter:
+- 🟢 All 3 Green: D-RSI(4), D-RSI(8), AND D-RSI(14) ALL between 40.0 and 50.0 (perfect volatility compression).
+- 🟡 Near Miss: D-RSI(4) and D-RSI(8) between 40-50, but D-RSI(14) is slightly outside (50.1 to 53.0) (asynchronous cooling).
+- 🔴 No: Values widely scattered, or index in Regime B or C.
+
+## Output Format — Return EXACTLY this structure:
+
+### 1. Current Status
+[One-line summary of current regime and RSI positioning]
+
+### 2. Confluence Check
+Confluence (4/8/14): [🟢 All 3 Green / 🟡 Near Miss / 🔴 No]
+[Brief explanation based on actual D-RSI values]
+
+### 3. Weekly RSI Macro-Filter
+Weekly RSI(14): [value]
+4-Week Δ RSI_W: [positive/negative/flat]
+Vector Classification: [Rising / Phase 1 Healthy Cooldown / Phase 2 Structural Warning / Phase 3 Regime Death]
+
+### 4. Divergence & Psychology Alert
+Divergence Alert: [Flag any "Earnings Lies" if price/NAV and RSI are out of sync. If no divergence, say "None detected."]
+Psychology Audit: [Lookout warning based on current regime]
+
+### 5. Auditor's Verdict
+Verdict: [💎 STRIKE / 🔴 TRAP / OVERHEATED / 💀 AVOID]
+Execution Rule: [100% Size / 50% Size / Hard Abort]
+Reasoning: [One-line explanation tying data to the rule]`;
+
+    setAuditModal({ show: true, loading: true, name: row.name, result: '', error: '' });
+    try {
+      const response = await callGeminiAudit(promptText);
+      if (response) {
+        setAuditModal({ show: true, loading: false, name: row.name, result: response, error: '' });
+      } else {
+        setAuditModal({ show: true, loading: false, name: row.name, result: '', error: 'Gemini API returned no response. Check your API keys.' });
+      }
+    } catch (e) {
+      setAuditModal({ show: true, loading: false, name: row.name, result: '', error: 'Error: ' + e.message });
+    }
   }
 
   const categories = useMemo(() => {
@@ -1815,7 +1931,11 @@ ${batchLines}`;
                       </td>
                       <td data-group="3" className="group-start">{r.wma20Rsi ?? "—"}</td>
                       <td data-group="3" className={wmaClass} style={{textAlign:"center",fontWeight:600}}>{wmaText}</td>
-                      <td data-group="4" className="group-start" style={{textAlign:"center"}}><Pill v={r.action} logic={r.action}/></td>
+                      <td data-group="4" className="group-start" style={{textAlign:"center",cursor:watchlist.includes(r.name)?'pointer':'default'}}
+                        onClick={() => watchlist.includes(r.name) && runAudit(r)}
+                        title={watchlist.includes(r.name)?'Click for AI Audit narration':'Add to watchlist to enable Audit click'}>
+                        <Pill v={r.action} logic={r.action}/>
+                      </td>
                       <td data-group="4" style={{textAlign:"center"}}>
                         {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
                       </td>
@@ -1871,6 +1991,36 @@ ${batchLines}`;
           </div>
         )}
       </div>
+
+      {/* ── Audit Modal ── */}
+      {auditModal.show && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.6)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={() => setAuditModal({...auditModal, show: false})}>
+          <div style={{background:'var(--surface)',border:'2px solid var(--orange)',borderRadius:6,maxWidth:700,width:'100%',maxHeight:'90vh',overflowY:'auto',padding:24,position:'relative',fontFamily:'var(--mono)',fontSize:12,lineHeight:1.6}} onClick={e => e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,paddingBottom:12,borderBottom:'1px solid var(--border2)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontSize:18}}>🔍</span>
+                <span style={{fontWeight:700,fontSize:15}}>AI Audit: {auditModal.name}</span>
+              </div>
+              <button onClick={() => setAuditModal({...auditModal, show: false})}
+                style={{background:'transparent',border:'1px solid var(--border2)',color:'var(--text-dim)',fontSize:16,cursor:'pointer',width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:3}}>✕</button>
+            </div>
+            {auditModal.loading ? (
+              <div style={{textAlign:'center',padding:'40px 20px'}}>
+                <div className="ba-loading" style={{width:24,height:24,borderWidth:3,marginBottom:16}}></div>
+                <div style={{color:'var(--text-dim)',fontSize:12}}>Running full audit on {auditModal.name}…</div>
+              </div>
+            ) : auditModal.error ? (
+              <div style={{padding:16,background:'var(--red-dim)',border:'1px solid var(--red)',borderRadius:4,color:'var(--red)'}}>
+                <strong>Error:</strong> {auditModal.error}
+              </div>
+            ) : (
+              <div style={{whiteSpace:'pre-wrap',wordBreak:'break-word',fontFamily:'var(--mono)',fontSize:11,color:'var(--text)',lineHeight:1.65}}>
+                {auditModal.result}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
