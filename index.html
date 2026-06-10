@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner V6</title>
+<title>Scanner V7</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -16,14 +16,14 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <!-- ── 1.3 External Fonts & Libraries ── -->
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<!-- fonts: using system Segoe UI across all pages -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ── 2.1 CSS Variables & Reset ── */
-:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#000000;--text-dim:#222222;--text-faint:#444444;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif}
+:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#000000;--text-dim:#222222;--text-faint:#444444;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'Segoe UI Mono','Courier New',monospace;--sans:'Segoe UI',Arial,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
 #root{position:relative;z-index:1}
@@ -60,34 +60,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 /* ── 2.5 Scanner Table & Freeze Columns ── */
 .table-wrap{border:1px solid var(--border2);overflow-x:auto;background:var(--surface);position:relative}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
-/* ── Freeze: sticky headers ── */
-thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:3;background:var(--surface2)}
-thead tr.group-header th{padding:6px 12px;font-size:9px;letter-spacing:1.5px;color:var(--text);background:var(--surface);border-bottom:2px solid var(--border2);cursor:default;top:0;z-index:4}
-thead tr.group-header th:first-child,
-thead tr.group-header th:nth-child(2){z-index:6}
-thead tr:not(.group-header) th{top:26px!important}
-@media(max-width:600px){thead tr:not(.group-header) th{top:20px!important}}
-thead th:last-child{border-right:none}
-/* ── Freeze: col 1 (#) ── */
-thead th:nth-child(1),
-tbody td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--surface2)}
-tbody td:nth-child(1){background:var(--surface);z-index:1}
-/* ── Freeze: col 2 (Index) ── */
-thead th:nth-child(2),
-tbody td:nth-child(2){position:sticky;left:30px;z-index:2;background:var(--surface2)}
-tbody td:nth-child(2){background:var(--surface);z-index:1}
-/* Header corner: col 1+2 must be above everything */
-thead th:nth-child(1){z-index:5}
-thead th:nth-child(2){z-index:5}
-/* Shadow on frozen cols to show scroll */
-tbody td:nth-child(2),thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,0.5)}
+/* ── Freeze: sticky headers — Scanner only ── */
+#tab-scanner thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:#000;letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:3;background:var(--surface2)}
+#tab-scanner thead tr.group-header th{padding:6px 12px;font-size:9px;letter-spacing:1.5px;color:var(--text);background:var(--surface);border-bottom:2px solid var(--border2);cursor:default;top:0;z-index:4}
+#tab-scanner thead tr.group-header th:first-child,
+#tab-scanner thead tr.group-header th:nth-child(2){z-index:6}
+#tab-scanner thead tr:not(.group-header) th{top:26px!important}
+@media(max-width:600px){#tab-scanner thead tr:not(.group-header) th{top:20px!important}}
+#tab-scanner thead th:last-child{border-right:none}
+/* ── Freeze: col 1 (#) — Scanner only ── */
+#tab-scanner thead th:nth-child(1),
+#tab-scanner tbody td:nth-child(1){position:sticky;left:0;z-index:2;background:var(--surface2);width:28px;min-width:28px;max-width:28px}
+#tab-scanner tbody td:nth-child(1){background:var(--surface);z-index:1}
+/* ── Freeze: col 2 (Index) — Scanner only ── */
+#tab-scanner thead th:nth-child(2),
+#tab-scanner tbody td:nth-child(2){position:sticky;left:28px;z-index:2;background:var(--surface2)}
+#tab-scanner tbody td:nth-child(2){background:var(--surface);z-index:1}
+/* Header corner: col 1+2 must be above everything — Scanner only */
+#tab-scanner thead th:nth-child(1){z-index:5}
+#tab-scanner thead th:nth-child(2){z-index:5}
+/* Shadow on frozen cols — Scanner only */
+#tab-scanner tbody td:nth-child(2),#tab-scanner thead th:nth-child(2){box-shadow:3px 0 6px -2px rgba(0,0,0,0.5)}
 /* ── Mobile: compact frozen cols ── */
 @media(max-width:600px){
   thead th{padding:8px 6px;font-size:9px;letter-spacing:0.6px}
   thead tr.group-header th{padding:4px 6px;font-size:8px}
   tbody td{padding:7px 6px;font-size:11px}
-  thead th:nth-child(1),tbody td:nth-child(1){min-width:0;width:24px;padding-left:5px;padding-right:4px;font-size:9px}
-  thead th:nth-child(2),tbody td:nth-child(2){left:28px}
+  #tab-scanner thead th:nth-child(1),#tab-scanner tbody td:nth-child(1){width:28px;min-width:28px;max-width:28px;padding-left:4px;padding-right:4px;font-size:9px}
+  #tab-scanner thead th:nth-child(2),#tab-scanner tbody td:nth-child(2){left:28px}
   td.name-col{min-width:60px;max-width:70px;font-size:9px;white-space:normal;word-break:break-all}
   .pill{min-width:30px;padding:2px 5px;font-size:8px}
   .conf-pill{min-width:22px;padding:1px 3px;font-size:8px}
@@ -167,7 +167,7 @@ th[data-group="5"], td[data-group="5"]{background:rgba(200,100,140,0.06)}
 .wma-yes{background:var(--green-dim)!important;color:var(--green)!important;font-weight:700}
 .wma-no{background:var(--red-dim)!important;color:var(--red)!important;font-weight:700}
 .ha-pill{display:inline-block;padding:3px 9px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:2px;min-width:52px;text-align:center;border:1px solid transparent}
-.ha-reason{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:220px;line-height:1.45;white-space:normal;word-break:break-word}
+.ha-reason{font-family:var(--mono);font-size:10px;color:#000;min-width:220px;line-height:1.45;white-space:normal;word-break:break-word}
 
 /* Separator between existing cols and HA addon */
 th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
@@ -198,33 +198,35 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:480px){.tab-btn{font-size:8px;padding:6px 5px;letter-spacing:0}.app-tabs{gap:2px}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
-.breadth-panel{--bp-bg:#f5f0e8;--bp-bg2:#faf7f0;--bp-bg3:#f0ebe0;--bp-border:#d0c8b8;--bp-border2:#c0b8a8;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#1a1a1a;--bp-muted:#666666;--bp-accent:#8d6e63;font-family:'Rajdhani',sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
+.breadth-panel{--bp-bg:#f5f0e8;--bp-bg2:#faf7f0;--bp-bg3:#f0ebe0;--bp-border:#d0c8b8;--bp-border2:#c0b8a8;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#1a1a1a;--bp-muted:#666666;--bp-accent:#8d6e63;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
 .breadth-panel *{margin:0;padding:0;box-sizing:border-box}
 .breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:linear-gradient(135deg,#faf7f0 0%,#f0ebe0 100%);border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .breadth-panel .bp-h-left{display:flex;align-items:center;gap:16px}
-.breadth-panel .bp-logo{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;color:var(--bp-accent);letter-spacing:3px}
+.breadth-panel .bp-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:var(--bp-accent);letter-spacing:3px}
 .breadth-panel .bp-logo span{color:var(--bp-text)}
-.breadth-panel .bp-sub{font-family:'Share Tech Mono';font-size:11px;color:var(--bp-muted)}
+.breadth-panel .bp-sub{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:var(--bp-muted)}
 .breadth-panel .bp-h-right{display:flex;align-items:center;gap:24px}
 .breadth-panel #bpNiftyVal{font-size:16px}
 @media(max-width:768px){.breadth-panel #bpNiftyVal{font-size:13px}}
 @media(max-width:600px){.breadth-panel #bpNiftyVal{font-size:12px}}
 .breadth-panel .bp-live{width:8px;height:8px;border-radius:50%;background:var(--bp-bull);box-shadow:0 0 12px rgba(46,125,50,0.3);animation:bpPulse 2s infinite}
 @keyframes bpPulse{0%,100%{opacity:1}50%{opacity:0.3}}
-.breadth-panel .bp-update{font-family:'Share Tech Mono';font-size:11px;color:var(--bp-muted)}
+.breadth-panel .bp-update{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:var(--bp-muted)}
 .breadth-panel .bp-main{position:relative;z-index:1;padding:16px 20px;display:flex;flex-direction:column;gap:16px;max-width:1500px;margin:0 auto}
-.breadth-panel .bp-verdict{padding:12px 16px;border-radius:4px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:'Share Tech Mono'}
+.breadth-panel .bp-verdict{padding:12px 16px;border-radius:4px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:'Segoe UI',Arial,sans-serif}
 .breadth-panel .bp-verdict.bull{border:1px solid rgba(46,125,50,0.3)}
 .breadth-panel .bp-verdict.bear{border:1px solid rgba(198,40,40,0.3)}
 .breadth-panel .bp-verdict.side{border:1px solid rgba(230,81,0,0.3)}
 .breadth-panel .bp-vtext{font-size:13px;color:var(--bp-text)}
 .breadth-panel .bp-vaction{font-size:11px;color:var(--bp-muted)}
-.breadth-panel .bp-vlabel{font-family:'Orbitron';font-size:26px;font-weight:900;white-space:nowrap}
-.breadth-panel .bp-ath{background:var(--bp-bg2);border:1px solid var(--bp-border);border-radius:4px;padding:12px 16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.breadth-panel .bp-ath-item{display:flex;align-items:center;gap:10px}
-.breadth-panel .bp-ath-lbl{font-size:11px;color:var(--bp-muted);font-family:'Share Tech Mono'}
-.breadth-panel .bp-ath-val{font-family:'Orbitron';font-size:13px;font-weight:700}
-.breadth-panel .bp-ath-bdg{font-size:10px;padding:2px 8px;border-radius:2px;font-family:'Share Tech Mono'}
+.breadth-panel .bp-vlabel{font-family:'Segoe UI',Arial,sans-serif;font-size:26px;font-weight:900;white-space:nowrap}
+.breadth-panel .bp-ath{background:var(--bp-bg2);border:1px solid var(--bp-border);border-radius:4px;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.breadth-panel .bp-ath-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(0,0,0,0.06);padding-bottom:6px}
+.breadth-panel .bp-ath-item:last-child{border-bottom:none;padding-bottom:0}
+.breadth-panel .bp-ath-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.breadth-panel .bp-ath-lbl{font-size:11px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif}
+.breadth-panel .bp-ath-val{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700}
+.breadth-panel .bp-ath-bdg{font-size:10px;padding:2px 8px;border-radius:2px;font-family:'Segoe UI',Arial,sans-serif}
 .breadth-panel .bp-ath-bdg.yes{border:1px solid rgba(46,125,50,0.3)}
 .breadth-panel .bp-ath-bdg.no{border:1px solid rgba(198,40,40,0.2)}
 .breadth-panel .bp-divider{width:1px;height:30px;background:var(--bp-border)}
@@ -238,20 +240,20 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .breadth-panel .bp-card.bear{border-color:var(--bp-bear);box-shadow:0 0 12px rgba(198,40,40,0.2)}
 .breadth-panel .bp-card.side{border-color:var(--bp-side);box-shadow:0 0 12px rgba(230,81,0,0.2)}
 .breadth-panel .bp-chead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.breadth-panel .bp-cname{font-family:'Orbitron';font-size:13px;font-weight:700}
+.breadth-panel .bp-cname{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700}
 .breadth-panel .bp-cname.large{color:var(--bp-large)}
 .breadth-panel .bp-cname.mid{color:var(--bp-mid)}
 .breadth-panel .bp-cname.small{color:var(--bp-small)}
-.breadth-panel .bp-rbadge{font-family:'Share Tech Mono';font-size:10px;padding:2px 8px;border-radius:2px;font-weight:700;letter-spacing:1px}
+.breadth-panel .bp-rbadge{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;padding:2px 8px;border-radius:2px;font-weight:700;letter-spacing:1px}
 .breadth-panel .bp-rbadge.BULL{border:1px solid rgba(46,125,50,0.3)}
 .breadth-panel .bp-rbadge.BEAR{border:1px solid rgba(198,40,40,0.3)}
 .breadth-panel .bp-rbadge.SIDE{border:1px solid rgba(230,81,0,0.3)}
-.breadth-panel .bp-pct-big{font-family:'Orbitron';font-size:26px;font-weight:900;line-height:1}
+.breadth-panel .bp-pct-big{font-family:'Segoe UI',Arial,sans-serif;font-size:26px;font-weight:900;line-height:1}
 .breadth-panel .bp-pct-big.g{color:var(--bp-bull)}
 .breadth-panel .bp-pct-big.r{color:var(--bp-bear)}
 .breadth-panel .bp-pct-big.y{color:var(--bp-side)}
 .breadth-panel .bp-pct-lbl{font-size:11px;color:var(--bp-muted);margin-top:2px}
-.breadth-panel .bp-chip{font-family:'Share Tech Mono';font-size:11px}
+.breadth-panel .bp-chip{font-family:'Segoe UI',Arial,sans-serif;font-size:11px}
 .breadth-panel .bp-chip.up{color:var(--bp-bull)}
 .breadth-panel .bp-chip.dn{color:var(--bp-bear)}
 .breadth-panel .bp-ptrack{margin-top:10px;height:6px;background:var(--bp-bg3);border-radius:3px;overflow:hidden}
@@ -261,19 +263,19 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .breadth-panel .bp-pfill.y{background:linear-gradient(90deg,var(--bp-side2),var(--bp-side))}
 .breadth-panel .bp-chart-box{background:var(--bp-bg2);border:1px solid var(--bp-border);border-radius:4px;padding:16px}
 .breadth-panel .bp-shdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.breadth-panel .bp-stitle{font-family:'Orbitron';font-size:13px;color:var(--bp-accent);letter-spacing:2px}
+.breadth-panel .bp-stitle{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:var(--bp-accent);letter-spacing:2px}
 .breadth-panel .bp-legend{display:flex;gap:16px}
 .breadth-panel .bp-litem{display:flex;align-items:center;gap:6px;font-size:12px}
 .breadth-panel .bp-ldot{width:10px;height:10px;border-radius:50%}
 .breadth-panel .bp-cwrap{position:relative;height:220px}
-.breadth-panel .bp-rnote{font-family:'Share Tech Mono';font-size:10px;color:var(--bp-muted);margin-top:6px}
+.breadth-panel .bp-rnote{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:var(--bp-muted);margin-top:6px}
 .breadth-panel .bp-strats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .breadth-panel .bp-scard{background:var(--bp-bg2);border:1px solid var(--bp-border);border-radius:4px;padding:14px}
 .breadth-panel .bp-scard.active{border-color:var(--bp-side);box-shadow:0 0 12px rgba(230,81,0,0.15)}
 .breadth-panel .bp-shead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .breadth-panel .bp-sicon{font-size:20px}
 @media(max-width:768px){.breadth-panel .bp-sicon{font-size:16px}}
-.breadth-panel .bp-stitle2{font-family:'Orbitron';font-size:11px;font-weight:700}
+.breadth-panel .bp-stitle2{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700}
 .breadth-panel .bp-stitle2.g{color:var(--bp-bull)}
 .breadth-panel .bp-stitle2.r{color:var(--bp-bear)}
 .breadth-panel .bp-stitle2.y{color:var(--bp-side)}
@@ -281,7 +283,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .breadth-panel .bp-srule::before{content:'▸';color:var(--bp-muted);flex-shrink:0}
 .breadth-panel .bp-psize{margin-top:10px;padding:8px;background:var(--bp-bg3);border-radius:3px}
 .breadth-panel .bp-pslbl{font-size:10px;color:var(--bp-muted)}
-.breadth-panel .bp-psval{font-family:'Orbitron';font-size:13px;font-weight:700}
+.breadth-panel .bp-psval{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700}
 .breadth-panel .bp-psval.g{color:var(--bp-bull)}
 .breadth-panel .bp-psval.r{color:var(--bp-bear)}
 .breadth-panel .bp-psval.y{color:var(--bp-side)}
@@ -293,14 +295,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @keyframes bpGlow{0%,100%{box-shadow:0 0 8px rgba(230,81,0,0.2)}50%{box-shadow:0 0 18px rgba(230,81,0,0.4)}}
 .breadth-panel .bp-scard2.leader{border-color:var(--bp-bull);box-shadow:0 0 10px rgba(46,125,50,0.2)}
 .breadth-panel .bp-sname{font-size:10px;color:var(--bp-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
-.breadth-panel .bp-srsi{font-family:'Orbitron';font-size:18px;font-weight:700;margin:4px 0}
+.breadth-panel .bp-srsi{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:700;margin:4px 0}
 .breadth-panel .bp-srsi.hot{color:var(--bp-side)}
 .breadth-panel .bp-srsi.lead{color:var(--bp-bull)}
 .breadth-panel .bp-srsi.cool{color:var(--bp-muted)}
 .breadth-panel .bp-srsi.cold{color:var(--bp-bear)}
 .breadth-panel .bp-rbar{height:3px;border-radius:2px;background:var(--bp-bg);margin-top:4px}
 .breadth-panel .bp-rfill{height:100%;border-radius:2px}
-.breadth-panel .bp-stag{font-size:9px;font-family:'Share Tech Mono';padding:1px 5px;border-radius:2px;margin-top:4px;display:inline-block}
+.breadth-panel .bp-stag{font-size:9px;font-family:'Segoe UI',Arial,sans-serif;padding:1px 5px;border-radius:2px;margin-top:4px;display:inline-block}
 .breadth-panel .bp-rguide{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
 .breadth-panel .bp-rzone{display:flex;align-items:center;gap:6px;font-size:11px}
 .breadth-panel .bp-rdot{width:8px;height:8px;border-radius:50%}
@@ -309,30 +311,30 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .breadth-panel .bp-mcard{background:var(--bp-bg3);border:1px solid var(--bp-border);border-radius:3px;padding:10px 12px;text-align:center}
 .breadth-panel .bp-micon{font-size:18px;margin-bottom:4px}
 .breadth-panel .bp-mlbl{font-size:10px;color:var(--bp-muted);text-transform:uppercase;letter-spacing:0.5px}
-.breadth-panel .bp-mval{font-family:'Orbitron';font-size:13px;font-weight:700;margin-top:2px}
+.breadth-panel .bp-mval{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;font-weight:700;margin-top:2px}
 .breadth-panel .bp-mval.pos{color:var(--bp-bull)}
 .breadth-panel .bp-mval.neg{color:var(--bp-bear)}
 .breadth-panel .bp-mval.neu{color:var(--bp-side)}
 .breadth-panel .bp-mtrend{font-size:10px;margin-top:2px}
-.breadth-panel .bp-score{font-family:'Orbitron';font-size:13px;color:var(--bp-muted)}
-.breadth-panel .bp-footer{padding:10px 20px;border-top:1px solid var(--bp-border);display:flex;justify-content:space-between;font-family:'Share Tech Mono';font-size:10px;color:var(--bp-muted)}
+.breadth-panel .bp-score{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:var(--bp-muted)}
+.breadth-panel .bp-footer{padding:10px 20px;border-top:1px solid var(--bp-border);display:flex;justify-content:space-between;font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:var(--bp-muted)}
 .breadth-panel .bp-recs{background:var(--bp-bg2);border:2px solid var(--bp-side);border-radius:4px;padding:16px}
-.breadth-panel .bp-recs-title{font-family:'Orbitron';font-size:14px;font-weight:700;color:var(--bp-side);letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.breadth-panel .bp-recs-note{font-size:11px;color:var(--bp-muted);font-family:'Share Tech Mono';margin-bottom:10px}
+.breadth-panel .bp-recs-title{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;font-weight:700;color:var(--bp-side);letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.breadth-panel .bp-recs-note{font-size:11px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;margin-bottom:10px}
 .breadth-panel .bp-recs-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .breadth-panel .bp-recs-tier{padding:12px;border-radius:4px;background:var(--bp-bg3);border:1px solid var(--bp-border)}
-.breadth-panel .bp-recs-tier-title{font-family:'Orbitron';font-size:12px;font-weight:700;margin-bottom:8px}
+.breadth-panel .bp-recs-tier-title{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;font-weight:700;margin-bottom:8px}
 .breadth-panel .bp-recs-tier-title.sbuy{color:var(--bp-bull)}
 .breadth-panel .bp-recs-tier-title.buy{color:var(--bp-large)}
 .breadth-panel .bp-recs-tier-title.watch{color:var(--bp-side)}
 .breadth-panel .bp-recs-item{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:3px;margin-bottom:4px;background:rgba(255,255,255,0.03);font-size:12px}
 .breadth-panel .bp-recs-item:last-child{margin-bottom:0}
 .breadth-panel .bp-recs-iname{font-weight:600;color:var(--bp-text)}
-.breadth-panel .bp-recs-isector{font-size:10px;color:var(--bp-muted);font-family:'Share Tech Mono'}
-.breadth-panel .bp-recs-irsi{font-family:'Orbitron';font-size:12px;font-weight:700}
+.breadth-panel .bp-recs-isector{font-size:10px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif}
+.breadth-panel .bp-recs-irsi{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;font-weight:700}
 .breadth-panel .bp-recs-irsi.sbuy{color:var(--bp-side)}
 .breadth-panel .bp-recs-irsi.buy{color:var(--bp-bull)}
-.breadth-panel .bp-recs-empty{padding:20px;text-align:center;font-size:12px;color:var(--bp-muted);font-family:'Share Tech Mono'}
+.breadth-panel .bp-recs-empty{padding:20px;text-align:center;font-size:12px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif}
 .breadth-panel .bp-recs-empty strong{color:var(--bp-side)}
 @media(max-width:768px){.breadth-panel .bp-recs-grid{grid-template-columns:1fr}.breadth-panel .bp-recs{padding:10px}.breadth-panel .bp-recs-title{font-size:12px}.breadth-panel .bp-recs-item{font-size:11px}}
 @media(max-width:1200px){.breadth-panel .bp-sgrid{grid-template-columns:repeat(4,1fr)}}
@@ -345,7 +347,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   .breadth-panel .bp-sub{font-size:9px}
   .breadth-panel .bp-main{padding:10px 8px;gap:10px}
   .breadth-panel .bp-ath{padding:8px 10px;gap:6px}
-  .breadth-panel .bp-ath-item{flex-wrap:wrap;gap:4px}
+  .breadth-panel .bp-ath-item{gap:6px}
   .breadth-panel .bp-ath-lbl{font-size:9px}
   .breadth-panel .bp-ath-val{font-size:11px}
   .breadth-panel .bp-ath-bdg{font-size:8px;padding:1px 5px}
@@ -390,9 +392,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 @media(max-width:600px){
   .breadth-panel{border-width:1px;margin:1px;border-radius:2px}
-  .breadth-panel .bp-header{padding:6px 8px}
+  .breadth-panel .bp-header{padding:6px 8px;flex-wrap:wrap;gap:4px}
+  .breadth-panel .bp-h-left{flex:1;min-width:0}
   .breadth-panel .bp-logo{font-size:12px}
-  .breadth-panel .bp-h-right{gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .breadth-panel .bp-h-right{gap:4px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
   .breadth-panel .bp-update{font-size:8px}
   .breadth-panel .bp-main{padding:6px 4px;gap:6px}
   .breadth-panel .bp-ath{gap:4px;padding:6px 8px}
@@ -437,19 +440,19 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .legend { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; font-size:11px; }
 #tab-ttf .ttf-panel .legend-item { display:flex; align-items:center; gap:4px; color:#000; }
 #tab-ttf .ttf-panel .legend-swatch { width:14px; height:14px; border-radius:3px; border:1px solid #d0c8b8; display:inline-block; }
-#tab-ttf .ttf-panel .table-wrap { overflow-x:auto; border:1px solid #d0c8b8; border-radius:8px; }
+#tab-ttf .ttf-panel .table-wrap { overflow-x:auto; overflow-y:auto; max-height:calc(100vh - 220px); border:1px solid #d0c8b8; border-radius:8px; }
 #tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; table-layout:fixed; }
 #tab-ttf .ttf-panel thead { z-index:4; }
 #tab-ttf .ttf-panel thead th { background:#faf7f0; color:#000; padding:6px 4px; border:1px solid #d0c8b8; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
 #tab-ttf .ttf-panel thead th.group-header { background:#f0ebe0; color:#d4880f; }
-#tab-ttf .ttf-panel thead th.group-header:first-child { min-width:30px; }
+#tab-ttf .ttf-panel thead th.group-header:first-child { width:28px;min-width:28px;max-width:28px; }
 #tab-ttf .ttf-panel thead th.group-header:nth-child(2) { min-width:40px; }
 #tab-ttf .ttf-panel thead th.sub-header { background:#faf7f0; font-weight:400; font-size:10px; color:#222 !important; padding:4px 3px; overflow:hidden; }
 #tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #d0c8b8; text-align:center; white-space:nowrap; color:#000; }
 #tab-ttf .ttf-panel tbody td.idx { font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; width:170px; }
 #tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0; }
 #tab-ttf .ttf-panel tbody tr:hover td.idx { background:#f0ebe0; }
-#tab-ttf .ttf-panel .empty-row td { color:#888; font-style:italic; text-align:center; }
+#tab-ttf .ttf-panel .empty-row td { color:#000; font-style:italic; text-align:center; }
 #tab-ttf .ttf-panel .rsi-cell { font-weight:600; font-size:12px; text-align:center; overflow:hidden; }
 #tab-ttf .ttf-panel .zone-45-50 { color:#000; }
 #tab-ttf .ttf-panel .zone-eq50 { background:#d29922 !important; color:#000; }
@@ -465,17 +468,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel #debugModal { display:none; position:fixed; top:20px; left:20px; right:20px; bottom:20px; background:#faf7f0; border:1px solid #d0c8b8; border-radius:8px; z-index:999; overflow:auto; padding:16px; }
 #tab-ttf .ttf-panel #debugTitle { color:#d4880f; font-size:16px; }
 #tab-ttf .ttf-panel #debugContent { font-family:monospace; font-size:12px; color:#000; white-space:pre-wrap; line-height:1.6; }
-/* ── TTF: NO column freeze — all columns scroll freely ── */
-/* Override any global sticky-column rules for this table */
-#tab-ttf .ttf-panel thead th,
-#tab-ttf .ttf-panel tbody td { position:static !important; left:auto !important; z-index:auto !important; box-shadow:none !important; }
-/* sticky top for thead rows only — re-apply after override */
-#tab-ttf .ttf-panel thead tr:nth-child(1) th { position:sticky !important; top:0; z-index:4 !important; }
-#tab-ttf .ttf-panel thead tr:nth-child(2) th { position:sticky !important; top:28px; z-index:3 !important; background:#faf7f0; }
-#tab-ttf .ttf-panel thead tr:nth-child(3) th { position:sticky !important; top:50px; z-index:3 !important; background:#faf7f0; }
+/* ── TTF: FREEZE PANE — via inline styles in render() JS, thead th sticky is intentional ── */
+/* hover: keep frozen col visible on row hover */
 #tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0 !important; }
-/* Ensure tbody row 1 is never hidden under the sticky rowspan-3 thead */
-#tab-ttf .ttf-panel tbody { position:relative; z-index:1; }
+#tab-ttf .ttf-panel tbody { position:static; }
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
   #tab-ttf .ttf-panel { padding:10px; }
@@ -494,6 +490,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   /* sub-header row top offsets on mobile */
   #tab-ttf .ttf-panel thead tr:nth-child(2) th { top:22px!important; }
   #tab-ttf .ttf-panel thead tr:nth-child(3) th { top:40px!important; }
+  /* table-wrap height on mobile */
+  #tab-ttf .ttf-panel .table-wrap { max-height:calc(100vh - 180px); }
 }
 @media(max-width:480px) {
   #tab-ttf .ttf-panel { padding:6px; }
@@ -527,13 +525,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     </div>
   </div>
   <div class="bp-h-right">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <div class="bp-live"></div>
-      <div class="bp-update">LAST UPDATE: <span id="bpUpdateTime">--:--:--</span></div>
-    </div>
     <div style="text-align:right;">
-      <div style="font-family:'Orbitron';font-size:11px;color:var(--bp-accent);">NIFTY 50</div>
-      <div style="font-family:'Orbitron';font-weight:700;" id="bpNiftyVal">23,847</div>
+      <div style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:var(--bp-accent);">NIFTY 50</div>
+      <div style="font-family:'Segoe UI',Arial,sans-serif;font-weight:700;" id="bpNiftyVal">23,847</div>
     </div>
   </div>
 </div>
@@ -549,13 +543,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
 
   <div class="bp-ath">
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY 50 ATH</div><div class="bp-ath-val" style="color:var(--bp-bull);">24,198</div><div class="bp-ath-bdg no">-1.45% BELOW</div></div>
-    <div class="bp-divider"></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY MIDCAP ATH</div><div class="bp-ath-val" style="color:var(--bp-mid);">53,742</div><div class="bp-ath-bdg no">-3.2% BELOW</div></div>
-    <div class="bp-divider"></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY SMALLCAP ATH</div><div class="bp-ath-val" style="color:var(--bp-small);">17,290</div><div class="bp-ath-bdg no">-8.1% BELOW</div></div>
-    <div class="bp-divider"></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">BULLISH TRIGGER</div><div style="font-size:11px;color:var(--bp-muted);font-family:'Share Tech Mono';">All 3 ATH + All Breadth >60% + Macro Green</div><div class="bp-ath-bdg no">NOT YET</div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY 50 ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-bull);">24,198</div><div class="bp-ath-bdg no">-1.45% BELOW</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY MIDCAP ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-mid);">53,742</div><div class="bp-ath-bdg no">-3.2% BELOW</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY SMALLCAP ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-small);">17,290</div><div class="bp-ath-bdg no">-8.1% BELOW</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">BULLISH TRIGGER<br><span style="font-size:9px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">All 3 ATH + Breadth &gt;60% + Macro Green</span></div><div class="bp-ath-right"><div class="bp-ath-bdg no">NOT YET</div></div></div>
   </div>
 
   <div class="bp-breadth" id="bpCards"></div>
@@ -564,7 +555,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <div class="bp-shdr">
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="bp-stitle">% STOCKS ABOVE 40W EMA</div>
-      <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Share Tech Mono';">13 WEEKS HISTORY</div>
+      <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Segoe UI',Arial,sans-serif;">13 WEEKS HISTORY</div>
       </div>
       <div class="bp-legend">
         <div class="bp-litem"><div class="bp-ldot" style="background:var(--bp-large);"></div><span style="color:var(--bp-large);">LARGECAP</span></div>
@@ -582,7 +573,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <div class="bp-shdr">
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="bp-stitle">SECTOR RSI SCANNER</div>
-        <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Share Tech Mono';">WEEKLY TF · RSI 14 + SMA 14</div>
+        <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Segoe UI',Arial,sans-serif;">WEEKLY TF · RSI 14 + SMA 14</div>
       </div>
       <div class="bp-rguide">
         <div class="bp-rzone"><div class="bp-rdot" style="background:var(--bp-side);"></div><span style="color:var(--bp-side);">70–85 MULTIBAGGER</span></div>
@@ -598,7 +589,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <div class="bp-shdr">
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="bp-stitle">MACRO INDICATORS</div>
-        <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Share Tech Mono';">BULLISH CONFLUENCE CHECK</div>
+        <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Segoe UI',Arial,sans-serif;">BULLISH CONFLUENCE CHECK</div>
       </div>
       <div class="bp-score" id="bpScore">MACRO SCORE: <span>3/5</span></div>
     </div>
@@ -622,7 +613,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 </div>
-<!-- ── 3.3 Lie Detector V6 (React mount point) ── -->
+<!-- ── 3.3 Lie Detector V7 (React mount point) ── -->
 <div id="tab-scanner" class="tab-panel">
 <div id="root"></div>
 </div>
@@ -664,7 +655,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 <!-- ════════════════════════════════════════════ -->
-<!--  4. LIE DETECTOR V6 (REACT SCANNER)       -->
+<!--  4. LIE DETECTOR V7 (REACT SCANNER)       -->
 <!-- ════════════════════════════════════════════ -->
 <script type="text/babel">
 // ── 4.1 React Imports ──
@@ -987,6 +978,17 @@ const Scanner = () => {
         }
       } else { console.log('[LD] No cache found'); }
     } catch(_) {}
+  }, []);
+
+  // Sync watchlist when TTF tab changes it
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'ld_scanner_watchlist') {
+        try { setWatchlist(JSON.parse(e.newValue || '[]')); } catch(_) {}
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
 
   const requestSort = (key) => {
@@ -1734,12 +1736,12 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Scanner V6</h1>
+            <h1>Scanner V7</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
         <div className="header-right">
-          {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)"}}>Updated {lastUpdated.toLocaleTimeString('en-IN')}</span>}
+          {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)",marginLeft:"2.5em",whiteSpace:"normal",textAlign:"right",lineHeight:1.3}}>Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>}
           {hasData && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-dim)"}}>{sortedRows.length} idx</span>}
           <span className={`live-dot ${phase === 'rsi' ? 'active' : ''}`}>
             {phase === 'rsi' ? `Daily RSI ✓` : phase === 'done' ? (dataSource||'READY') : phase === 'prices' ? 'LOADING' : 'INIT'}
@@ -2005,12 +2007,12 @@ Reasoning: [One-line explanation tying data to the rule]`;
                     dim:{bg:"var(--surface2)",color:"var(--text-faint)",border:"var(--border2)"}}[et?.color||"dim"];
                   return (
                     <tr key={i}>
-                      <td style={{textAlign:"center",padding:0}}>
-                        <button onClick={() => toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 6px",background:watchlist.includes(r.name)?"var(--orange)":"transparent",color:watchlist.includes(r.name)?"#000":"var(--text-faint)",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
+                      <td style={{textAlign:"center",padding:0,width:28,minWidth:28,maxWidth:28}}>
+                        <button onClick={() => toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 2px",background:watchlist.includes(r.name)?"var(--orange)":"transparent",color:watchlist.includes(r.name)?"#000":"#000",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
                       </td>
                       <td className="name-col">{r.name}</td>
                       <td data-group="1" className="group-start" style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
-                      <td data-group="1" style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "var(--text-dim)"}}>
+                      <td data-group="1" style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "#000"}}>
                         {r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`}
                       </td>
                       <td data-group="2" className="group-start" style={{textAlign:"center"}}>
@@ -2057,14 +2059,14 @@ Reasoning: [One-line explanation tying data to the rule]`;
                       <td data-group="4" style={{textAlign:"center"}}>
                         {et ? <span style={{display:"inline-block",padding:"3px 10px",borderRadius:2,fontFamily:"var(--mono)",fontSize:10,fontWeight:600,background:vs.bg,color:vs.color,border:`1px solid ${vs.border}`}}>{et.label}</span> : "—"}
                       </td>
-                      <td data-group="4" style={{fontSize:10,color:"var(--text-dim)",minWidth:180}}>{et?.detail ?? "—"}</td>
+                      <td data-group="4" style={{fontSize:10,color:"#000",minWidth:180}}>{et?.detail ?? "—"}</td>
                       {/* ── V3D ADD-ON: HA Band Signal + Reasoning ── */}
                       {(() => {
                         const ha = computeHABandSignal(r, vixPrice);
                         if (!ha) return (
                           <>
                             <td data-group="5" className="ha-sep group-start" style={{textAlign:"center"}}><span className="ha-pill ha-signal-neutral">NO DATA</span></td>
-                            <td data-group="5"><span className="ha-reason" style={{color:"var(--text-faint)"}}>Insufficient daily close history for HA Band computation (need 22+ days)</span></td>
+                            <td data-group="5"><span className="ha-reason" style={{color:"#000"}}>Insufficient daily close history for HA Band computation (need 22+ days)</span></td>
                           </>
                         );
                         const pillCls = ha.signalClass === 'buy' ? 'ha-signal-buy'
@@ -2081,13 +2083,13 @@ Reasoning: [One-line explanation tying data to the rule]`;
                               <span className={`ha-pill ${pillCls}`} title={`Zone: ${ha.zone} | SMA8: ${ha.sma8} | 21SMA: ${ha.sma21}`}>
                                 {ha.signal}
                               </span>
-                              <div style={{marginTop:3,fontSize:9,fontFamily:"var(--mono)",color:"var(--text-faint)"}}>
+                              <div style={{marginTop:3,fontSize:9,fontFamily:"var(--mono)",color:"#000"}}>
                                 {zoneBadge} {ha.zone}
                               </div>
                             </td>
                             <td data-group="5" style={{verticalAlign:"middle"}}>
                               <span className="ha-reason">{ha.reason}</span>
-                              <div style={{marginTop:3,fontFamily:"var(--mono)",fontSize:9,color:"var(--text-faint)"}}>
+                              <div style={{marginTop:3,fontFamily:"var(--mono)",fontSize:9,color:"#000"}}>
                                 SMA8: {ha.sma8} · 21SMA: {ha.sma21} · HA: {ha.haBull ? '🟢 Bull' : '🔴 Bear'}
                               </div>
                             </td>
@@ -2188,14 +2190,14 @@ function showInstallBanner() {
     position:fixed;bottom:0;left:0;right:0;z-index:9999;
     background:#faf7f0;border-top:2px solid #d4880f;
     display:flex;align-items:center;justify-content:space-between;
-    padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    padding:10px 20px;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;
     color:#1a1a1a;gap:12px;
   `;
   bar.innerHTML = `
     <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
     <span style="color:#222222;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
-    <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
-    <button id="pwa-dismiss-btn" style="background:transparent;color:#222222;border:1px solid #d0c8b8;padding:7px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">✕</button>
+    <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
+    <button id="pwa-dismiss-btn" style="background:transparent;color:#222222;border:1px solid #d0c8b8;padding:7px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;cursor:pointer;">✕</button>
   `;
   document.body.appendChild(bar);
   document.getElementById('pwa-install-btn').addEventListener('click', async () => {
@@ -2286,7 +2288,7 @@ function renderBpCards() {
     const pct = latest[c.k], chg = (pct - prev[c.k]).toFixed(1);
     const reg = bpRegime(pct), pos = bpPosSize(reg.cls);
     return `<div class="bp-card ${c.cls} ${reg.cls === 'BULL' ? 'bull' : reg.cls === 'BEAR' ? 'bear' : 'side'}">
-      <div class="bp-chead"><div><div class="bp-cname ${c.cls}">${c.label}</div><div style="font-size:10px;color:var(--bp-muted);font-family:'Share Tech Mono';">${c.desc}</div></div><div class="bp-rbadge ${reg.cls}">${reg.label}</div></div>
+      <div class="bp-chead"><div><div class="bp-cname ${c.cls}">${c.label}</div><div style="font-size:10px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">${c.desc}</div></div><div class="bp-rbadge ${reg.cls}">${reg.label}</div></div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;">
         <div><div class="bp-pct-big ${reg.color}">${pct}<span style="font-size:0.6em;">%</span></div><div class="bp-pct-lbl">above 40W EMA</div></div>
         <div style="text-align:right;"><div class="bp-chip ${parseFloat(chg)>=0?'up':'dn'}">${parseFloat(chg)>=0?'▲':'▼'} ${Math.abs(chg)}% WoW</div><div class="bp-pslbl" style="margin-top:6px;">Position Size</div><div class="bp-psval ${pos.color}">${pos.pct}</div></div>
@@ -2309,7 +2311,7 @@ function renderBpStrats() {
   document.getElementById('bpStrats').innerHTML = strats.map(s => {
     const active = s.regime === overall.cls;
     return `<div class="bp-scard ${active?'active':''}">
-      ${active ? '<div style="font-family:\'Share Tech Mono\';font-size:9px;color:var(--bp-accent);margin-bottom:8px;">▶ ACTIVE STRATEGY</div>' : ''}
+      ${active ? '<div style="font-family:\'Segoe UI\',Arial,sans-serif;font-size:9px;color:var(--bp-accent);margin-bottom:8px;">▶ ACTIVE STRATEGY</div>' : ''}
       <div class="bp-shead"><div class="bp-sicon">${s.icon}</div><div class="bp-stitle2 ${s.color}">${s.title}</div></div>
       ${s.rules.map(r => `<div class="bp-srule">${r}</div>`).join('')}
       <div class="bp-psize"><div class="bp-pslbl">POSITION SIZE</div><div class="bp-psval ${s.color}">${bpPosSize(s.regime).pct} <span style="font-size:10px;color:var(--bp-muted);">${bpPosSize(s.regime).label}</span></div></div></div>`;
@@ -2325,7 +2327,7 @@ function renderBpSectors() {
     else if (s.rsi >= 50) { tag='WATCH'; cls=''; rsiCls='cool'; fill='var(--bp-accent)'; }
     else { tag='AVOID'; cls=''; rsiCls='cold'; fill='var(--bp-bear)'; }
     const up = s.rsi > s.sma;
-    return `<div class="bp-scard2 ${cls}"><div class="bp-sname">${s.name}</div><div class="bp-srsi ${rsiCls}">${s.rsi}</div><div style="font-size:9px;color:var(--bp-muted);font-family:'Share Tech Mono';">SMA:${s.sma} ${up ? '<span style="color:var(--bp-bull)">▲</span>' : '<span style="color:var(--bp-bear)">▼</span>'}</div><div class="bp-rbar"><div class="bp-rfill" style="width:${s.rsi}%;background:${fill};"></div></div><div class="bp-stag" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--bp-muted);">${tag}</div></div>`;
+    return `<div class="bp-scard2 ${cls}"><div class="bp-sname">${s.name}</div><div class="bp-srsi ${rsiCls}">${s.rsi}</div><div style="font-size:9px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">SMA:${s.sma} ${up ? '<span style="color:var(--bp-bull)">▲</span>' : '<span style="color:var(--bp-bear)">▼</span>'}</div><div class="bp-rbar"><div class="bp-rfill" style="width:${s.rsi}%;background:${fill};"></div></div><div class="bp-stag" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--bp-muted);">${tag}</div></div>`;
   }).join('');
 }
 
@@ -2355,14 +2357,14 @@ function renderBpChart() {
     options:{
       responsive:true,maintainAspectRatio:false,
       animation:{duration:1000,easing:'easeInOutQuart'},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#faf7f0',borderColor:'#d0c8b8',borderWidth:1,titleFont:{family:'Share Tech Mono',size:11},bodyFont:{family:'Rajdhani',size:12},titleColor:'#1a1a1a',bodyColor:'#1a1a1a'}},
-      scales:{x:{grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Share Tech Mono',size:10}},border:{color:'#d0c8b8'}},y:{min:0,max:100,grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Share Tech Mono',size:10},callback:v=>v+'%',stepSize:20},border:{color:'#d0c8b8'}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#faf7f0',borderColor:'#d0c8b8',borderWidth:1,titleFont:{family:'Segoe UI',size:11},bodyFont:{family:'Segoe UI',size:12},titleColor:'#1a1a1a',bodyColor:'#1a1a1a'}},
+      scales:{x:{grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Segoe UI',size:10}},border:{color:'#d0c8b8'}},y:{min:0,max:100,grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Segoe UI',size:10},callback:v=>v+'%',stepSize:20},border:{color:'#d0c8b8'}}}
     },
     plugins:[{
       id:'bpRefLines',
       afterDraw(chart) {
         const {ctx,chartArea:{left,right,top,bottom},scales:{y}} = chart;
-        const l = (val,color,label) => { const yp=y.getPixelForValue(val); ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle=color; ctx.lineWidth=1; ctx.globalAlpha=0.6; ctx.beginPath(); ctx.moveTo(left,yp); ctx.lineTo(right,yp); ctx.stroke(); ctx.globalAlpha=0.8; ctx.font='9px Share Tech Mono'; ctx.fillStyle=color; ctx.fillText(label,left+4,yp-4); ctx.restore(); };
+        const l = (val,color,label) => { const yp=y.getPixelForValue(val); ctx.save(); ctx.setLineDash([6,4]); ctx.strokeStyle=color; ctx.lineWidth=1; ctx.globalAlpha=0.6; ctx.beginPath(); ctx.moveTo(left,yp); ctx.lineTo(right,yp); ctx.stroke(); ctx.globalAlpha=0.8; ctx.font='9px Segoe UI'; ctx.fillStyle=color; ctx.fillText(label,left+4,yp-4); ctx.restore(); };
         l(60,'#2e7d32','60% BULL'); l(40,'#c62828','40% BEAR');
         const y60=y.getPixelForValue(60), y40=y.getPixelForValue(40);
         ctx.save(); ctx.fillStyle='rgba(230,81,0,0.05)'; ctx.fillRect(left,y60,right-left,y40-y60); ctx.restore();
@@ -2396,8 +2398,10 @@ function updateBpVerdict() {
 
 function bpClock() {
   const now = new Date();
-  document.getElementById('bpUpdateTime').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  document.getElementById('bpFooterTime').textContent = now.toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+  const bpUT = document.getElementById('bpUpdateTime');
+  if (bpUT) bpUT.textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const bpFT = document.getElementById('bpFooterTime');
+  if (bpFT) bpFT.textContent = now.toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
 }
 
 // ── Sector-to-NSE-Index mapping ──
@@ -2697,55 +2701,85 @@ initBreadthScanner();
     var display = results.filter(function(r) { return r.type === 'E' && r.name && r.name.trim() !== ''; });
     if (rsi8Filter.checked) display = display.filter(function(r) { return r.w8 != null && r.w8 >= 45; });
     if (!display.length) { bodyEl.innerHTML = '<tr class="empty-row"><td colspan="' + cols + '">No data.</td></tr>'; return; }
-    var b = '';
+    // ── Freeze-pane inline style helpers ──
+    // Header sticky: position:sticky;top works in <thead>, not <tbody>
+    var C1W = 'width:28px;min-width:28px;max-width:28px;overflow:hidden;';
+    var FROW1 = 'position:sticky;top:0;z-index:4;background:#e0d8c8;';
+    var FROW2 = 'position:sticky;top:0;z-index:4;background:#e0d8c8;';
+    var FCOL1 = 'position:sticky;left:0;z-index:3;background:#faf7f0;' + C1W;
+    var FCOL2 = 'position:sticky;left:28px;z-index:3;background:#faf7f0;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
+    var FCOR1C1 = 'position:sticky;top:0;left:0;z-index:8;background:#e0d8c8;' + C1W;
+    var FCOR1C2 = 'position:sticky;top:0;left:28px;z-index:8;background:#e0d8c8;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
+    var BASE_HDR = 'border:1px solid #d0c8b8;text-align:center;font-size:9px;padding:5px 3px;';
+    // ── Build header into headEl (thead) using <th> tags ──
+    var hb = '';
     for (var br = 0; br < 2; br++) {
-      b += '<tr>';
+      hb += '<tr>';
       if (br === 0) {
-        b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;color:#666;font-weight:600;">#</td>';
+        hb += '<th rowspan="2" style="' + FCOR1C1 + BASE_HDR + 'color:#000;font-weight:600;">#</th>';
       }
       var bc = 1;
       while (bc < cols) {
         if (br === 0 && bc === 1) {
-          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Index</td>';
+          hb += '<th rowspan="2" style="' + FCOR1C2 + BASE_HDR + 'font-weight:600;">Index</th>';
           bc++; continue;
         }
         if (br === 1 && bc === 1) { bc++; continue; }
         if (br === 0 && bc === 2) {
-          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">T</td>';
+          hb += '<th rowspan="2" style="' + FROW1 + BASE_HDR + 'font-weight:600;">T</th>';
           bc++; continue;
         }
         if (br === 1 && bc === 2) { bc++; continue; }
         if (br === 0 && bc === 3) {
-          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">RSI Wkly<br>Status</td>';
+          hb += '<th rowspan="2" style="' + FROW1 + BASE_HDR + 'font-weight:600;">RSI Wkly<br>Status</th>';
           bc++; continue;
         }
         if (br === 1 && bc === 3) { bc++; continue; }
         if (br === 0 && bc === 4) {
-          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Action<br>Status</td>';
+          hb += '<th rowspan="2" style="' + FROW1 + BASE_HDR + 'font-weight:600;">Action<br>Status</th>';
           bc++; continue;
         }
         if (br === 1 && bc === 4) { bc++; continue; }
         if (br === 0 && bc === 5) {
-          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(4)</td>';
+          hb += '<th colspan="4" style="' + FROW1 + BASE_HDR + 'font-weight:600;">Weekly Zone RSI(4)</th>';
           bc += 4; continue;
         } else if (br === 0 && bc === 9) {
-          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(6)</td>';
+          hb += '<th colspan="4" style="' + FROW1 + BASE_HDR + 'font-weight:600;">Weekly Zone RSI(6)</th>';
           bc += 4; continue;
         } else if (br === 0 && bc === 13) {
-          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(8)</td>';
+          hb += '<th colspan="4" style="' + FROW1 + BASE_HDR + 'font-weight:600;">Weekly Zone RSI(8)</th>';
           bc += 4; continue;
         }
         var content = (br === 1 && bc === 5) ? '45-50' : (br === 1 && bc === 6) ? '&ge;50' : (br === 1 && bc === 7) ? '&ge;60' : (br === 1 && bc === 8) ? 'D-RSI(4)' : (br === 1 && bc === 9) ? '45-50' : (br === 1 && bc === 10) ? '&ge;50' : (br === 1 && bc === 11) ? '&ge;60' : (br === 1 && bc === 12) ? 'D-RSI(6)' : (br === 1 && bc === 13) ? '45-50' : (br === 1 && bc === 14) ? '&ge;50' : (br === 1 && bc === 15) ? '&ge;60' : (br === 1 && bc === 16) ? 'D-RSI(8)' : '';
-        b += '<td style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;">' + content + '</td>';
+        hb += '<th style="' + FROW2 + BASE_HDR + '">' + content + '</th>';
         bc++;
       }
-      b += '</tr>';
+      hb += '</tr>';
     }
+    headEl.innerHTML = hb;
+    // ── Fix row-2 th top offset after paint ──
+    requestAnimationFrame(function() {
+      var row1 = headEl.querySelector('tr:first-child');
+      if (!row1) return;
+      var h = row1.getBoundingClientRect().height;
+      if (!h) return;
+      var row2ths = headEl.querySelectorAll('tr:nth-child(2) th');
+      for (var i = 0; i < row2ths.length; i++) {
+        row2ths[i].style.top = h + 'px';
+      }
+    });
+    // ── Build data rows into bodyEl (tbody) ──
+    var b = '';
     for (var ri = 0; ri < display.length; ri++) {
       var r = display[ri];
-      b += '<tr><td style="color:#666;font-size:11px;text-align:center;">' + (ri+1) + '</td>';
-      b += '<td class="idx" style="cursor:pointer">' + r.name + '</td>';
-      var tc = r.type === 'B' ? '#d4880f' : r.type === 'O' ? '#666' : '#1a8a4a';
+      var wl = _getWatchlist();
+      var inWl = wl.indexOf(r.name) !== -1;
+      var numBg = inWl ? '#d4880f' : '#faf7f0';
+      var numColor = inWl ? '#000' : '#000';
+      var numWeight = inWl ? '700' : '400';
+      b += '<tr><td class="ttf-wl-btn" data-name="' + r.name.replace(/"/g,'&quot;') + '" style="' + FCOL1 + 'color:' + numColor + ';font-size:11px;text-align:center;cursor:pointer;background:' + numBg + ';font-weight:' + numWeight + ';border:1px solid #d0c8b8;">' + (ri+1) + '</td>';
+      b += '<td class="idx" style="' + FCOL2 + 'cursor:pointer;background:#faf7f0">' + r.name + '</td>';
+      var tc = r.type === 'B' ? '#d4880f' : r.type === 'O' ? '#000' : '#1a8a4a';
       b += '<td style="color:' + tc + ';font-weight:700;font-size:11px;text-align:center;">' + (r.type || '-') + '</td>';
       b += '<td class="rsi-cell" style="font-size:10px;letter-spacing:-0.5px;text-align:center;min-width:72px;">' + (r.rsiStatus || '-') + '</td>';
       var aColor = r.action === 'Crossover' ? '#1a8a4a' : r.action === 'Crossunder' ? '#cc3344' : '#d4880f';
@@ -2860,6 +2894,22 @@ initBreadthScanner();
     $('debugModal').style.display = 'block';
   }
   // ── 7.13 Public API & Event Binding ──
+  // ── Shared Watchlist Helpers ──
+  function _getWatchlist() {
+    try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(e) { return []; }
+  }
+  function _saveWatchlist(arr) {
+    try { localStorage.setItem('ld_scanner_watchlist', JSON.stringify(arr)); } catch(e) {}
+  }
+  function toggleTTFWatchlist(name) {
+    var wl = _getWatchlist();
+    var idx = wl.indexOf(name);
+    if (idx === -1) wl.push(name); else wl.splice(idx, 1);
+    _saveWatchlist(wl);
+    // Notify Scanner React component to re-read watchlist
+    try { window.dispatchEvent(new StorageEvent('storage', { key: 'ld_scanner_watchlist', newValue: JSON.stringify(wl) })); } catch(e) {}
+    if (_lastResults) render(_lastResults);
+  }
   var TTFScanner = { run: runScan, reset: reset, onComplete: null, _results: function() { return _lastResults; }, _loadCache: loadFromCache };
   win.TTFScanner = TTFScanner;
   scanBtn.addEventListener('click', runScan);
@@ -2873,8 +2923,16 @@ initBreadthScanner();
     sortResults(key, dir);
   });
   bodyEl.addEventListener('click', function(e) {
+    // Watchlist toggle — serial number cell
+    var wlBtn = e.target.closest('td.ttf-wl-btn');
+    if (wlBtn) { toggleTTFWatchlist(wlBtn.getAttribute('data-name')); return; }
+    // Debug inspector — index name cell
     var td = e.target.closest('td.idx');
     if (td) showDebug(td.textContent.trim());
+  });
+  // Re-render TTF table when Scanner watchlist changes (cross-tab sync)
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'ld_scanner_watchlist' && _lastResults) render(_lastResults);
   });
   loadFromCache();
 })(window);
