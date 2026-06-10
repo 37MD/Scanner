@@ -445,8 +445,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .legend-item { display:flex; align-items:center; gap:4px; color:#000; }
 #tab-ttf .ttf-panel .legend-swatch { width:14px; height:14px; border-radius:3px; border:1px solid #d0c8b8; display:inline-block; }
 #tab-ttf .ttf-panel .table-wrap { overflow-x:auto; border:1px solid #d0c8b8; border-radius:8px; }
-#tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; }
-#tab-ttf .ttf-panel thead { position:relative; z-index:4; }
+#tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; table-layout:fixed; }
+#tab-ttf .ttf-panel thead { z-index:4; }
 #tab-ttf .ttf-panel thead th { background:#faf7f0; color:#000; padding:6px 4px; border:1px solid #d0c8b8; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
 #tab-ttf .ttf-panel thead th.group-header { background:#f0ebe0; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { min-width:30px; }
@@ -472,46 +472,17 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel #debugModal { display:none; position:fixed; top:20px; left:20px; right:20px; bottom:20px; background:#faf7f0; border:1px solid #d0c8b8; border-radius:8px; z-index:999; overflow:auto; padding:16px; }
 #tab-ttf .ttf-panel #debugTitle { color:#d4880f; font-size:16px; }
 #tab-ttf .ttf-panel #debugContent { font-family:monospace; font-size:12px; color:#000; white-space:pre-wrap; line-height:1.6; }
-/* ── TTF: Freeze columns 1-5 for horizontal scroll ── */
-/* thead has 3 rows: row1=group-header(rowspan=3 for cols 1-5), row2=Weekly Zone label, row3=sub-labels */
-/* Row heights: row1~28px, row2~22px, row3~22px → row2 top:28px, row3 top:50px */
-
-/* All tbody frozen cols */
-#tab-ttf .ttf-panel tbody td:nth-child(-n+5) { position:sticky; z-index:2; }
-
-/* Frozen col positions are set by JS applyFreezeOffsets() after render */
-/* Col 1 (#) */
-#tab-ttf .ttf-panel thead th:nth-child(1) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody td:nth-child(1) { position:sticky; left:0; background:#f0ebe0; z-index:2; }
-
-/* Col 2 (Index) — left set by JS */
-#tab-ttf .ttf-panel thead th:nth-child(2) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody td:nth-child(2) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
-
-/* Col 3 (T) — left set by JS */
-#tab-ttf .ttf-panel thead th:nth-child(3) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody td:nth-child(3) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
-
-/* Col 4 (RSI Wk Status) — left set by JS */
-#tab-ttf .ttf-panel thead th:nth-child(4) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody td:nth-child(4) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
-
-/* Col 5 (Action Status) — left set by JS */
-#tab-ttf .ttf-panel thead th:nth-child(5) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody td:nth-child(5) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
-
-/* row2 (Weekly Zone colspan headers): col 1 = first scrollable col after 5 frozen → no freeze needed */
-/* row3 (sub-labels): same, all scrollable */
-/* sticky top for thead rows */
-#tab-ttf .ttf-panel thead tr:nth-child(1) th { top:0; }
-#tab-ttf .ttf-panel thead tr:nth-child(2) th { top:28px!important; position:sticky; z-index:3; background:#faf7f0; }
-#tab-ttf .ttf-panel thead tr:nth-child(3) th { top:50px!important; position:sticky; z-index:3; background:#faf7f0; }
-
-/* Shadow on last frozen col to indicate scroll */
-#tab-ttf .ttf-panel tbody td:nth-child(5),
-#tab-ttf .ttf-panel thead th:nth-child(5) { box-shadow:3px 0 6px -2px rgba(0,0,0,0.25); }
-
-#tab-ttf .ttf-panel tbody tr:hover td:nth-child(-n+5) { background:#f0ebe0 !important; }
+/* ── TTF: NO column freeze — all columns scroll freely ── */
+/* Override any global sticky-column rules for this table */
+#tab-ttf .ttf-panel thead th,
+#tab-ttf .ttf-panel tbody td { position:static !important; left:auto !important; z-index:auto !important; box-shadow:none !important; }
+/* sticky top for thead rows only — re-apply after override */
+#tab-ttf .ttf-panel thead tr:nth-child(1) th { position:sticky !important; top:0; z-index:4 !important; }
+#tab-ttf .ttf-panel thead tr:nth-child(2) th { position:sticky !important; top:28px; z-index:3 !important; background:#faf7f0; }
+#tab-ttf .ttf-panel thead tr:nth-child(3) th { position:sticky !important; top:50px; z-index:3 !important; background:#faf7f0; }
+#tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0 !important; }
+/* Ensure tbody row 1 is never hidden under the sticky rowspan-3 thead */
+#tab-ttf .ttf-panel tbody { position:relative; z-index:1; }
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
   #tab-ttf .ttf-panel { padding:10px; }
@@ -527,24 +498,6 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-ttf .ttf-panel thead th { padding:4px 2px; font-size:9px; }
   #tab-ttf .ttf-panel .rsi-cell { font-size:10px; }
   #tab-ttf .ttf-panel footer { font-size:10px; }
-  /* Unfreeze cols 3-5 on mobile; keep only # and Index sticky */
-  #tab-ttf .ttf-panel tbody td:nth-child(3),
-  #tab-ttf .ttf-panel tbody td:nth-child(4),
-  #tab-ttf .ttf-panel tbody td:nth-child(5) { position:static; z-index:auto; left:auto; box-shadow:none; background:inherit; }
-  #tab-ttf .ttf-panel thead th:nth-child(3),
-  #tab-ttf .ttf-panel thead th:nth-child(4),
-  #tab-ttf .ttf-panel thead th:nth-child(5) { position:static; z-index:auto; left:auto; box-shadow:none; }
-  #tab-ttf .ttf-panel thead th:nth-child(1),
-  #tab-ttf .ttf-panel tbody td:nth-child(1) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
-  #tab-ttf .ttf-panel thead th:nth-child(2) { position:sticky; z-index:12; background:#f0ebe0; }
-  #tab-ttf .ttf-panel tbody td:nth-child(2) { position:sticky; z-index:2; background:#f5f0e8; }
-  #tab-ttf .ttf-panel tbody td:nth-child(2),
-  #tab-ttf .ttf-panel thead th:nth-child(2) { box-shadow:3px 0 6px -2px rgba(0,0,0,0.25); }
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(1),
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(2) { background:#f0ebe0 !important; }
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(3),
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(4),
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(5) { background:inherit !important; }
   /* sub-header row top offsets on mobile */
   #tab-ttf .ttf-panel thead tr:nth-child(2) th { top:22px!important; }
   #tab-ttf .ttf-panel thead tr:nth-child(3) th { top:40px!important; }
@@ -2750,7 +2703,25 @@ initBreadthScanner();
       h += '<th class="sub-header" style="cursor:pointer;width:42px;min-width:42px;color:#555;font-size:9px;" data-sort="d' + p + '">RSI(' + p + ')</th>';
     }
     headEl.innerHTML = h;
-    var display = results.filter(function(r) { return r.type === 'E'; });
+    // Add colgroup for stable column widths (prevents Row 1 name from collapsing)
+    var cg = '<colgroup>';
+    cg += '<col style="width:28px;min-width:28px;">';   // #
+    cg += '<col style="width:170px;min-width:140px;">'; // Index name
+    cg += '<col style="width:28px;min-width:28px;">';   // T
+    cg += '<col style="width:72px;min-width:72px;">';   // RSI Wk Status
+    cg += '<col style="width:80px;min-width:80px;">';   // Action Status
+    for (var ci = 0; ci < ps.length; ci++) {
+      cg += '<col style="width:46px;min-width:46px;">';  // 45-50
+      cg += '<col style="width:46px;min-width:46px;">';  // >=50
+      cg += '<col style="width:46px;min-width:46px;">';  // >=60
+      cg += '<col style="width:44px;min-width:44px;">';  // Daily
+    }
+    cg += '</colgroup>';
+    var tbl = document.getElementById('resultTable');
+    var existingCg = tbl.querySelector('colgroup');
+    if (existingCg) tbl.removeChild(existingCg);
+    tbl.insertAdjacentHTML('afterbegin', cg);
+    var display = results.filter(function(r) { return r.type === 'E' && r.name && r.name.trim() !== ''; });
     if (rsi8Filter.checked) display = display.filter(function(r) { return r.w8 != null && r.w8 >= 45; });
     if (!display.length) { bodyEl.innerHTML = '<tr class="empty-row"><td colspan="' + cols + '">No data.</td></tr>'; return; }
     var b = '';
@@ -2773,39 +2744,6 @@ initBreadthScanner();
       b += '</tr>';
     }
     bodyEl.innerHTML = b;
-    // Apply freeze offsets after DOM is updated
-    requestAnimationFrame(applyFreezeOffsets);
-  }
-  // ── 7.7b Freeze Offset Applicator ──
-  // Measures actual rendered col widths from first tbody row and sets left on all sticky cells.
-  function applyFreezeOffsets() {
-    var firstRow = bodyEl.querySelector('tr');
-    if (!firstRow) return;
-    var cells = firstRow.querySelectorAll('td');
-    if (cells.length < 5) return;
-    var offsets = [0]; // col1 left = 0
-    for (var i = 0; i < 4; i++) {
-      offsets.push(offsets[i] + cells[i].offsetWidth);
-    }
-    // Apply to all thead th:nth-child(1..5) in row1 (group-header row)
-    var headRow1 = headEl.querySelector('tr');
-    if (headRow1) {
-      var ths = headRow1.querySelectorAll('th');
-      for (var j = 0; j < Math.min(5, ths.length); j++) {
-        ths[j].style.left = offsets[j] + 'px';
-      }
-    }
-    // Apply to all tbody td:nth-child(1..5)
-    var rows = bodyEl.querySelectorAll('tr');
-    for (var r = 0; r < rows.length; r++) {
-      var tds = rows[r].querySelectorAll('td');
-      for (var c = 0; c < Math.min(5, tds.length); c++) {
-        tds[c].style.left = offsets[c] + 'px';
-      }
-    }
-    // Shadow on col5 last frozen
-    var allCol5th = headEl.querySelectorAll('tr:first-child th:nth-child(5)');
-    // shadow already set via CSS
   }
   // ── 7.8 Scan Completion (Sort + Render + Cascade Sort) ──
   function completeScan(priceMap, indexList, dailyMap, sourceLabel) {
@@ -2813,6 +2751,7 @@ initBreadthScanner();
     appendTodayIfMissing(dailyMap, indexList, priceMap);
     var results = [];
     for (var i = 0; i < indexList.length; i++) {
+      if (!indexList[i].name || !indexList[i].name.trim()) continue;
       var row = computeRow(indexList[i].name, priceMap, dailyMap);
       if (row) results.push(row);
     }
@@ -2867,9 +2806,10 @@ initBreadthScanner();
       if (raw) {
         var snap = JSON.parse(raw);
         if (snap.results && snap.results.length) {
-          render(snap.results);
+          var cleaned = snap.results.filter(function(r) { return r.name && r.name.trim() !== ''; });
+          render(cleaned);
           tsEl.textContent = snap.ts ? new Date(snap.ts).toLocaleString() : '';
-          setStatus('Restored ' + snap.results.length + ' indices from cache. Click Scan to refresh.', 'success');
+          setStatus('Restored ' + cleaned.length + ' indices from cache. Click Scan to refresh.', 'success');
         }
       }
     } catch(e) {}
