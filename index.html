@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner V5</title>
+<title>Scanner V6</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -622,7 +622,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 </div>
-<!-- ── 3.3 Lie Detector V5 (React mount point) ── -->
+<!-- ── 3.3 Lie Detector V6 (React mount point) ── -->
 <div id="tab-scanner" class="tab-panel">
 <div id="root"></div>
 </div>
@@ -664,7 +664,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 <!-- ════════════════════════════════════════════ -->
-<!--  4. LIE DETECTOR V5 (REACT SCANNER)       -->
+<!--  4. LIE DETECTOR V6 (REACT SCANNER)       -->
 <!-- ════════════════════════════════════════════ -->
 <script type="text/babel">
 // ── 4.1 React Imports ──
@@ -1734,7 +1734,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Scanner V5</h1>
+            <h1>Scanner V6</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -2676,25 +2676,7 @@ initBreadthScanner();
   function render(results) {
     _lastResults = results;
     var ps = RSI_PERIODS, cols = 5 + ps.length * 4;
-    var arrow = function(sk) { return _sortKey === sk ? (_sortDir === 'asc' ? ' &#9650;' : ' &#9660;') : ''; };
-    var h  = '<tr><th class="group-header" rowspan="3" style="width:28px;min-width:28px;">#</th>';
-    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:170px;min-width:170px;font-size:9px;" data-sort="name">Index' + arrow('name') + '</th>';
-    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:28px;min-width:28px;font-size:9px;" data-sort="type">T' + arrow('type') + '</th>';
-    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:72px;min-width:72px;font-size:9px;" data-sort="_rsiSort">RSI Wk<br>Status' + arrow('_rsiSort') + '</th>';
-    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:80px;min-width:80px;font-size:9px;" data-sort="_actSort">Action<br>Status' + arrow('_actSort') + '</th>';
-    for (var pi = 0; pi < ps.length; pi++) h += '<th class="group-header" colspan="4" style="font-size:9px;">RSI(' + ps[pi] + ')</th>';
-    h += '</tr><tr>';
-    for (var pj = 0; pj < ps.length; pj++) h += '<th class="sub-header" colspan="3" style="color:#d4880f;font-weight:700;">Weekly Zone (' + ps[pj] + ')</th><th class="sub-header" style="color:#888;font-size:9px;">Daily</th>';
-    h += '</tr><tr>';
-    for (var pk = 0; pk < ps.length; pk++) {
-      var p = ps[pk];
-      h += '<th class="sub-header" style="cursor:pointer;width:46px;min-width:46px;" data-sort="w' + p + '">45-50</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:46px;min-width:46px;" data-sort="w' + p + '">&ge;50</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:46px;min-width:46px;" data-sort="w' + p + '">&ge;60</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:44px;min-width:44px;color:#555;font-size:9px;" data-sort="d' + p + '">RSI(' + p + ')</th>';
-    }
-    headEl.innerHTML = h;
-    // Add colgroup for stable column widths
+    headEl.innerHTML = '';
     var cg = '<colgroup>';
     cg += '<col style="width:28px;min-width:28px;">';   // #
     cg += '<col style="width:170px;min-width:170px;">';  // Index name
@@ -2716,6 +2698,49 @@ initBreadthScanner();
     if (rsi8Filter.checked) display = display.filter(function(r) { return r.w8 != null && r.w8 >= 45; });
     if (!display.length) { bodyEl.innerHTML = '<tr class="empty-row"><td colspan="' + cols + '">No data.</td></tr>'; return; }
     var b = '';
+    for (var br = 0; br < 2; br++) {
+      b += '<tr>';
+      if (br === 0) {
+        b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;color:#666;font-weight:600;">#</td>';
+      }
+      var bc = 1;
+      while (bc < cols) {
+        if (br === 0 && bc === 1) {
+          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Index</td>';
+          bc++; continue;
+        }
+        if (br === 1 && bc === 1) { bc++; continue; }
+        if (br === 0 && bc === 2) {
+          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">T</td>';
+          bc++; continue;
+        }
+        if (br === 1 && bc === 2) { bc++; continue; }
+        if (br === 0 && bc === 3) {
+          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">RSI Wkly<br>Status</td>';
+          bc++; continue;
+        }
+        if (br === 1 && bc === 3) { bc++; continue; }
+        if (br === 0 && bc === 4) {
+          b += '<td rowspan="2" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Action<br>Status</td>';
+          bc++; continue;
+        }
+        if (br === 1 && bc === 4) { bc++; continue; }
+        if (br === 0 && bc === 5) {
+          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(4)</td>';
+          bc += 4; continue;
+        } else if (br === 0 && bc === 9) {
+          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(6)</td>';
+          bc += 4; continue;
+        } else if (br === 0 && bc === 13) {
+          b += '<td colspan="4" style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;font-weight:600;">Weekly Zone RSI(8)</td>';
+          bc += 4; continue;
+        }
+        var content = (br === 1 && bc === 5) ? '45-50' : (br === 1 && bc === 6) ? '&ge;50' : (br === 1 && bc === 7) ? '&ge;60' : (br === 1 && bc === 8) ? 'D-RSI(4)' : (br === 1 && bc === 9) ? '45-50' : (br === 1 && bc === 10) ? '&ge;50' : (br === 1 && bc === 11) ? '&ge;60' : (br === 1 && bc === 12) ? 'D-RSI(6)' : (br === 1 && bc === 13) ? '45-50' : (br === 1 && bc === 14) ? '&ge;50' : (br === 1 && bc === 15) ? '&ge;60' : (br === 1 && bc === 16) ? 'D-RSI(8)' : '';
+        b += '<td style="border:1px solid #d0c8b8;height:6px;text-align:center;font-size:9px;">' + content + '</td>';
+        bc++;
+      }
+      b += '</tr>';
+    }
     for (var ri = 0; ri < display.length; ri++) {
       var r = display[ri];
       b += '<tr><td style="color:#666;font-size:11px;text-align:center;">' + (ri+1) + '</td>';
