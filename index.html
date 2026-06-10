@@ -2773,6 +2773,39 @@ initBreadthScanner();
       b += '</tr>';
     }
     bodyEl.innerHTML = b;
+    // Apply freeze offsets after DOM is updated
+    requestAnimationFrame(applyFreezeOffsets);
+  }
+  // ── 7.7b Freeze Offset Applicator ──
+  // Measures actual rendered col widths from first tbody row and sets left on all sticky cells.
+  function applyFreezeOffsets() {
+    var firstRow = bodyEl.querySelector('tr');
+    if (!firstRow) return;
+    var cells = firstRow.querySelectorAll('td');
+    if (cells.length < 5) return;
+    var offsets = [0]; // col1 left = 0
+    for (var i = 0; i < 4; i++) {
+      offsets.push(offsets[i] + cells[i].offsetWidth);
+    }
+    // Apply to all thead th:nth-child(1..5) in row1 (group-header row)
+    var headRow1 = headEl.querySelector('tr');
+    if (headRow1) {
+      var ths = headRow1.querySelectorAll('th');
+      for (var j = 0; j < Math.min(5, ths.length); j++) {
+        ths[j].style.left = offsets[j] + 'px';
+      }
+    }
+    // Apply to all tbody td:nth-child(1..5)
+    var rows = bodyEl.querySelectorAll('tr');
+    for (var r = 0; r < rows.length; r++) {
+      var tds = rows[r].querySelectorAll('td');
+      for (var c = 0; c < Math.min(5, tds.length); c++) {
+        tds[c].style.left = offsets[c] + 'px';
+      }
+    }
+    // Shadow on col5 last frozen
+    var allCol5th = headEl.querySelectorAll('tr:first-child th:nth-child(5)');
+    // shadow already set via CSS
   }
   // ── 7.8 Scan Completion (Sort + Render + Cascade Sort) ──
   function completeScan(priceMap, indexList, dailyMap, sourceLabel) {
