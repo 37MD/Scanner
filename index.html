@@ -171,6 +171,8 @@ th[data-group="5"], td[data-group="5"]{background:rgba(200,100,140,0.06)}
 .ha-signal-sell{background:var(--red-dim)!important;color:var(--red)!important;border:1px solid var(--red)!important}
 .ha-signal-watch{background:var(--amber-dim)!important;color:var(--amber)!important;border:1px solid var(--amber)!important}
 .ha-signal-neutral{background:var(--surface2)!important;color:var(--text-faint)!important;border:1px solid var(--border2)!important}
+.wma-yes{background:var(--green-dim)!important;color:var(--green)!important;font-weight:700}
+.wma-no{background:var(--red-dim)!important;color:var(--red)!important;font-weight:700}
 .ha-pill{display:inline-block;padding:3px 9px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border-radius:2px;min-width:52px;text-align:center;border:1px solid transparent}
 .ha-reason{font-family:var(--mono);font-size:10px;color:var(--text-dim);min-width:220px;line-height:1.45;white-space:normal;word-break:break-word}
 
@@ -449,13 +451,13 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel thead th.group-header { background:#f0ebe0; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { min-width:30px; }
 #tab-ttf .ttf-panel thead th.group-header:nth-child(2) { min-width:40px; }
-#tab-ttf .ttf-panel thead th.sub-header { background:#faf7f0; font-weight:400; font-size:10px; color:#222 !important; padding:4px 3px; }
+#tab-ttf .ttf-panel thead th.sub-header { background:#faf7f0; font-weight:400; font-size:10px; color:#222 !important; padding:4px 3px; overflow:hidden; }
 #tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #d0c8b8; text-align:center; white-space:nowrap; color:#000; }
 #tab-ttf .ttf-panel tbody td.idx { font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; width:170px; }
 #tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0; }
 #tab-ttf .ttf-panel tbody tr:hover td.idx { background:#f0ebe0; }
 #tab-ttf .ttf-panel .empty-row td { color:#888; font-style:italic; text-align:center; }
-#tab-ttf .ttf-panel .rsi-cell { font-weight:600; font-size:12px; }
+#tab-ttf .ttf-panel .rsi-cell { font-weight:600; font-size:12px; text-align:center; overflow:hidden; }
 #tab-ttf .ttf-panel .zone-45-50 { color:#000; }
 #tab-ttf .ttf-panel .zone-eq50 { background:#d29922 !important; color:#000; }
 #tab-ttf .ttf-panel .zone-gt50 { background:#1a8a4a !important; color:#fff; }
@@ -485,7 +487,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel tbody td:nth-child(4) { left:210px; background:#faf7f0; }
 #tab-ttf .ttf-panel tbody td:nth-child(4) { background:#f5f0e8; }
 #tab-ttf .ttf-panel thead th:nth-child(5),
-#tab-ttf .ttf-panel tbody td:nth-child(5) { left:270px; background:#faf7f0; }
+#tab-ttf .ttf-panel tbody td:nth-child(5) { left:278px; background:#faf7f0; }
 #tab-ttf .ttf-panel tbody td:nth-child(5) { background:#f5f0e8; }
 #tab-ttf .ttf-panel thead th:nth-child(1) { z-index:5; }
 #tab-ttf .ttf-panel thead th:nth-child(2) { z-index:5; }
@@ -1621,8 +1623,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
       const slimResults = {};
       for (const k of Object.keys(tempResults)) {
         const r = tempResults[k];
-        slimResults[k] = { name: r.name, price: r.price, change: r.change, pctChange: r.pctChange,
-          open: r.open, dayHigh: r.dayHigh, dayLow: r.dayLow, regime: r.regime,
+        slimResults[k] = { name: r.name, price: r.price, changePct: r.changePct,
+          open: r.open, high: r.high, low: r.low, regime: r.regime,
           dRsi4: r.dRsi4, dRsi8: r.dRsi8, dRsi14: r.dRsi14,
           wRsi4: r.wRsi4, wRsi8: r.wRsi8, wRsi14: r.wRsi14,
           wma20Price: r.wma20Price, wma20Rsi: r.wma20Rsi, divergence: r.divergence,
@@ -1633,13 +1635,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     } catch(e) { console.warn('[LD] Cache save failed:', e); }
   };
 
-  // Auto-refresh
-  useEffect(() => {
-    if (autoRefresh && phase === 'done') {
-      autoRef.current = setTimeout(() => { handleScan(); }, 60000);
-      return () => clearTimeout(autoRef.current);
-    }
-  }, [autoRefresh, phase]);
+  // Auto-refresh (UI toggle reserved for future use — currently inactive)
 
   useEffect(() => {
     const tw = tableWrapRef.current;
@@ -1684,7 +1680,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         if (key === 'haSignal') { const o={'STRONG SELL':1,'SELL':2,'CAUTION':3,'WATCH':4,'NEUTRAL':5,'HOLD':6,'BUY':7}; const ha=computeHABandSignal(row,vixPrice); return o[ha?.signal]??5; }
         if (key === 'dRsi14') return row.dRsi14 ?? -1;
         if (key === 'wRsi14') return row.wRsi14 ?? -1;
-        if (key === 'category') return row.category||'';
+        if (key === 'category') return row.key||'';
         if (key === 'name') return row.name||'';
         if (key === 'regime') return row.regime||'';
         if (key === 'price') return row.price ?? -1;
@@ -2024,7 +2020,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
                   <th data-group="4" style={{minWidth:140}} onClick={() => requestSort('verdict')}>Verdict{getSortIcon('verdict')}</th>
                   <th data-group="4" style={{minWidth:180}} onClick={() => requestSort('detail')}>Detail{getSortIcon('detail')}</th>
                   <th data-group="5" className="ha-sep group-start" style={{textAlign:"center",minWidth:100}} onClick={() => requestSort('haSignal')} title="Heiken Ashi + 8 SMA Band + 21 SMA Low Signal (V3D Add-on)">HA Signal{getSortIcon('haSignal')}</th>
-                  <th data-group="5" style={{minWidth:240}} title="HA Band reasoning — zone, SMA levels, confluence">HA Reasoning{getSortIcon('haReason')}</th>
+                  <th data-group="5" style={{minWidth:240}} title="HA Band reasoning — zone, SMA levels, confluence">HA Reasoning</th>
                 </tr>
               </thead>
               <tbody>
@@ -2713,18 +2709,18 @@ initBreadthScanner();
     var h  = '<tr><th class="group-header" rowspan="3" style="width:16px;min-width:16px;">#</th>';
     h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:170px;min-width:170px;font-size:9px;" data-sort="name">Index' + arrow('name') + '</th>';
     h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:24px;min-width:24px;font-size:9px;" data-sort="type">T' + arrow('type') + '</th>';
-    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:60px;min-width:60px;font-size:9px;" data-sort="_rsiSort">RSI Wk<br>Status' + arrow('_rsiSort') + '</th>';
+    h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:68px;min-width:68px;font-size:9px;" data-sort="_rsiSort">RSI Wk<br>Status' + arrow('_rsiSort') + '</th>';
     h     += '<th class="group-header" rowspan="3" style="cursor:pointer;width:80px;min-width:80px;font-size:9px;" data-sort="_actSort">Action<br>Status' + arrow('_actSort') + '</th>';
     for (var pi = 0; pi < ps.length; pi++) h += '<th class="group-header" colspan="4" style="font-size:9px;">RSI(' + ps[pi] + ')</th>';
     h += '</tr><tr>';
-    for (var pj = 0; pj < ps.length; pj++) h += '<th class="sub-header" colspan="3">Weekly Zone - RSI(' + ps[pj] + ')</th><th class="sub-header">Daily</th>';
+    for (var pj = 0; pj < ps.length; pj++) h += '<th class="sub-header" colspan="3" style="color:#d4880f;font-weight:700;">Weekly Zone (' + ps[pj] + ')</th><th class="sub-header" style="color:#888;font-size:9px;">Daily</th>';
     h += '</tr><tr>';
     for (var pk = 0; pk < ps.length; pk++) {
       var p = ps[pk];
-      h += '<th class="sub-header" style="cursor:pointer;width:35px;min-width:35px;" data-sort="w' + p + '">45-50' + arrow('w' + p) + '</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:35px;min-width:35px;" data-sort="w' + p + '">&ge;50' + arrow('w' + p) + '</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:35px;min-width:35px;" data-sort="w' + p + '">&ge;60' + arrow('w' + p) + '</th>';
-      h += '<th class="sub-header" style="cursor:pointer;width:30px;min-width:30px;" data-sort="d' + p + '">RSI(' + p + ')' + arrow('d' + p) + '</th>';
+      h += '<th class="sub-header" style="cursor:pointer;width:44px;min-width:44px;" data-sort="w' + p + '">45-50</th>';
+      h += '<th class="sub-header" style="cursor:pointer;width:44px;min-width:44px;" data-sort="w' + p + '">&ge;50</th>';
+      h += '<th class="sub-header" style="cursor:pointer;width:44px;min-width:44px;" data-sort="w' + p + '">&ge;60</th>';
+      h += '<th class="sub-header" style="cursor:pointer;width:42px;min-width:42px;color:#555;font-size:9px;" data-sort="d' + p + '">RSI(' + p + ')</th>';
     }
     headEl.innerHTML = h;
     var display = results.filter(function(r) { return r.type === 'E'; });
@@ -2737,15 +2733,15 @@ initBreadthScanner();
       b += '<td class="idx" style="cursor:pointer">' + r.name + '</td>';
       var tc = r.type === 'B' ? '#d4880f' : r.type === 'O' ? '#666' : '#1a8a4a';
       b += '<td style="color:' + tc + ';font-weight:700;font-size:11px;text-align:center;">' + (r.type || '-') + '</td>';
-      b += '<td class="rsi-cell" style="font-size:10px;letter-spacing:-0.5px;">' + (r.rsiStatus || '-') + '</td>';
+      b += '<td class="rsi-cell" style="font-size:10px;letter-spacing:-0.5px;text-align:center;min-width:68px;">' + (r.rsiStatus || '-') + '</td>';
       var aColor = r.action === 'Crossover' ? '#1a8a4a' : r.action === 'Crossunder' ? '#cc3344' : '#d4880f';
-      b += '<td class="rsi-cell" style="color:' + aColor + ';font-weight:700;font-size:10px;">' + (r.action || '-') + '</td>';
+      b += '<td class="rsi-cell" style="color:' + aColor + ';font-weight:700;font-size:10px;min-width:72px;">' + (r.action || '-') + '</td>';
       for (var pi2 = 0; pi2 < ps.length; pi2++) {
         var p = ps[pi2], w = r['w' + p], d = r['d' + p], sc = weeklySubCol(w);
         for (var sci = 0; sci < 3; sci++) {
-          b += '<td class="' + weeklyCellClass(w, sci) + ' rsi-cell">' + (sci === sc && w != null ? w.toFixed(1) : '-') + '</td>';
+          b += '<td class="' + weeklyCellClass(w, sci) + ' rsi-cell" style="min-width:44px;max-width:44px;overflow:hidden;">' + (sci === sc && w != null ? w.toFixed(1) : '-') + '</td>';
         }
-        b += '<td class="' + dailyClass(d) + ' rsi-cell">' + (d != null ? d.toFixed(1) : '-') + '</td>';
+        b += '<td class="' + dailyClass(d) + ' rsi-cell" style="min-width:40px;">' + (d != null ? d.toFixed(1) : '-') + '</td>';
       }
       b += '</tr>';
     }
