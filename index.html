@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lie Detector Scanner V5</title>
+<title>Scanner V5</title>
 <meta name="theme-color" content="#f5f0e8">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -445,8 +445,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .legend-item { display:flex; align-items:center; gap:4px; color:#000; }
 #tab-ttf .ttf-panel .legend-swatch { width:14px; height:14px; border-radius:3px; border:1px solid #d0c8b8; display:inline-block; }
 #tab-ttf .ttf-panel .table-wrap { overflow-x:auto; border:1px solid #d0c8b8; border-radius:8px; }
-#tab-ttf .ttf-panel table { border-collapse:collapse; font-size:12px; width:100%; min-width:800px; }
-#tab-ttf .ttf-panel thead { position:sticky; top:0; z-index:2; }
+#tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; }
+#tab-ttf .ttf-panel thead { position:relative; z-index:4; }
 #tab-ttf .ttf-panel thead th { background:#faf7f0; color:#000; padding:6px 4px; border:1px solid #d0c8b8; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
 #tab-ttf .ttf-panel thead th.group-header { background:#f0ebe0; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { min-width:30px; }
@@ -473,26 +473,44 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel #debugTitle { color:#d4880f; font-size:16px; }
 #tab-ttf .ttf-panel #debugContent { font-family:monospace; font-size:12px; color:#000; white-space:pre-wrap; line-height:1.6; }
 /* ── TTF: Freeze columns 1-5 for horizontal scroll ── */
-#tab-ttf .ttf-panel thead th:nth-child(-n+5),
+/* thead has 3 rows: row1=group-header(rowspan=3 for cols 1-5), row2=Weekly Zone label, row3=sub-labels */
+/* Row heights: row1~28px, row2~22px, row3~22px → row2 top:28px, row3 top:50px */
+
+/* All tbody frozen cols */
 #tab-ttf .ttf-panel tbody td:nth-child(-n+5) { position:sticky; z-index:2; }
-#tab-ttf .ttf-panel thead th:nth-child(1),
-#tab-ttf .ttf-panel tbody td:nth-child(1) { left:0; background:#f0ebe0; }
-#tab-ttf .ttf-panel thead th:nth-child(2),
-#tab-ttf .ttf-panel tbody td:nth-child(2) { left:16px; background:#faf7f0; }
-#tab-ttf .ttf-panel tbody td:nth-child(2) { background:#f5f0e8; }
-#tab-ttf .ttf-panel thead th:nth-child(3),
-#tab-ttf .ttf-panel tbody td:nth-child(3) { left:186px; background:#faf7f0; }
-#tab-ttf .ttf-panel tbody td:nth-child(3) { background:#f5f0e8; }
-#tab-ttf .ttf-panel thead th:nth-child(4),
-#tab-ttf .ttf-panel tbody td:nth-child(4) { left:210px; background:#faf7f0; }
-#tab-ttf .ttf-panel tbody td:nth-child(4) { background:#f5f0e8; }
-#tab-ttf .ttf-panel thead th:nth-child(5),
-#tab-ttf .ttf-panel tbody td:nth-child(5) { left:278px; background:#faf7f0; }
-#tab-ttf .ttf-panel tbody td:nth-child(5) { background:#f5f0e8; }
-#tab-ttf .ttf-panel thead th:nth-child(1) { z-index:5; }
-#tab-ttf .ttf-panel thead th:nth-child(2) { z-index:5; }
+
+/* Frozen col positions are set by JS applyFreezeOffsets() after render */
+/* Col 1 (#) */
+#tab-ttf .ttf-panel thead th:nth-child(1) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody td:nth-child(1) { position:sticky; left:0; background:#f0ebe0; z-index:2; }
+
+/* Col 2 (Index) — left set by JS */
+#tab-ttf .ttf-panel thead th:nth-child(2) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody td:nth-child(2) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
+
+/* Col 3 (T) — left set by JS */
+#tab-ttf .ttf-panel thead th:nth-child(3) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody td:nth-child(3) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
+
+/* Col 4 (RSI Wk Status) — left set by JS */
+#tab-ttf .ttf-panel thead th:nth-child(4) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody td:nth-child(4) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
+
+/* Col 5 (Action Status) — left set by JS */
+#tab-ttf .ttf-panel thead th:nth-child(5) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody td:nth-child(5) { position:sticky; left:0; background:#f5f0e8; z-index:2; }
+
+/* row2 (Weekly Zone colspan headers): col 1 = first scrollable col after 5 frozen → no freeze needed */
+/* row3 (sub-labels): same, all scrollable */
+/* sticky top for thead rows */
+#tab-ttf .ttf-panel thead tr:nth-child(1) th { top:0; }
+#tab-ttf .ttf-panel thead tr:nth-child(2) th { top:28px!important; position:sticky; z-index:3; background:#faf7f0; }
+#tab-ttf .ttf-panel thead tr:nth-child(3) th { top:50px!important; position:sticky; z-index:3; background:#faf7f0; }
+
+/* Shadow on last frozen col to indicate scroll */
 #tab-ttf .ttf-panel tbody td:nth-child(5),
 #tab-ttf .ttf-panel thead th:nth-child(5) { box-shadow:3px 0 6px -2px rgba(0,0,0,0.25); }
+
 #tab-ttf .ttf-panel tbody tr:hover td:nth-child(-n+5) { background:#f0ebe0 !important; }
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
@@ -510,17 +528,26 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-ttf .ttf-panel .rsi-cell { font-size:10px; }
   #tab-ttf .ttf-panel footer { font-size:10px; }
   /* Unfreeze cols 3-5 on mobile; keep only # and Index sticky */
-  #tab-ttf .ttf-panel thead th:nth-child(-n+5),
-  #tab-ttf .ttf-panel tbody td:nth-child(-n+5) { position:static; z-index:auto; left:auto; box-shadow:none; background:inherit; }
+  #tab-ttf .ttf-panel tbody td:nth-child(3),
+  #tab-ttf .ttf-panel tbody td:nth-child(4),
+  #tab-ttf .ttf-panel tbody td:nth-child(5) { position:static; z-index:auto; left:auto; box-shadow:none; background:inherit; }
+  #tab-ttf .ttf-panel thead th:nth-child(3),
+  #tab-ttf .ttf-panel thead th:nth-child(4),
+  #tab-ttf .ttf-panel thead th:nth-child(5) { position:static; z-index:auto; left:auto; box-shadow:none; }
   #tab-ttf .ttf-panel thead th:nth-child(1),
-  #tab-ttf .ttf-panel tbody td:nth-child(1) { position:sticky; left:0; z-index:3; background:#f0ebe0; }
-  #tab-ttf .ttf-panel thead th:nth-child(2),
-  #tab-ttf .ttf-panel tbody td:nth-child(2) { position:sticky; left:16px; z-index:3; background:#faf7f0; }
-  #tab-ttf .ttf-panel tbody td:nth-child(2) { background:#f5f0e8; }
+  #tab-ttf .ttf-panel tbody td:nth-child(1) { position:sticky; left:0; z-index:12; background:#f0ebe0; }
+  #tab-ttf .ttf-panel thead th:nth-child(2) { position:sticky; z-index:12; background:#f0ebe0; }
+  #tab-ttf .ttf-panel tbody td:nth-child(2) { position:sticky; z-index:2; background:#f5f0e8; }
   #tab-ttf .ttf-panel tbody td:nth-child(2),
   #tab-ttf .ttf-panel thead th:nth-child(2) { box-shadow:3px 0 6px -2px rgba(0,0,0,0.25); }
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(-n+2) { background:#f0ebe0 !important; }
-  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(-n+5) { background:inherit !important; }
+  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(1),
+  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(2) { background:#f0ebe0 !important; }
+  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(3),
+  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(4),
+  #tab-ttf .ttf-panel tbody tr:hover td:nth-child(5) { background:inherit !important; }
+  /* sub-header row top offsets on mobile */
+  #tab-ttf .ttf-panel thead tr:nth-child(2) th { top:22px!important; }
+  #tab-ttf .ttf-panel thead tr:nth-child(3) th { top:40px!important; }
 }
 @media(max-width:480px) {
   #tab-ttf .ttf-panel { padding:6px; }
@@ -539,7 +566,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ── 3.1 Tab Navigation ── -->
 <div class="app-tabs">
   <button class="tab-btn active" onclick="switchTab('breadth')">📊 Market Breadth</button>
-  <button class="tab-btn" onclick="switchTab('scanner')">⚡ Lie Detector V5</button>
+  <button class="tab-btn" onclick="switchTab('scanner')">⚡ Scanner</button>
   <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
@@ -985,7 +1012,7 @@ const Scanner = () => {
   const baStopRef = useRef(false);
   const tableWrapRef = useRef(null);
   const topScrollRef = useRef(null);
-  const [basePeriod, setBasePeriod] = useState(4);
+  const [basePeriod, setBasePeriod] = useState(8);
   const [watchlist, setWatchlist] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(_) { return []; }
   });
@@ -1763,7 +1790,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Lie Detector Scanner V5</h1>
+            <h1>Scanner V5</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -2746,6 +2773,39 @@ initBreadthScanner();
       b += '</tr>';
     }
     bodyEl.innerHTML = b;
+    // Apply freeze offsets after DOM is updated
+    requestAnimationFrame(applyFreezeOffsets);
+  }
+  // ── 7.7b Freeze Offset Applicator ──
+  // Measures actual rendered col widths from first tbody row and sets left on all sticky cells.
+  function applyFreezeOffsets() {
+    var firstRow = bodyEl.querySelector('tr');
+    if (!firstRow) return;
+    var cells = firstRow.querySelectorAll('td');
+    if (cells.length < 5) return;
+    var offsets = [0]; // col1 left = 0
+    for (var i = 0; i < 4; i++) {
+      offsets.push(offsets[i] + cells[i].offsetWidth);
+    }
+    // Apply to all thead th:nth-child(1..5) in row1 (group-header row)
+    var headRow1 = headEl.querySelector('tr');
+    if (headRow1) {
+      var ths = headRow1.querySelectorAll('th');
+      for (var j = 0; j < Math.min(5, ths.length); j++) {
+        ths[j].style.left = offsets[j] + 'px';
+      }
+    }
+    // Apply to all tbody td:nth-child(1..5)
+    var rows = bodyEl.querySelectorAll('tr');
+    for (var r = 0; r < rows.length; r++) {
+      var tds = rows[r].querySelectorAll('td');
+      for (var c = 0; c < Math.min(5, tds.length); c++) {
+        tds[c].style.left = offsets[c] + 'px';
+      }
+    }
+    // Shadow on col5 last frozen
+    var allCol5th = headEl.querySelectorAll('tr:first-child th:nth-child(5)');
+    // shadow already set via CSS
   }
   // ── 7.8 Scan Completion (Sort + Render + Cascade Sort) ──
   function completeScan(priceMap, indexList, dailyMap, sourceLabel) {
