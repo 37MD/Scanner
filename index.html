@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Scanner V7</title>
-<meta name="theme-color" content="#f5f0e8">
+<meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
@@ -23,7 +23,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ── 2.1 CSS Variables & Reset ── */
-:root{--bg:#f5f0e8;--surface:#faf7f0;--surface2:#f0ebe0;--border:#e0d8c8;--border2:#d0c8b8;--text:#000000;--text-dim:#222222;--text-faint:#444444;--orange:#d4880f;--orange-dim:#f5e6c8;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'Segoe UI Mono','Courier New',monospace;--sans:'Segoe UI',Arial,sans-serif}
+:root{--bg:#ffffff;--surface:#ffffff;--surface2:#f5f5f5;--border:#e0e0e0;--border2:#cccccc;--text:#000000;--text-dim:#000000;--text-faint:#000000;--orange:#d4880f;--orange-dim:#fff3e0;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'Segoe UI Mono','Courier New',monospace;--sans:'Segoe UI',Arial,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
 #root{position:relative;z-index:1}
@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .btn-stop{background:transparent;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:1px solid var(--red);cursor:pointer;letter-spacing:1px;text-transform:uppercase}
 .filter-group{display:flex;align-items:center;gap:8px}
 .filter-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase}
-.filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:12px;padding:6px 10px;cursor:pointer;outline:none;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238888aa'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.filter-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:12px;padding:6px 10px;cursor:pointer;outline:none;appearance:none;padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
 .filter-select:focus{border-color:var(--orange)}
 /* ── 2.4a Progress Bar ── */
 .progress-wrap{background:var(--surface);border:1px solid var(--border2);padding:10px 18px;border-top:none;margin-top:-20px;margin-bottom:20px}
@@ -189,7 +189,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 
 /* ── 2.11 Tab Navigation ── */
 .app-tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border2);padding:0 24px;gap:0;position:relative;z-index:200}
-.tab-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:10px 20px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:10px 20px;border:none;background:transparent;color:#000000;cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .15s}
 .tab-btn:hover{color:var(--text);background:var(--surface2)}
 .tab-btn.active{color:var(--orange);border-bottom-color:var(--orange);background:var(--orange-dim)}
 .tab-panel{display:none}
@@ -198,9 +198,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:480px){.tab-btn{font-size:8px;padding:6px 5px;letter-spacing:0}.app-tabs{gap:2px}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
-.breadth-panel{--bp-bg:#f5f0e8;--bp-bg2:#faf7f0;--bp-bg3:#f0ebe0;--bp-border:#d0c8b8;--bp-border2:#c0b8a8;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#1a1a1a;--bp-muted:#666666;--bp-accent:#8d6e63;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
+.breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#f5f5f5;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
 .breadth-panel *{margin:0;padding:0;box-sizing:border-box}
-.breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:linear-gradient(135deg,#faf7f0 0%,#f0ebe0 100%);border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:linear-gradient(135deg,#ffffff 0%,#f5f5f5 100%);border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .breadth-panel .bp-h-left{display:flex;align-items:center;gap:16px}
 .breadth-panel .bp-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:var(--bp-accent);letter-spacing:3px}
 .breadth-panel .bp-logo span{color:var(--bp-text)}
@@ -425,33 +425,33 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 /* ── 2.13 TTF RSI Weekly Panel (scoped with #tab-ttf) ── */
 #tab-ttf .ttf-panel * { margin:0; padding:0; box-sizing:border-box; }
-#tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#f5f0e8; color:#000; padding:20px; min-height:100vh; }
+#tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:20px; min-height:100vh; }
 #tab-ttf .ttf-panel h1 { font-size:22px; margin-bottom:5px; color:#000; }
-#tab-ttf .ttf-panel .subtitle { font-size:13px; color:#222; margin-bottom:20px; }
+#tab-ttf .ttf-panel .subtitle { font-size:13px; color:#000; margin-bottom:20px; }
 #tab-ttf .ttf-panel .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
 #tab-ttf .ttf-panel .btn { background:#d4880f; color:#000; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
 #tab-ttf .ttf-panel .btn:hover { background:#e6a020; }
 #tab-ttf .ttf-panel .btn:disabled { opacity:0.5; cursor:not-allowed; }
-#tab-ttf .ttf-panel .btn-reset { background:#f0ebe0; border:1px solid #d0c8b8; color:#000; }
-#tab-ttf .ttf-panel .btn-reset:hover { background:#e0d8c8; }
-#tab-ttf .ttf-panel .status { font-size:13px; color:#222; margin-bottom:10px; padding:8px 0; }
+#tab-ttf .ttf-panel .btn-reset { background:#f5f5f5; border:1px solid #cccccc; color:#000; }
+#tab-ttf .ttf-panel .btn-reset:hover { background:#eeeeee; }
+#tab-ttf .ttf-panel .status { font-size:13px; color:#000; margin-bottom:10px; padding:8px 0; }
 #tab-ttf .ttf-panel .status.error { color:#cc3344; }
 #tab-ttf .ttf-panel .status.success { color:#1a8a4a; }
 #tab-ttf .ttf-panel .legend { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; font-size:11px; }
 #tab-ttf .ttf-panel .legend-item { display:flex; align-items:center; gap:4px; color:#000; }
-#tab-ttf .ttf-panel .legend-swatch { width:14px; height:14px; border-radius:3px; border:1px solid #d0c8b8; display:inline-block; }
-#tab-ttf .ttf-panel .table-wrap { overflow-x:auto; overflow-y:auto; max-height:calc(100vh - 220px); border:1px solid #d0c8b8; border-radius:8px; }
+#tab-ttf .ttf-panel .legend-swatch { width:14px; height:14px; border-radius:3px; border:1px solid #cccccc; display:inline-block; }
+#tab-ttf .ttf-panel .table-wrap { overflow-x:auto; overflow-y:auto; max-height:calc(100vh - 220px); border:1px solid #cccccc; border-radius:8px; }
 #tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; table-layout:fixed; }
 #tab-ttf .ttf-panel thead { z-index:4; }
-#tab-ttf .ttf-panel thead th { background:#faf7f0; color:#000; padding:6px 4px; border:1px solid #d0c8b8; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
-#tab-ttf .ttf-panel thead th.group-header { background:#f0ebe0; color:#d4880f; }
+#tab-ttf .ttf-panel thead th { background:#ffffff; color:#000; padding:6px 4px; border:1px solid #cccccc; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
+#tab-ttf .ttf-panel thead th.group-header { background:#f5f5f5; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { width:28px;min-width:28px;max-width:28px; }
 #tab-ttf .ttf-panel thead th.group-header:nth-child(2) { min-width:40px; }
-#tab-ttf .ttf-panel thead th.sub-header { background:#faf7f0; font-weight:400; font-size:10px; color:#222 !important; padding:4px 3px; overflow:hidden; }
-#tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #d0c8b8; text-align:center; white-space:nowrap; color:#000; }
+#tab-ttf .ttf-panel thead th.sub-header { background:#ffffff; font-weight:400; font-size:10px; color:#000 !important; padding:4px 3px; overflow:hidden; }
+#tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #cccccc; text-align:center; white-space:nowrap; color:#000; }
 #tab-ttf .ttf-panel tbody td.idx { font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; width:170px; }
-#tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0; }
-#tab-ttf .ttf-panel tbody tr:hover td.idx { background:#f0ebe0; }
+#tab-ttf .ttf-panel tbody tr:hover td { background:#f5f5f5; }
+#tab-ttf .ttf-panel tbody tr:hover td.idx { background:#f5f5f5; }
 #tab-ttf .ttf-panel .empty-row td { color:#000; font-style:italic; text-align:center; }
 #tab-ttf .ttf-panel .rsi-cell { font-weight:600; font-size:12px; text-align:center; overflow:hidden; }
 #tab-ttf .ttf-panel .zone-45-50 { color:#000; }
@@ -463,14 +463,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .daily-darkgreen { color:#0d6b30; font-weight:700; }
 #tab-ttf .ttf-panel .daily-neutral { color:#000; }
 @keyframes ttf-spin { to { transform:rotate(360deg); } }
-#tab-ttf .ttf-panel .spinner { display:inline-block; width:14px; height:14px; border:2px solid #d0c8b8; border-top-color:#d4880f; border-radius:50%; animation:ttf-spin .6s linear infinite; vertical-align:middle; margin-right:6px; }
-#tab-ttf .ttf-panel footer { margin-top:16px; font-size:11px; color:#666; text-align:center; }
-#tab-ttf .ttf-panel #debugModal { display:none; position:fixed; top:20px; left:20px; right:20px; bottom:20px; background:#faf7f0; border:1px solid #d0c8b8; border-radius:8px; z-index:999; overflow:auto; padding:16px; }
+#tab-ttf .ttf-panel .spinner { display:inline-block; width:14px; height:14px; border:2px solid #cccccc; border-top-color:#d4880f; border-radius:50%; animation:ttf-spin .6s linear infinite; vertical-align:middle; margin-right:6px; }
+#tab-ttf .ttf-panel footer { margin-top:16px; font-size:11px; color:#000; text-align:center; }
+#tab-ttf .ttf-panel #debugModal { display:none; position:fixed; top:20px; left:20px; right:20px; bottom:20px; background:#ffffff; border:1px solid #cccccc; border-radius:8px; z-index:999; overflow:auto; padding:16px; }
 #tab-ttf .ttf-panel #debugTitle { color:#d4880f; font-size:16px; }
 #tab-ttf .ttf-panel #debugContent { font-family:monospace; font-size:12px; color:#000; white-space:pre-wrap; line-height:1.6; }
 /* ── TTF: FREEZE PANE — via inline styles in render() JS, thead th sticky is intentional ── */
 /* hover: keep frozen col visible on row hover */
-#tab-ttf .ttf-panel tbody tr:hover td { background:#f0ebe0 !important; }
+#tab-ttf .ttf-panel tbody tr:hover td { background:#f5f5f5 !important; }
 #tab-ttf .ttf-panel tbody { position:static; }
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
@@ -647,7 +647,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <div id="debugModal">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <h2 id="debugTitle"></h2>
-    <button onclick="this.closest('#debugModal').style.display='none'" style="background:#f0ebe0;color:#000;border:1px solid #d0c8b8;padding:4px 12px;border-radius:4px;cursor:pointer;">Close</button>
+    <button onclick="this.closest('#debugModal').style.display='none'" style="background:#f5f5f5;color:#000;border:1px solid #cccccc;padding:4px 12px;border-radius:4px;cursor:pointer;">Close</button>
   </div>
   <pre id="debugContent"></pre>
 </div>
@@ -2188,16 +2188,16 @@ function showInstallBanner() {
   bar.id = 'pwa-install-bar';
   bar.style.cssText = `
     position:fixed;bottom:0;left:0;right:0;z-index:9999;
-    background:#faf7f0;border-top:2px solid #d4880f;
+    background:#ffffff;border-top:2px solid #d4880f;
     display:flex;align-items:center;justify-content:space-between;
     padding:10px 20px;font-family:'Segoe UI',Arial,sans-serif;font-size:12px;
-    color:#1a1a1a;gap:12px;
+    color:#000000;gap:12px;
   `;
   bar.innerHTML = `
     <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
-    <span style="color:#222222;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
+    <span style="color:#000000;flex:1">Install Lie Detector Scanner for offline access & home screen icon.</span>
     <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
-    <button id="pwa-dismiss-btn" style="background:transparent;color:#222222;border:1px solid #d0c8b8;padding:7px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;cursor:pointer;">✕</button>
+    <button id="pwa-dismiss-btn" style="background:transparent;color:#000000;border:1px solid #cccccc;padding:7px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;cursor:pointer;">✕</button>
   `;
   document.body.appendChild(bar);
   document.getElementById('pwa-install-btn').addEventListener('click', async () => {
@@ -2357,8 +2357,8 @@ function renderBpChart() {
     options:{
       responsive:true,maintainAspectRatio:false,
       animation:{duration:1000,easing:'easeInOutQuart'},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#faf7f0',borderColor:'#d0c8b8',borderWidth:1,titleFont:{family:'Segoe UI',size:11},bodyFont:{family:'Segoe UI',size:12},titleColor:'#1a1a1a',bodyColor:'#1a1a1a'}},
-      scales:{x:{grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Segoe UI',size:10}},border:{color:'#d0c8b8'}},y:{min:0,max:100,grid:{color:'rgba(208,200,184,0.5)',lineWidth:1},ticks:{color:'#666666',font:{family:'Segoe UI',size:10},callback:v=>v+'%',stepSize:20},border:{color:'#d0c8b8'}}}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#ffffff',borderColor:'#cccccc',borderWidth:1,titleFont:{family:'Segoe UI',size:11},bodyFont:{family:'Segoe UI',size:12},titleColor:'#000000',bodyColor:'#000000'}},
+      scales:{x:{grid:{color:'rgba(200,200,200,0.5)',lineWidth:1},ticks:{color:'#000000',font:{family:'Segoe UI',size:10}},border:{color:'#cccccc'}},y:{min:0,max:100,grid:{color:'rgba(200,200,200,0.5)',lineWidth:1},ticks:{color:'#000000',font:{family:'Segoe UI',size:10},callback:v=>v+'%',stepSize:20},border:{color:'#cccccc'}}}
     },
     plugins:[{
       id:'bpRefLines',
@@ -2704,13 +2704,13 @@ initBreadthScanner();
     // ── Freeze-pane inline style helpers ──
     // Header sticky: position:sticky;top works in <thead>, not <tbody>
     var C1W = 'width:28px;min-width:28px;max-width:28px;overflow:hidden;';
-    var FROW1 = 'position:sticky;top:0;z-index:4;background:#e0d8c8;';
-    var FROW2 = 'position:sticky;top:0;z-index:4;background:#e0d8c8;';
-    var FCOL1 = 'position:sticky;left:0;z-index:3;background:#faf7f0;' + C1W;
-    var FCOL2 = 'position:sticky;left:28px;z-index:3;background:#faf7f0;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
-    var FCOR1C1 = 'position:sticky;top:0;left:0;z-index:8;background:#e0d8c8;' + C1W;
-    var FCOR1C2 = 'position:sticky;top:0;left:28px;z-index:8;background:#e0d8c8;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
-    var BASE_HDR = 'border:1px solid #d0c8b8;text-align:center;font-size:9px;padding:5px 3px;';
+    var FROW1 = 'position:sticky;top:0;z-index:4;background:#eeeeee;';
+    var FROW2 = 'position:sticky;top:0;z-index:4;background:#eeeeee;';
+    var FCOL1 = 'position:sticky;left:0;z-index:3;background:#ffffff;' + C1W;
+    var FCOL2 = 'position:sticky;left:28px;z-index:3;background:#ffffff;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
+    var FCOR1C1 = 'position:sticky;top:0;left:0;z-index:8;background:#eeeeee;' + C1W;
+    var FCOR1C2 = 'position:sticky;top:0;left:28px;z-index:8;background:#eeeeee;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
+    var BASE_HDR = 'border:1px solid #cccccc;text-align:center;font-size:9px;padding:5px 3px;';
     // ── Build header into headEl (thead) using <th> tags ──
     var hb = '';
     for (var br = 0; br < 2; br++) {
@@ -2774,11 +2774,11 @@ initBreadthScanner();
       var r = display[ri];
       var wl = _getWatchlist();
       var inWl = wl.indexOf(r.name) !== -1;
-      var numBg = inWl ? '#d4880f' : '#faf7f0';
+      var numBg = inWl ? '#d4880f' : '#ffffff';
       var numColor = inWl ? '#000' : '#000';
       var numWeight = inWl ? '700' : '400';
-      b += '<tr><td class="ttf-wl-btn" data-name="' + r.name.replace(/"/g,'&quot;') + '" style="' + FCOL1 + 'color:' + numColor + ';font-size:11px;text-align:center;cursor:pointer;background:' + numBg + ';font-weight:' + numWeight + ';border:1px solid #d0c8b8;">' + (ri+1) + '</td>';
-      b += '<td class="idx" style="' + FCOL2 + 'cursor:pointer;background:#faf7f0">' + r.name + '</td>';
+      b += '<tr><td class="ttf-wl-btn" data-name="' + r.name.replace(/"/g,'&quot;') + '" style="' + FCOL1 + 'color:' + numColor + ';font-size:11px;text-align:center;cursor:pointer;background:' + numBg + ';font-weight:' + numWeight + ';border:1px solid #cccccc;">' + (ri+1) + '</td>';
+      b += '<td class="idx" style="' + FCOL2 + 'cursor:pointer;background:#ffffff">' + r.name + '</td>';
       var tc = r.type === 'B' ? '#d4880f' : r.type === 'O' ? '#000' : '#1a8a4a';
       b += '<td style="color:' + tc + ';font-weight:700;font-size:11px;text-align:center;">' + (r.type || '-') + '</td>';
       b += '<td class="rsi-cell" style="font-size:10px;letter-spacing:-0.5px;text-align:center;min-width:72px;">' + (r.rsiStatus || '-') + '</td>';
