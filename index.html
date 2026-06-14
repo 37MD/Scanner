@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner V7</title>
+<title>Scanner v8</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -953,6 +953,10 @@ const Scanner = () => {
     try { return JSON.parse(localStorage.getItem('ld_scanner_watchlist') || '[]'); } catch(_) { return []; }
   });
   const [showWatchlist, setShowWatchlist] = useState(false);
+  // RS leaders with AMC products — updated when RS tab runs a scan
+  const [rsLeadersAmc, setRsLeadersAmc] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ld_rs_leaders_amc') || '[]'); } catch(_) { return []; }
+  });
   const [auditModal, setAuditModal] = useState({ show: false, loading: false, name: '', result: '', error: '' });
 
   const [sortConfig, setSortConfig] = useState({ key: 'regime', direction: 'asc' });
@@ -981,11 +985,14 @@ const Scanner = () => {
     } catch(_) {}
   }, []);
 
-  // Sync watchlist when TTF tab changes it
+  // Sync watchlist when TTF tab changes it; also sync RS leaders
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'ld_scanner_watchlist') {
         try { setWatchlist(JSON.parse(e.newValue || '[]')); } catch(_) {}
+      }
+      if (e.key === 'ld_rs_leaders_amc') {
+        try { setRsLeadersAmc(JSON.parse(e.newValue || '[]')); } catch(_) {}
       }
     };
     window.addEventListener('storage', handler);
@@ -1737,7 +1744,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Scanner V7</h1>
+            <h1>Scanner v8</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -1922,7 +1929,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
               </div>
               <div className="s-tile" style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:10}}>
                 <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",userSelect:"none",fontSize:10,fontWeight:600,color:"var(--text)"}}>
-                  <span style={{whiteSpace:"nowrap"}}>{showWatchlist ? 'Watchlist' : 'Full List'}</span>
+                  <span style={{whiteSpace:"nowrap"}}>{showWatchlist ? 'Watchlist ✓' : 'Watchlist'}</span>
                   <input type="checkbox" checked={showWatchlist} onChange={e => setShowWatchlist(e.target.checked)} style={{display:"none"}}/>
                   <span style={{display:"inline-block",width:16,height:16,borderRadius:2,border:`2px solid ${showWatchlist?"var(--orange)":"var(--border2)"}`,background:showWatchlist?"var(--orange)":"transparent",textAlign:"center",lineHeight:"16px",fontSize:9,fontWeight:700,flexShrink:0,color:"#000"}}>{showWatchlist ? '✓' : ''}</span>
                 </label>
@@ -2011,7 +2018,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
                       <td style={{textAlign:"center",padding:0,width:28,minWidth:28,maxWidth:28}}>
                         <button onClick={() => toggleWatchlist(r.name)} style={{display:"inline-block",width:"100%",height:"100%",padding:"9px 2px",background:watchlist.includes(r.name)?"var(--orange)":"transparent",color:watchlist.includes(r.name)?"#000":"#000",border:"none",cursor:"pointer",fontFamily:"var(--mono)",fontSize:11,fontWeight:watchlist.includes(r.name)?700:400,lineHeight:1}}>{i+1}</button>
                       </td>
-                      <td className="name-col">{r.name}</td>
+                      <td className="name-col" style={rsLeadersAmc.includes(r.name) ? {background:'#d4f0e0',color:'#0a5c2a',fontWeight:700} : {}}>{r.name}{rsLeadersAmc.includes(r.name) && <span title="RS Leader with AMC product" style={{marginLeft:5,fontSize:9,color:'var(--green)',verticalAlign:'middle'}}>RS★</span>}</td>
                       <td data-group="1" className="group-start" style={{fontWeight:600}}>{r.price?.toFixed(2) ?? "—"}</td>
                       <td data-group="1" style={{textAlign:"center",fontWeight:600,color: r.changePct > 0 ? "var(--green)" : r.changePct < 0 ? "var(--red)" : "#000"}}>
                         {r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`}
@@ -2990,7 +2997,7 @@ initBreadthScanner();
   <!-- Controls -->
   <div class="rs-controls-bar">
     <div class="rs-controls-left">
-      <button class="rs-btn-primary" id="rsScanBtn">▶ Run Full Scan</button>
+      <button class="rs-btn-primary" id="rsScanBtn">▶ Step 3 — Run Relative Strength Scan</button>
       <button class="rs-btn-stop" id="rsStopBtn" style="display:none;">■ Stop</button>
       <button class="rs-btn-secondary" id="rsResetBtn">↺ Reset</button>
 
@@ -3028,6 +3035,8 @@ initBreadthScanner();
       </div>
     </div>
     <div class="rs-controls-right">
+      <div id="rsAmcCacheStatus" class="rs-cache-status"></div>
+      <button class="rs-btn-cache-clear" id="rsClearCacheBtn" title="Clear saved AMC cache — will force Gemini re-query on next scan">🗑 Clear AMC Cache</button>
       <button class="rs-btn-ai" id="rsAiBtn" style="display:none;">🤖 AI Deep Analysis</button>
     </div>
   </div>
@@ -3132,6 +3141,7 @@ initBreadthScanner();
           <th rowspan="2" data-sort="signal" style="min-width:90px;">SIGNAL</th>
           <th colspan="4" class="rs-th-group-sec">RELATIVE STRENGTH vs <span id="rsTblBenchName">Nifty 50</span></th>
           <th colspan="4" class="rs-th-group-amc">AMC PRODUCTS (HDFC · ICICI · Kotak · ABSL)</th>
+          <th rowspan="2" style="min-width:44px;border-left:2px solid var(--border2);">WL</th>
         </tr>
         <tr class="rs-thead-sub">
           <th data-sort="rs1m" title="RS 1 Month = Fund_1M% minus Bench_1M%">RS 1M</th>
@@ -3208,7 +3218,35 @@ initBreadthScanner();
 .rs-btn-stop { background:transparent; color:var(--red); font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; font-weight:700; padding:9px 20px; border:1px solid var(--red); cursor:pointer; }
 .rs-btn-secondary { background:var(--surface2); color:var(--text); font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; font-weight:600; padding:8px 14px; border:1px solid var(--border2); cursor:pointer; }
 .rs-btn-secondary:hover { background:var(--border2); }
-.rs-btn-ai { background:#16213e; color:#fff; font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; font-weight:600; padding:9px 18px; border:none; cursor:pointer; letter-spacing:0.8px; }
+.rs-cache-status {
+  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-size:10px;
+  padding:4px 10px;
+  border-radius:2px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  color:#888;
+  white-space:nowrap;
+}
+.rs-cache-status.cached { background:var(--green-dim); color:var(--green); border-color:var(--green); }
+.rs-cache-status.fresh  { background:var(--orange-dim); color:var(--orange); border-color:var(--orange); }
+.rs-btn-cache-clear {
+  background:transparent;
+  color:#888;
+  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-size:10px;
+  padding:6px 12px;
+  border:1px solid var(--border2);
+  cursor:pointer;
+  white-space:nowrap;
+}
+.rs-btn-cache-clear:hover { background:var(--red-dim); color:var(--red); border-color:var(--red); }
+.rs-btn-ai {
+  background:#16213e; color:#fff;
+  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-size:11px; font-weight:600; padding:9px 18px;
+  border:none; cursor:pointer; letter-spacing:0.8px; white-space:nowrap;
+}
 .rs-btn-ai:hover { background:#0f3460; }
 .rs-filter-group { display:flex; align-items:center; gap:5px; }
 .rs-filter-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:#555; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
@@ -3256,28 +3294,145 @@ initBreadthScanner();
 .amc-kotak { background:#fff3e0; color:#e65100; border:1px solid #e65100; }
 .amc-absl { background:#f3e5f5; color:#6a1b9a; border:1px solid #6a1b9a; }
 
-/* Table */
-.rs-table-wrap { border:1px solid var(--border2); overflow-x:auto; background:var(--surface); max-height:calc(100vh - 280px); overflow-y:auto; }
-#rsTable { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; min-width:1000px; }
-#rsTable thead th { background:var(--surface2); color:var(--text); padding:8px 10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; border-right:1px solid var(--border); border-bottom:1px solid var(--border2); white-space:nowrap; cursor:pointer; user-select:none; position:sticky; top:0; z-index:3; text-align:center; }
-.rs-thead-group th { top:0!important; z-index:4!important; background:var(--surface)!important; font-size:9px!important; letter-spacing:1.5px!important; color:var(--orange)!important; border-bottom:2px solid var(--border2)!important; }
-.rs-thead-sub th { top:28px!important; z-index:3!important; }
-.rs-th-name { min-width:190px; text-align:left!important; }
+/* Table wrapper — portrait & landscape safe */
+.rs-table-wrap {
+  border:1px solid var(--border2);
+  background:var(--surface);
+  /* overflow-x always auto so table scrolls horizontally */
+  overflow-x:auto;
+  overflow-y:auto;
+  /* Use dvh (dynamic viewport height) to handle mobile toolbars in landscape */
+  max-height:calc(100dvh - 320px);
+  /* Fallback for browsers without dvh */
+  max-height:calc(100vh - 320px);
+  /* Establish stacking context so sticky cells clip correctly */
+  position:relative;
+  /* Prevent body scroll bleed in landscape on iOS */
+  -webkit-overflow-scrolling:touch;
+}
+/* Portrait specific */
+@media screen and (orientation:portrait){
+  .rs-table-wrap { max-height:calc(100dvh - 360px); }
+}
+/* Landscape — more vertical space, use it */
+@media screen and (orientation:landscape) and (max-height:500px){
+  .rs-table-wrap { max-height:calc(100dvh - 180px); }
+}
+#rsTable {
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12px;
+  min-width:960px;
+  /* table-layout:auto lets columns size naturally */
+  table-layout:auto;
+}
+#rsTable thead th {
+  background:var(--surface2);
+  color:var(--text);
+  padding:8px 10px;
+  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border2);
+  white-space:nowrap;
+  cursor:pointer;
+  user-select:none;
+  position:sticky;
+  top:0;
+  /* z-index must be higher than sticky columns (z-index:2) */
+  z-index:5;
+  text-align:center;
+}
+.rs-thead-group th {
+  top:0!important;
+  z-index:6!important;
+  background:var(--surface2)!important;
+  font-size:9px!important;
+  letter-spacing:1.5px!important;
+  color:var(--orange)!important;
+  border-bottom:1px solid var(--border2)!important;
+}
+.rs-thead-sub th {
+  /* Second header row sits below first */
+  top:28px!important;
+  z-index:5!important;
+  background:var(--surface2)!important;
+}
+.rs-th-name { min-width:180px; text-align:left!important; }
 .rs-th-group-sec { border-left:2px solid var(--border2)!important; }
-.rs-th-group-amc { border-left:2px solid var(--border2)!important; background:var(--surface)!important; }
+.rs-th-group-amc { border-left:2px solid var(--border2)!important; background:var(--surface2)!important; }
 #rsTable thead th:last-child { border-right:none; }
-#rsTable tbody td { padding:7px 10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); border-right:1px solid var(--border); border-bottom:1px solid var(--border); white-space:nowrap; text-align:center; }
+
+#rsTable tbody td {
+  padding:7px 10px;
+  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-size:11px;
+  color:var(--text);
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+  text-align:center;
+}
 #rsTable tbody td:last-child { border-right:none; }
 #rsTable tbody tr:hover td { background:var(--surface2)!important; }
-#rsTable tbody td.rs-td-name { text-align:left; font-weight:600; font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+#rsTable tbody td.rs-td-name {
+  text-align:left;
+  font-weight:600;
+  font-size:11px;
+  max-width:200px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 
-/* Sticky columns */
-#rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1) { position:sticky; left:0; z-index:2; background:var(--surface2); width:30px; min-width:30px; }
-#rsTable tbody td:nth-child(1) { background:var(--surface); }
-#rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2) { position:sticky; left:30px; z-index:2; box-shadow:3px 0 5px -2px rgba(0,0,0,0.2); }
-#rsTable tbody td:nth-child(2) { background:var(--surface); }
-#rsTable thead th:nth-child(2) { background:var(--surface2); }
-.rs-thead-group th:nth-child(1), .rs-thead-group th:nth-child(2) { z-index:6!important; }
+/* ── Sticky columns — col 1 (#) and col 2 (name) ── */
+/* Portrait mode fix: ensure background is opaque so content doesn't bleed through */
+#rsTable thead th:nth-child(1),
+#rsTable tbody  td:nth-child(1) {
+  position:sticky;
+  left:0;
+  /* z-index must be below thead (5) but above regular cells (auto) */
+  z-index:2;
+  width:30px;
+  min-width:30px;
+}
+#rsTable thead th:nth-child(1) {
+  background:var(--surface2);
+  z-index:7; /* corner: above both row-sticky and col-sticky */
+}
+#rsTable tbody td:nth-child(1) {
+  background:var(--surface);
+}
+
+#rsTable thead th:nth-child(2),
+#rsTable tbody  td:nth-child(2) {
+  position:sticky;
+  left:30px;
+  z-index:2;
+  /* Shadow only on right edge to show content slides under */
+  box-shadow:3px 0 6px -2px rgba(0,0,0,0.18);
+}
+#rsTable thead th:nth-child(2) {
+  background:var(--surface2);
+  z-index:7; /* corner cell */
+}
+#rsTable tbody td:nth-child(2) {
+  background:var(--surface);
+}
+/* When a row has a green highlighted name, preserve that bg on sticky col */
+#rsTable tbody td:nth-child(2)[style*="background:#d4f0e0"] {
+  background:#d4f0e0!important;
+}
+#rsTable tbody td:nth-child(2)[style*="background:#fff3e0"] {
+  background:#fff3e0!important;
+}
+
+/* The two row-group header th spanning both sticky positions */
+.rs-thead-group th:nth-child(1) { z-index:8!important; left:0; background:var(--surface2)!important; }
+.rs-thead-group th:nth-child(2) { z-index:8!important; left:30px; background:var(--surface2)!important; }
 
 /* Pills */
 .rs-pill { display:inline-block; padding:3px 9px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; border-radius:2px; min-width:70px; text-align:center; }
@@ -3299,6 +3454,12 @@ initBreadthScanner();
 .amc-tag-both{ background:var(--green-dim); color:var(--green); }
 .amc-tag-no  { color:#bbb; font-size:10px; }
 
+/* ── Divider row between AMC-available and no-AMC sections ── */
+.rs-divider-row td { padding:0 !important; border-right:none !important; }
+.rs-divider-inner { display:flex; align-items:center; gap:10px; padding:6px 10px; background:#fff8f0; border-top:3px solid var(--orange); border-bottom:3px solid var(--orange); }
+.rs-divider-line { flex:1; height:1px; background:var(--orange); opacity:0.4; }
+.rs-divider-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--orange); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+
 /* AI Modal */
 .rs-ai-modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55); z-index:2000; display:flex; align-items:center; justify-content:center; }
 .rs-ai-modal-inner { background:var(--surface); border:1px solid var(--border2); border-top:3px solid var(--orange); max-width:800px; width:95%; max-height:88vh; overflow-y:auto; padding:24px; }
@@ -3315,9 +3476,20 @@ initBreadthScanner();
   .rs-summary-row{gap:6px}
   .rs-sum-card{min-width:90px;padding:8px 10px}
   .rs-sum-val{font-size:20px}
-  .rs-table-wrap{max-height:calc(100vh - 240px)}
+  /* Portrait mobile: reduce table height so controls remain visible */
+  .rs-table-wrap{max-height:calc(100dvh - 220px)}
   #rsTable tbody td{padding:5px 6px;font-size:10px}
   #rsTable thead th{font-size:9px;padding:5px 5px}
+  /* Tighter sticky column on mobile */
+  #rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1){width:22px;min-width:22px}
+  #rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2){left:22px}
+}
+/* Tablet landscape */
+@media(min-width:601px) and (max-width:900px){
+  .rs-table-wrap{max-height:calc(100dvh - 260px)}
+  .rs-controls-bar{gap:6px}
+  .rs-steps{flex-wrap:wrap;gap:3px}
+  .rs-step-arrow{display:none}
 }
 </style>
 
@@ -3356,7 +3528,8 @@ var EL = {};
  'rsFormulaBox','rsAmcLegend','rsTableWrap','rsTableBody','rsBenchmarkSelect',
  'rsSignalFilter','rsAmcFilter','rsAiBtn','rsAiModal','rsAiClose',
  'rsAiLoading','rsAiError','rsAiResult','rsClockDisplay','rsLastUpdated',
- 'rsStep1','rsStep2','rsStep3','rsStep4','rsStep5'
+ 'rsStep1','rsStep2','rsStep3','rsStep4','rsStep5',
+ 'rsClearCacheBtn','rsAmcCacheStatus'
 ].forEach(function(id){ EL[id]=$(''+id); });
 
 // ── Clock ──
@@ -3365,6 +3538,29 @@ function tick(){
   if(el) el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 setInterval(tick,1000); tick();
+
+// ── AMC Cache status display ──
+function updateCacheStatus(){
+  var el=EL.rsAmcCacheStatus;
+  if(!el) return;
+  try{
+    var raw=localStorage.getItem(AMC_CACHE_KEY);
+    if(!raw){ el.textContent='AMC Cache: None'; el.className='rs-cache-status'; return; }
+    var obj=JSON.parse(raw);
+    var now=new Date();
+    var curMonth=now.getFullYear()+'-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1);
+    if(obj.month===curMonth){
+      var saved=obj.saved?new Date(obj.saved).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'?';
+      var count=obj.data?Object.keys(obj.data).length:0;
+      el.textContent='✓ AMC Cache: '+obj.month+' · '+count+' indices · saved '+saved;
+      el.className='rs-cache-status cached';
+    } else {
+      el.textContent='⚠ Cache stale ('+obj.month+') — will refresh this scan';
+      el.className='rs-cache-status fresh';
+    }
+  }catch(e){ el.textContent='AMC Cache: Error'; el.className='rs-cache-status'; }
+}
+updateCacheStatus();
 
 // ── Step indicator ──
 function setStep(n){
@@ -3439,10 +3635,25 @@ function computeRS(idx, bench){
   };
 }
 
+// ── Bond / fixed-income index patterns to EXCLUDE from RS scanner ──
+var BOND_PATTERNS=[
+  /\bgsec\b/i,/\bgilt/i,/\bdebt\b/i,/\bbond\b/i,/\bcredit\b/i,
+  /\bliquid\b/i,/\bovernight\b/i,/\bultra.short/i,/\bshort.dur/i,
+  /\bmedium.dur/i,/\blong.dur/i,/\bdynamic.bond/i,
+  /\bmoney.market/i,/\bfixed.income/i,/\bfixed.matur/i,
+  /\bcorporate.bond/i,/\bpsu.bond/i,/\b\bsdl\b/i,
+  /\btreasury/i,/\bcrisil/i,/india.*bond/i,
+  /\bstate.dev/i,/\bgovernment.sec/i,/\bspread/i,
+];
+function isBond(name){ return BOND_PATTERNS.some(function(p){return p.test(name);}); }
+
 function allRS(data, bench){
-  setStep(2); prog(30,'Computing RS for all indices…','1M / 2M / 3M vs '+bench.name);
+  setStep(2); prog(30,'Computing RS for all indices…','1M / 2M / 3M vs '+bench.name+' · Bond indices excluded');
   return data
-    .filter(function(i){ return (i.index||'')!==bench.name; })
+    .filter(function(i){
+      var nm=i.index||'';
+      return nm!==bench.name && !isBond(nm);
+    })
     .map(function(i){
       var rs=computeRS(i,bench);
       return {
@@ -3465,54 +3676,82 @@ function filterLeaders(rows){
 }
 
 // ════════════════════════════════════════════
-// STEP 4: Gemini AMC check
-// Ask Gemini: for each qualifying index, which of HDFC/ICICI/Kotak/ABSL
-// have (a) an ETF, (b) an Index MF, tracking it?
-// Returns JSON: { "NIFTY BANK": { HDFC:{etf:"Nifty Bank ETF",mf:null}, ICICI:{etf:"...",mf:"..."}, ...}, ... }
+// STEP 4: AMC Check — Gemini, cached monthly
+// Cache key: ld_rs_amc_cache  → { month:"2025-06", data:{...} }
+// If current month matches → use cache, skip Gemini call.
+// New month → call Gemini, save fresh cache.
 // ════════════════════════════════════════════
+var AMC_CACHE_KEY = 'ld_rs_amc_cache';
+
+function amcCacheLoad(){
+  try{
+    var raw=localStorage.getItem(AMC_CACHE_KEY);
+    if(!raw) return null;
+    var obj=JSON.parse(raw);
+    var now=new Date();
+    var curMonth=now.getFullYear()+'-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1);
+    if(obj.month===curMonth && obj.data && Object.keys(obj.data).length>0) return obj.data;
+    return null; // stale month or empty
+  }catch(e){return null;}
+}
+
+function amcCacheSave(data){
+  try{
+    var now=new Date();
+    var curMonth=now.getFullYear()+'-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1);
+    localStorage.setItem(AMC_CACHE_KEY, JSON.stringify({month:curMonth, data:data, saved:new Date().toISOString()}));
+  }catch(e){}
+}
+
+function amcCacheClear(){
+  try{ localStorage.removeItem(AMC_CACHE_KEY); }catch(e){}
+}
+
 async function checkAMC(rows){
-  setStep(4); prog(55,'Asking Gemini about AMC products…','Checking HDFC · ICICI · Kotak · ABSL');
+  setStep(4);
+
+  // ── Try monthly cache first ──
+  var cached=amcCacheLoad();
+  if(cached){
+    S.amcData=cached;
+    prog(80,'AMC data loaded from cache ✓','Saved this month — Gemini skipped (saves API quota)');
+    return;
+  }
+
+  prog(55,'Asking Gemini about AMC products…','Checking HDFC · ICICI · Kotak · ABSL · Will cache for this month');
 
   var k1=(localStorage.getItem('ld_scanner_gemini_key1')||'').trim();
   var k2=(localStorage.getItem('ld_scanner_gemini_key2')||'').trim();
   var keys={1:k1.length>=20?k1:null, 2:k2.length>=20?k2:null};
   if(!keys[1]&&!keys[2]){
-    prog(70,'Skipping AMC check (no Gemini key)','Save key in Scanner tab to enable AMC check');
-    // Return empty AMC data — scan still works without it
-    rows.forEach(function(r){ S.amcData[r.name]=null; });
+    prog(80,'Skipping AMC check (no Gemini key)','Save key in Scanner tab → Gemini Key Setup');
     return;
   }
 
-  // Send all index names to Gemini in one batch (max 139)
-  var names = rows.map(function(r){return r.name;}).slice(0,139);
-  var prompt =
+  var names=rows.map(function(r){return r.name;}).slice(0,139);
+  var prompt=
     'You are a mutual fund product database for India.\n'
    +'TASK: For EACH index listed below, tell me which of these 4 AMCs offers a product tracking it:\n'
-   +'AMCs to check: HDFC Mutual Fund, ICICI Prudential MF, Kotak Mahindra MF, Aditya Birla Sun Life (ABSL) MF.\n'
+   +'AMCs: HDFC Mutual Fund, ICICI Prudential MF, Kotak Mahindra MF, Aditya Birla Sun Life (ABSL) MF.\n'
    +'For each AMC, note separately:\n'
-   +'  - etf: name of ETF if they have one (e.g. "HDFC Nifty 50 ETF"), else null\n'
-   +'  - mf: name of Index Fund if they have one (e.g. "HDFC Index Fund Nifty 50"), else null\n\n'
+   +'  - etf: ETF name if they have one (e.g. "HDFC Nifty 50 ETF"), else null\n'
+   +'  - mf: Index Fund name if they have one (e.g. "HDFC Index Fund Nifty 50"), else null\n\n'
    +'STRICT RULES:\n'
-   +'1. Use your knowledge of Indian MF product universe as of 2024-2025.\n'
-   +'2. Return ONLY valid JSON. No preamble. No markdown. No explanation.\n'
+   +'1. Knowledge of Indian MF product universe as of 2024-2025.\n'
+   +'2. Return ONLY valid JSON. No preamble. No markdown. No extra text.\n'
    +'3. Key = exact index name as given. Value = object with keys HDFC, ICICI, Kotak, ABSL.\n'
-   +'4. If an AMC has no product for an index, set both etf and mf to null.\n'
-   +'5. If you are unsure, set to null — do NOT hallucinate product names.\n\n'
-   +'OUTPUT FORMAT (example):\n'
-   +'{\n'
-   +'  "NIFTY 50": {\n'
-   +'    "HDFC":  {"etf":"HDFC Nifty 50 ETF","mf":"HDFC Index Fund-Nifty 50 Plan"},\n'
-   +'    "ICICI": {"etf":"ICICI Pru Nifty 50 ETF","mf":"ICICI Pru Index Fund"},\n'
-   +'    "Kotak": {"etf":"Kotak Nifty 50 ETF","mf":"Kotak Nifty 50 Index Fund"},\n'
-   +'    "ABSL":  {"etf":null,"mf":"Aditya Birla SL Index Fund"}\n'
-   +'  }\n'
-   +'}\n\n'
-   +'INDICES TO CHECK ('+names.length+' total):\n'
-   +names.join('\n');
+   +'4. If AMC has no product for an index, both etf and mf = null.\n'
+   +'5. If unsure, set null — do NOT hallucinate product names.\n\n'
+   +'OUTPUT:\n'
+   +'{ "NIFTY 50": { "HDFC":{"etf":"HDFC Nifty 50 ETF","mf":"HDFC Index Fund-Nifty 50 Plan"}, '
+   +'"ICICI":{"etf":"ICICI Pru Nifty 50 ETF","mf":"ICICI Pru Index Fund"}, '
+   +'"Kotak":{"etf":"Kotak Nifty 50 ETF","mf":"Kotak Nifty 50 Index Fund"}, '
+   +'"ABSL":{"etf":null,"mf":"Aditya Birla SL Index Fund"} } }\n\n'
+   +'INDICES TO CHECK ('+names.length+'):\n'+names.join('\n');
 
   var payload={
     contents:[{parts:[{text:prompt}]}],
-    generationConfig:{responseMimeType:'application/json', temperature:0.1}
+    generationConfig:{responseMimeType:'application/json',temperature:0.1}
   };
 
   var result=null;
@@ -3522,29 +3761,29 @@ async function checkAMC(rows){
     var apiKey=keys[entry.key];
     if(!apiKey) continue;
     try{
-      prog(55+ci*2,'Trying Gemini '+entry.model+'…','AMC product database query');
+      prog(55+ci*2,'Trying Gemini '+entry.model+'…','AMC query — result will be cached for this month');
       var ep='https://generativelanguage.googleapis.com/v1beta/models/'+entry.model+':generateContent?key='+apiKey;
       var r=await fetch(ep,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload), signal:AbortSignal.timeout(40000)
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),signal:AbortSignal.timeout(40000)
       });
       var d=await r.json();
-      if(d.error){if(d.error.code===429||d.error.code===503) continue; continue;}
+      if(d.error) continue;
       var raw=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]?d.candidates[0].content.parts[0].text:'').trim();
       if(!raw) continue;
-      // strip possible markdown fences
       raw=raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
       result=JSON.parse(raw);
       break;
     }catch(e){continue;}
   }
 
-  if(result){
+  if(result && Object.keys(result).length>0){
     S.amcData=result;
-    prog(80,'AMC data received','Gemini returned product info');
+    amcCacheSave(result);  // ← save to monthly cache
+    prog(80,'AMC data received & cached for this month ✓','Next scans this month will use cache');
   } else {
     S.amcData={};
-    prog(80,'AMC check done (partial)','Some indices may show N/A');
+    prog(80,'AMC check partial — not cached','Re-scan to retry Gemini');
   }
 }
 
@@ -3585,12 +3824,29 @@ function hasAmcProduct(indexName){
   return {any:etf||mf, etf:etf, mf:mf, both:etf&&mf};
 }
 
+// ── Watchlist helpers (shared localStorage key with main scanner) ──
+function rsGetWL(){ try{return JSON.parse(localStorage.getItem('ld_scanner_watchlist')||'[]');}catch(e){return [];} }
+function rsSaveWL(arr){ try{localStorage.setItem('ld_scanner_watchlist',JSON.stringify(arr));}catch(e){} }
+function rsToggleWL(name){
+  var wl=rsGetWL();
+  var idx=wl.indexOf(name);
+  if(idx===-1) wl.push(name); else wl.splice(idx,1);
+  rsSaveWL(wl);
+  renderRSTable(); // re-render to reflect star state
+}
+
 function renderRSTable(){
   var sigFlt = EL.rsSignalFilter.value;
   var amcFlt = EL.rsAmcFilter.value;
   var sk=S.sortKey, sd=S.sortDir;
+  var wl=rsGetWL();
 
   var rows=[].concat(S.rows);
+
+  // Signal filter
+  if(sigFlt!=='ALL'){
+    rows=rows.filter(function(r){return r.rs.signal===sigFlt;});
+  }
 
   // AMC filter
   if(amcFlt!=='ALL'){
@@ -3603,33 +3859,73 @@ function renderRSTable(){
       return true;
     });
   }
-  // Signal filter
-  if(sigFlt!=='ALL'){
-    rows=rows.filter(function(r){return r.rs.signal===sigFlt;});
+
+  // ── Signal sort order ──
+  var sigOrder={LEADER:0,IMPROVING:1,WATCH:2,LAGGARD:3};
+
+  // ── Inner sort within each group ──
+  function innerSort(arr){
+    arr.sort(function(a,b){
+      var av,bv;
+      if(sk==='name'){return sd==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);}
+      if(sk==='rs1m')      {av=a.rs.rs1m||0;   bv=b.rs.rs1m||0;}
+      else if(sk==='rs2m') {av=a.rs.rs2m||0;   bv=b.rs.rs2m||0;}
+      else if(sk==='rs3m') {av=a.rs.rs3m||0;   bv=b.rs.rs3m||0;}
+      else if(sk==='rsScore'){av=a.rs.score||0; bv=b.rs.score||0;}
+      else if(sk==='signal'){av=sigOrder[a.rs.signal]||9; bv=sigOrder[b.rs.signal]||9; return av-bv;}
+      else {av=a.rs.score||0; bv=b.rs.score||0;}
+      return sd==='asc'?av-bv:bv-av;
+    });
+    return arr;
   }
 
-  // Sort
-  rows.sort(function(a,b){
-    var av,bv;
-    if(sk==='name'){return sd==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);}
-    if(sk==='rs1m')  {av=a.rs.rs1m||0; bv=b.rs.rs1m||0;}
-    else if(sk==='rs2m')  {av=a.rs.rs2m||0; bv=b.rs.rs2m||0;}
-    else if(sk==='rs3m')  {av=a.rs.rs3m||0; bv=b.rs.rs3m||0;}
-    else if(sk==='rsScore'){av=a.rs.score||0; bv=b.rs.score||0;}
-    else if(sk==='signal'){var so={LEADER:0,IMPROVING:1,WATCH:2,LAGGARD:3}; av=so[a.rs.signal]||9;bv=so[b.rs.signal]||9;}
-    else {av=0;bv=0;}
-    return sd==='asc'?av-bv:bv-av;
+  // ── Split into AMC-available vs none ──
+  var withAmc=[], noAmc=[];
+  rows.forEach(function(r){
+    if(hasAmcProduct(r.name).any) withAmc.push(r); else noAmc.push(r);
   });
 
+  // Sort each group: primary = signal order (Leader→Improving→Watch→Laggard), secondary = innerSort
+  function groupSort(arr){
+    // group by signal first
+    var groups={LEADER:[],IMPROVING:[],WATCH:[],LAGGARD:[]};
+    arr.forEach(function(r){ (groups[r.rs.signal]||groups.LAGGARD).push(r); });
+    var out=[];
+    ['LEADER','IMPROVING','WATCH','LAGGARD'].forEach(function(sig){
+      out=out.concat(innerSort(groups[sig]));
+    });
+    return out;
+  }
+
+  withAmc = groupSort(withAmc);
+  noAmc   = groupSort(noAmc);
+
   var html='';
-  if(!rows.length){
-    html='<tr><td colspan="11" style="text-align:center;padding:32px;color:#888;font-family:\'Segoe UI\',sans-serif;">No indices matching the current filters.</td></tr>';
+  var rowNum=0;
+
+  if(!withAmc.length && !noAmc.length){
+    html='<tr><td colspan="12" style="text-align:center;padding:32px;color:#888;font-family:\'Segoe UI\',sans-serif;">No indices matching the current filters.</td></tr>';
   } else {
-    rows.forEach(function(r,i){
+
+    // ── Render a row ──
+    function makeRow(r, num){
       var sig=r.rs.signal;
-      html+='<tr>'
-        +'<td style="text-align:center;color:#aaa;font-size:10px;">'+(i+1)+'</td>'
-        +'<td class="rs-td-name" title="'+r.name+'">'+r.name+'</td>'
+      var hasAmc=hasAmcProduct(r.name).any;
+      // Green bg on index name cell for: LEADER with AMC product
+      var isLeaderAmc=(sig==='LEADER' && hasAmc);
+      // Also highlight IMPROVING with AMC in light amber
+      var isImprovingAmc=(sig==='IMPROVING' && hasAmc);
+      var nameBg = isLeaderAmc   ? 'background:#d4f0e0;font-weight:700;color:#0a5c2a;'
+                 : isImprovingAmc? 'background:#fff3e0;font-weight:600;color:#7a4000;'
+                 : '';
+      var inWL=wl.indexOf(r.name)!==-1;
+      var wlBtn='<button onclick="rsToggleWL(\''+r.name.replace(/'/g,"\\'")+'\')" '
+        +'title="'+(inWL?'Remove from Watchlist':'Add to Watchlist')+'" '
+        +'style="background:'+(inWL?'var(--orange)':'transparent')+';color:'+(inWL?'#000':'#bbb')+';border:1px solid '+(inWL?'var(--orange)':'#ccc')+';border-radius:2px;padding:2px 6px;font-size:11px;cursor:pointer;font-weight:700;line-height:1;">'
+        +(inWL?'★':'☆')+'</button>';
+      return '<tr>'
+        +'<td style="text-align:center;color:#aaa;font-size:10px;">'+num+'</td>'
+        +'<td class="rs-td-name" title="'+r.name+'" style="'+nameBg+'">'+r.name+'</td>'
         +'<td><span class="rs-pill rs-pill-'+sig+'">'+sig+'</span></td>'
         +'<td>'+fmtRS(r.rs.rs1m)+'</td>'
         +'<td>'+fmtRS(r.rs.rs2m)+'</td>'
@@ -3639,9 +3935,30 @@ function renderRSTable(){
         +'<td>'+amcCell('ICICI',r.name)+'</td>'
         +'<td>'+amcCell('Kotak',r.name)+'</td>'
         +'<td>'+amcCell('ABSL',r.name)+'</td>'
+        +'<td style="text-align:center;">'+wlBtn+'</td>'
         +'</tr>';
-    });
+    }
+
+    // ── AMC group rows ──
+    withAmc.forEach(function(r){ rowNum++; html+=makeRow(r,rowNum); });
+
+    // ── Divider: only show if there are BOTH groups ──
+    if(withAmc.length>0 && noAmc.length>0){
+      html+='<tr class="rs-divider-row">'
+        +'<td colspan="12">'
+        +'<div class="rs-divider-inner">'
+        +'<span class="rs-divider-line"></span>'
+        +'<span class="rs-divider-label">⚠ NO MF OR ETF AVAILABLE IN HDFC / ICICI / KOTAK / ABSL — '+noAmc.length+' indices below</span>'
+        +'<span class="rs-divider-line"></span>'
+        +'</div>'
+        +'</td>'
+        +'</tr>';
+    }
+
+    // ── No-AMC group rows ──
+    noAmc.forEach(function(r){ rowNum++; html+=makeRow(r,rowNum); });
   }
+
   EL.rsTableBody.innerHTML=html;
 
   // Sort arrows
@@ -3726,6 +4043,13 @@ async function runScan(){
 
     S.lastScan=new Date();
     EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN');
+    updateCacheStatus(); // refresh badge to show if cache was used or freshly saved
+
+    // Save RS leader+AMC names for cross-tab green highlight
+    var rsLeaderAmc=S.rows.filter(function(r){
+      return r.rs.signal==='LEADER' && hasAmcProduct(r.name).any;
+    }).map(function(r){return r.name;});
+    try{ localStorage.setItem('ld_rs_leaders_amc', JSON.stringify(rsLeaderAmc)); }catch(e){}
 
     renderRSTable();
     EL.rsSummaryRow.style.display='flex';
@@ -3781,6 +4105,14 @@ EL.rsResetBtn.addEventListener('click',function(){
   EL.rsAiBtn.style.display='none';
   EL.rsLastUpdated.textContent='Not scanned yet';
   setStep(0);
+});
+
+// ── Clear AMC cache ──
+EL.rsClearCacheBtn.addEventListener('click',function(){
+  if(confirm('Clear saved AMC cache?\n\nGemini will be called again on your next scan to refresh product data.')){
+    amcCacheClear();
+    updateCacheStatus();
+  }
 });
 
 // ── AI Deep Analysis ──
@@ -3874,6 +4206,9 @@ EL.rsAiModal.addEventListener('click',function(e){if(e.target===EL.rsAiModal)EL.
 
 // Tab hook
 win.onRSTabActivated=function(){};
+
+// Expose watchlist toggle globally for inline onclick
+win.rsToggleWL=rsToggleWL;
 
 })(window);
 </script>
