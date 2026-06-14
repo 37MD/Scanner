@@ -512,6 +512,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   <button class="tab-btn active" onclick="switchTab('breadth')">📊 Market Breadth</button>
   <button class="tab-btn" onclick="switchTab('scanner')">⚡ Scanner</button>
   <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
+  <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
 <div id="tab-breadth" class="tab-panel active breadth-panel">
@@ -2229,6 +2230,7 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'breadth' && !window._bpInited) { window._bpInited = true; initBreadthScanner(); }
   if (name === 'ttf' && window.TTFScanner && !window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); }
+  if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
 }
 </script>
 
@@ -2935,6 +2937,944 @@ initBreadthScanner();
     if (e.key === 'ld_scanner_watchlist' && _lastResults) render(_lastResults);
   });
   loadFromCache();
+})(window);
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!--  8. RS SCANNER v2 — RELATIVE STRENGTH · MF & ETF ONLY         -->
+<!--  Formula: RS_1M = (Fund_ret_1M - Bench_ret_1M)                -->
+<!--           RS_2M = (Fund_ret_2M - Bench_ret_2M) [approx 2×1M]  -->
+<!--           RS_3M = (Fund_ret_3M - Bench_ret_3M) [approx 1Y÷4]  -->
+<!--  Signal: LEADER if RS_1M>0 & RS_3M>0, IMPROVING if RS_1M>0   -->
+<!--  AMC Check via Gemini: HDFC, ICICI, Kotak, Aditya Birla MF    -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+
+<!-- 8.1 RS HTML Panel -->
+<div id="tab-rs" class="tab-panel">
+<div class="rs-wrap">
+
+  <!-- Header -->
+  <div class="rs-header">
+    <div class="rs-header-left">
+      <div class="rs-logo">RELATIVE<span>STRENGTH</span></div>
+      <div class="rs-header-sub">
+        <div>All 139 NSE Indices → Filter Leaders → Check HDFC / ICICI / Kotak / ABSL MF &amp; ETF</div>
+        <div class="rs-formula-bar">
+          <span class="rs-fml"><b>RS</b> = Fund_Return<sub>period</sub> − Benchmark_Return<sub>period</sub></span>
+          <span class="rs-fml-sep">·</span>
+          <span class="rs-fml">LEADER: RS<sub>1M</sub>&gt;0 &amp; RS<sub>3M</sub>&gt;0</span>
+          <span class="rs-fml-sep">·</span>
+          <span class="rs-fml">IMPROVING: RS<sub>1M</sub>&gt;0 (any 3M)</span>
+        </div>
+      </div>
+    </div>
+    <div class="rs-header-right">
+      <div class="rs-clock" id="rsClockDisplay">--:--:--</div>
+      <div class="rs-lastupdated" id="rsLastUpdated">Not scanned yet</div>
+    </div>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="rs-steps" id="rsSteps">
+    <div class="rs-step" id="rsStep1"><span class="rs-step-num">1</span><span class="rs-step-lbl">FETCH 139 INDICES</span></div>
+    <div class="rs-step-arrow">→</div>
+    <div class="rs-step" id="rsStep2"><span class="rs-step-num">2</span><span class="rs-step-lbl">COMPUTE RS (1M/2M/3M)</span></div>
+    <div class="rs-step-arrow">→</div>
+    <div class="rs-step" id="rsStep3"><span class="rs-step-num">3</span><span class="rs-step-lbl">FILTER LEADERS</span></div>
+    <div class="rs-step-arrow">→</div>
+    <div class="rs-step" id="rsStep4"><span class="rs-step-num">4</span><span class="rs-step-lbl">AMC CHECK (GEMINI)</span></div>
+    <div class="rs-step-arrow">→</div>
+    <div class="rs-step" id="rsStep5"><span class="rs-step-num">5</span><span class="rs-step-lbl">RESULTS</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="rs-controls-bar">
+    <div class="rs-controls-left">
+      <button class="rs-btn-primary" id="rsScanBtn">▶ Run Full Scan</button>
+      <button class="rs-btn-stop" id="rsStopBtn" style="display:none;">■ Stop</button>
+      <button class="rs-btn-secondary" id="rsResetBtn">↺ Reset</button>
+
+      <div class="rs-filter-group">
+        <span class="rs-filter-label">BENCHMARK</span>
+        <select class="rs-select" id="rsBenchmarkSelect">
+          <option value="NIFTY 50">Nifty 50</option>
+          <option value="NIFTY NEXT 50">Nifty Next 50</option>
+          <option value="NIFTY 500">Nifty 500</option>
+          <option value="NIFTY MIDCAP 150">Nifty Midcap 150</option>
+          <option value="NIFTY SMALLCAP 250">Nifty Smallcap 250</option>
+        </select>
+      </div>
+
+      <div class="rs-filter-group">
+        <span class="rs-filter-label">SIGNAL FILTER</span>
+        <select class="rs-select" id="rsSignalFilter">
+          <option value="ALL">All Signals</option>
+          <option value="LEADER">Leaders Only</option>
+          <option value="IMPROVING">Improving</option>
+          <option value="WATCH">Watch</option>
+          <option value="LAGGARD">Laggards</option>
+        </select>
+      </div>
+
+      <div class="rs-filter-group">
+        <span class="rs-filter-label">AMC FILTER</span>
+        <select class="rs-select" id="rsAmcFilter">
+          <option value="ALL">All Indices</option>
+          <option value="AMC_ONLY">AMC Available Only</option>
+          <option value="ETF_ONLY">ETF Available</option>
+          <option value="MF_ONLY">Index MF Available</option>
+          <option value="BOTH">Both ETF + MF</option>
+        </select>
+      </div>
+    </div>
+    <div class="rs-controls-right">
+      <button class="rs-btn-ai" id="rsAiBtn" style="display:none;">🤖 AI Deep Analysis</button>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="rs-progress-wrap" id="rsProgressWrap" style="display:none;">
+    <div class="rs-progress-top">
+      <span class="rs-progress-label" id="rsProgressLabel">Initialising…</span>
+      <span class="rs-progress-pct" id="rsProgressPct">0%</span>
+    </div>
+    <div class="rs-progress-track"><div class="rs-progress-fill" id="rsProgressFill" style="width:0%"></div></div>
+    <div class="rs-progress-sub" id="rsProgressSub"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="rs-error" id="rsError" style="display:none;"></div>
+
+  <!-- RS Formula Box (always visible after scan) -->
+  <div class="rs-formula-box" id="rsFormulaBox" style="display:none;">
+    <div class="rs-fb-title">📐 RS FORMULA USED IN THIS SCAN</div>
+    <div class="rs-fb-grid">
+      <div class="rs-fb-item">
+        <div class="rs-fb-label">RS (1 Month)</div>
+        <div class="rs-fb-val">Fund_1M% − Benchmark_1M%</div>
+        <div class="rs-fb-note">= <span id="rsFmlBench1m">—</span> 1M return used as base</div>
+      </div>
+      <div class="rs-fb-item">
+        <div class="rs-fb-label">RS (2 Month)</div>
+        <div class="rs-fb-val">Fund_2M% − Benchmark_2M%</div>
+        <div class="rs-fb-note">≈ 2 × 1M return (NSE proxy)</div>
+      </div>
+      <div class="rs-fb-item">
+        <div class="rs-fb-label">RS (3 Month)</div>
+        <div class="rs-fb-val">Fund_3M% − Benchmark_3M%</div>
+        <div class="rs-fb-note">≈ 1Y return ÷ 4 (NSE proxy)</div>
+      </div>
+      <div class="rs-fb-item">
+        <div class="rs-fb-label">RS Score</div>
+        <div class="rs-fb-val">(RS1M×3 + RS2M×2 + RS3M×1) ÷ 6</div>
+        <div class="rs-fb-note">Weighted → recent carries more</div>
+      </div>
+    </div>
+    <div class="rs-fb-signals">
+      <span class="rs-pill rs-pill-LEADER">LEADER</span> RS_1M &gt; 0 &amp; RS_3M &gt; 0 &nbsp;·&nbsp;
+      <span class="rs-pill rs-pill-IMPROVING">IMPROVING</span> RS_1M &gt; 0 (any 3M) &nbsp;·&nbsp;
+      <span class="rs-pill rs-pill-WATCH">WATCH</span> RS_1M near 0 (±0.5%) &nbsp;·&nbsp;
+      <span class="rs-pill rs-pill-LAGGARD">LAGGARD</span> RS_1M &lt; 0 &amp; RS_3M &lt; 0
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="rs-summary-row" id="rsSummaryRow" style="display:none;">
+    <div class="rs-sum-card">
+      <div class="rs-sum-val rs-green" id="rsSumTotal">—</div>
+      <div class="rs-sum-lbl">📊 Indices Scanned</div>
+      <div class="rs-sum-sub">From NSE allIndices</div>
+    </div>
+    <div class="rs-sum-card">
+      <div class="rs-sum-val rs-green" id="rsSumLeaders">—</div>
+      <div class="rs-sum-lbl">🏆 Leaders</div>
+      <div class="rs-sum-sub">RS_1M &gt;0 &amp; RS_3M &gt;0</div>
+    </div>
+    <div class="rs-sum-card">
+      <div class="rs-sum-val rs-amber" id="rsSumImproving">—</div>
+      <div class="rs-sum-lbl">📈 Improving</div>
+      <div class="rs-sum-sub">RS_1M &gt;0 (any 3M)</div>
+    </div>
+    <div class="rs-sum-card">
+      <div class="rs-sum-val rs-red" id="rsSumLaggards">—</div>
+      <div class="rs-sum-lbl">📉 Laggards</div>
+      <div class="rs-sum-sub">RS_1M &lt;0 &amp; RS_3M &lt;0</div>
+    </div>
+    <div class="rs-sum-card">
+      <div class="rs-sum-val rs-blue" id="rsSumAmcFound">—</div>
+      <div class="rs-sum-lbl">🏦 AMC Products</div>
+      <div class="rs-sum-sub">ETF or Index MF found</div>
+    </div>
+    <div class="rs-sum-card" style="min-width:180px;">
+      <div class="rs-sum-val" id="rsBenchmarkVal">—</div>
+      <div class="rs-sum-lbl">📌 Benchmark</div>
+      <div class="rs-sum-sub" id="rsBenchmarkName">Nifty 50</div>
+    </div>
+  </div>
+
+  <!-- AMC legend -->
+  <div class="rs-amc-legend" id="rsAmcLegend" style="display:none;">
+    <span class="rs-amc-label">AMC AVAILABILITY:</span>
+    <span class="rs-amc-pill amc-hdfc">HDFC</span>
+    <span class="rs-amc-pill amc-icici">ICICI</span>
+    <span class="rs-amc-pill amc-kotak">Kotak</span>
+    <span class="rs-amc-pill amc-absl">ABSL</span>
+    <span style="margin-left:12px;font-size:10px;color:#888;">🟣 ETF &nbsp; 🟤 Index MF &nbsp; ✅ Both available</span>
+  </div>
+
+  <!-- Main Table -->
+  <div class="rs-table-wrap" id="rsTableWrap" style="display:none;">
+    <table id="rsTable">
+      <thead>
+        <tr class="rs-thead-group">
+          <th rowspan="2" style="width:30px;">#</th>
+          <th rowspan="2" class="rs-th-name" data-sort="name">INDEX NAME</th>
+          <th rowspan="2" data-sort="signal" style="min-width:90px;">SIGNAL</th>
+          <th colspan="4" class="rs-th-group-sec">RELATIVE STRENGTH vs <span id="rsTblBenchName">Nifty 50</span></th>
+          <th colspan="4" class="rs-th-group-amc">AMC PRODUCTS (HDFC · ICICI · Kotak · ABSL)</th>
+        </tr>
+        <tr class="rs-thead-sub">
+          <th data-sort="rs1m" title="RS 1 Month = Fund_1M% minus Bench_1M%">RS 1M</th>
+          <th data-sort="rs2m" title="RS 2 Month = Fund_2M% minus Bench_2M%">RS 2M</th>
+          <th data-sort="rs3m" title="RS 3 Month = Fund_3M% minus Bench_3M%">RS 3M</th>
+          <th data-sort="rsScore" title="Weighted RS Score = (1M×3 + 2M×2 + 3M×1) ÷ 6">RS SCORE</th>
+          <th style="min-width:70px;">HDFC</th>
+          <th style="min-width:70px;">ICICI</th>
+          <th style="min-width:70px;">Kotak</th>
+          <th style="min-width:70px;">ABSL</th>
+        </tr>
+      </thead>
+      <tbody id="rsTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- AI Modal -->
+  <div class="rs-ai-modal" id="rsAiModal" style="display:none;">
+    <div class="rs-ai-modal-inner">
+      <div class="rs-ai-modal-head">
+        <div style="font-family:'Segoe UI Mono','Courier New',monospace;font-size:13px;font-weight:700;">🤖 GEMINI RS DEEP ANALYSIS</div>
+        <button class="rs-ai-close" id="rsAiClose">✕ Close</button>
+      </div>
+      <div id="rsAiLoading" style="text-align:center;padding:40px;display:none;">
+        <div class="rs-spinner"></div>
+        <div style="font-family:'Segoe UI Mono','Courier New',monospace;font-size:11px;color:#888;margin-top:12px;">Gemini analysing RS + AMC data…</div>
+      </div>
+      <div id="rsAiError" style="display:none;color:var(--red);font-family:'Segoe UI Mono','Courier New',monospace;font-size:12px;padding:16px;"></div>
+      <pre id="rsAiResult" style="display:none;white-space:pre-wrap;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.75;padding:4px 0;"></pre>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;font-size:10px;color:#999;text-align:center;font-family:'Segoe UI Mono','Courier New',monospace;">
+    Data: NSE allIndices API · RS = Return differential vs benchmark · AMC data via Gemini AI · 2M ≈ 2×1M proxy · 3M ≈ 1Y÷4 proxy
+  </div>
+
+</div><!-- .rs-wrap -->
+</div><!-- #tab-rs -->
+
+<!-- 8.2 RS CSS v2 -->
+<style>
+/* panel visibility — controlled by .tab-panel.active */
+.rs-wrap { max-width:1600px; margin:0 auto; padding:20px; font-family:'Segoe UI',Arial,sans-serif; }
+
+/* Header */
+.rs-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+.rs-header-left { display:flex; align-items:flex-start; gap:14px; flex-direction:column; }
+.rs-logo { font-family:'Segoe UI Mono','Courier New',monospace; font-size:20px; font-weight:800; color:var(--text); letter-spacing:2px; }
+.rs-logo span { color:var(--orange); }
+.rs-header-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#555; }
+.rs-formula-bar { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.rs-fml { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:var(--orange); background:var(--orange-dim); padding:2px 8px; border:1px solid var(--orange); }
+.rs-fml sub { font-size:8px; }
+.rs-fml-sep { color:#aaa; font-size:10px; }
+.rs-header-right { text-align:right; }
+.rs-clock { font-family:'Segoe UI Mono','Courier New',monospace; font-size:22px; font-weight:700; color:var(--text); }
+.rs-lastupdated { font-size:10px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; margin-top:2px; }
+
+/* Steps */
+.rs-steps { display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
+.rs-step { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border2); padding:6px 12px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#888; transition:all .3s; }
+.rs-step.active { background:var(--orange-dim); border-color:var(--orange); color:var(--orange); }
+.rs-step.done { background:var(--green-dim); border-color:var(--green); color:var(--green); }
+.rs-step-num { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; border:1.5px solid currentColor; font-size:10px; font-weight:800; flex-shrink:0; }
+.rs-step-lbl { font-size:9px; }
+.rs-step-arrow { color:#ccc; font-size:14px; }
+
+/* Controls */
+.rs-controls-bar { background:var(--surface); border:1px solid var(--border2); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.rs-controls-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.rs-controls-right { display:flex; align-items:center; gap:8px; }
+.rs-btn-primary { background:var(--orange); color:#000; font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; font-weight:700; padding:9px 22px; border:none; cursor:pointer; letter-spacing:1px; text-transform:uppercase; clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); }
+.rs-btn-primary:hover { background:#e6a020; }
+.rs-btn-stop { background:transparent; color:var(--red); font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; font-weight:700; padding:9px 20px; border:1px solid var(--red); cursor:pointer; }
+.rs-btn-secondary { background:var(--surface2); color:var(--text); font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; font-weight:600; padding:8px 14px; border:1px solid var(--border2); cursor:pointer; }
+.rs-btn-secondary:hover { background:var(--border2); }
+.rs-btn-ai { background:#16213e; color:#fff; font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; font-weight:600; padding:9px 18px; border:none; cursor:pointer; letter-spacing:0.8px; }
+.rs-btn-ai:hover { background:#0f3460; }
+.rs-filter-group { display:flex; align-items:center; gap:5px; }
+.rs-filter-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:#555; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+.rs-select { background:var(--surface2); color:var(--text); border:1px solid var(--border2); font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; padding:6px 22px 6px 8px; cursor:pointer; outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 7px center; }
+
+/* Progress */
+.rs-progress-wrap { background:var(--surface); border:1px solid var(--border2); padding:10px 16px; margin-bottom:14px; }
+.rs-progress-top { display:flex; justify-content:space-between; margin-bottom:6px; }
+.rs-progress-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:#555; }
+.rs-progress-pct { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--orange); font-weight:700; }
+.rs-progress-track { height:4px; background:var(--border2); }
+.rs-progress-fill { height:100%; background:linear-gradient(90deg,var(--orange),#ffcc44); transition:width .3s; box-shadow:0 0 8px var(--orange); }
+.rs-progress-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#888; margin-top:4px; }
+
+/* Error */
+.rs-error { background:var(--red-dim); border:1px solid var(--red); color:var(--red); font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; padding:12px 16px; margin-bottom:14px; }
+
+/* Formula box */
+.rs-formula-box { background:var(--surface); border:1px solid var(--border2); border-top:3px solid var(--orange); padding:14px 18px; margin-bottom:14px; }
+.rs-fb-title { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; font-weight:700; letter-spacing:1px; color:var(--orange); margin-bottom:10px; text-transform:uppercase; }
+.rs-fb-grid { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.rs-fb-item { background:var(--surface2); border:1px solid var(--border2); padding:10px 14px; flex:1; min-width:180px; }
+.rs-fb-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.rs-fb-val { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); font-weight:600; margin-bottom:3px; }
+.rs-fb-note { font-size:10px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; }
+.rs-fb-signals { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+
+/* Summary */
+.rs-summary-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.rs-sum-card { background:var(--surface); border:1px solid var(--border2); padding:12px 16px; flex:1; min-width:110px; }
+.rs-sum-val { font-family:'Segoe UI Mono','Courier New',monospace; font-size:26px; font-weight:800; line-height:1; }
+.rs-sum-val.rs-green { color:var(--green); }
+.rs-sum-val.rs-amber { color:var(--orange); }
+.rs-sum-val.rs-red   { color:var(--red); }
+.rs-sum-val.rs-blue  { color:var(--blue); }
+.rs-sum-lbl { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--text); margin-top:5px; text-transform:uppercase; letter-spacing:0.8px; }
+.rs-sum-sub { font-size:9px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; margin-top:2px; }
+
+/* AMC legend */
+.rs-amc-legend { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; }
+.rs-amc-label { font-weight:700; color:#555; text-transform:uppercase; letter-spacing:1px; }
+.rs-amc-pill { padding:3px 8px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:0.5px; }
+.amc-hdfc { background:#e8f4fd; color:#1565c0; border:1px solid #1565c0; }
+.amc-icici { background:#fce8e8; color:#b71c1c; border:1px solid #b71c1c; }
+.amc-kotak { background:#fff3e0; color:#e65100; border:1px solid #e65100; }
+.amc-absl { background:#f3e5f5; color:#6a1b9a; border:1px solid #6a1b9a; }
+
+/* Table */
+.rs-table-wrap { border:1px solid var(--border2); overflow-x:auto; background:var(--surface); max-height:calc(100vh - 280px); overflow-y:auto; }
+#rsTable { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; min-width:1000px; }
+#rsTable thead th { background:var(--surface2); color:var(--text); padding:8px 10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; border-right:1px solid var(--border); border-bottom:1px solid var(--border2); white-space:nowrap; cursor:pointer; user-select:none; position:sticky; top:0; z-index:3; text-align:center; }
+.rs-thead-group th { top:0!important; z-index:4!important; background:var(--surface)!important; font-size:9px!important; letter-spacing:1.5px!important; color:var(--orange)!important; border-bottom:2px solid var(--border2)!important; }
+.rs-thead-sub th { top:28px!important; z-index:3!important; }
+.rs-th-name { min-width:190px; text-align:left!important; }
+.rs-th-group-sec { border-left:2px solid var(--border2)!important; }
+.rs-th-group-amc { border-left:2px solid var(--border2)!important; background:var(--surface)!important; }
+#rsTable thead th:last-child { border-right:none; }
+#rsTable tbody td { padding:7px 10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); border-right:1px solid var(--border); border-bottom:1px solid var(--border); white-space:nowrap; text-align:center; }
+#rsTable tbody td:last-child { border-right:none; }
+#rsTable tbody tr:hover td { background:var(--surface2)!important; }
+#rsTable tbody td.rs-td-name { text-align:left; font-weight:600; font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis; }
+
+/* Sticky columns */
+#rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1) { position:sticky; left:0; z-index:2; background:var(--surface2); width:30px; min-width:30px; }
+#rsTable tbody td:nth-child(1) { background:var(--surface); }
+#rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2) { position:sticky; left:30px; z-index:2; box-shadow:3px 0 5px -2px rgba(0,0,0,0.2); }
+#rsTable tbody td:nth-child(2) { background:var(--surface); }
+#rsTable thead th:nth-child(2) { background:var(--surface2); }
+.rs-thead-group th:nth-child(1), .rs-thead-group th:nth-child(2) { z-index:6!important; }
+
+/* Pills */
+.rs-pill { display:inline-block; padding:3px 9px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; border-radius:2px; min-width:70px; text-align:center; }
+.rs-pill-LEADER   { background:var(--green-dim); color:var(--green); border:1px solid var(--green); }
+.rs-pill-IMPROVING{ background:var(--orange-dim); color:var(--orange); border:1px solid var(--orange); }
+.rs-pill-WATCH    { background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber); }
+.rs-pill-LAGGARD  { background:var(--red-dim); color:var(--red); border:1px solid var(--red); }
+
+/* RS value colors */
+.rs-pos { color:var(--green); font-weight:700; }
+.rs-neg { color:var(--red); }
+.rs-zer { color:#888; }
+
+/* AMC cell */
+.amc-cell { display:flex; flex-direction:column; gap:2px; align-items:center; }
+.amc-tag { font-size:9px; padding:2px 5px; border-radius:2px; font-weight:700; letter-spacing:0.3px; white-space:nowrap; }
+.amc-tag-etf { background:#e8f4fd; color:#1565c0; }
+.amc-tag-mf  { background:#f3e5f5; color:#6a1b9a; }
+.amc-tag-both{ background:var(--green-dim); color:var(--green); }
+.amc-tag-no  { color:#bbb; font-size:10px; }
+
+/* AI Modal */
+.rs-ai-modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.55); z-index:2000; display:flex; align-items:center; justify-content:center; }
+.rs-ai-modal-inner { background:var(--surface); border:1px solid var(--border2); border-top:3px solid var(--orange); max-width:800px; width:95%; max-height:88vh; overflow-y:auto; padding:24px; }
+.rs-ai-modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border2); }
+.rs-ai-close { background:var(--surface2); border:1px solid var(--border2); color:var(--text); font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; padding:6px 14px; cursor:pointer; }
+.rs-ai-close:hover { background:var(--border2); }
+@keyframes rs-spin { to { transform:rotate(360deg); } }
+.rs-spinner { display:inline-block; width:28px; height:28px; border:3px solid var(--border2); border-top-color:var(--orange); border-radius:50%; animation:rs-spin .7s linear infinite; }
+
+@media(max-width:600px){
+  .rs-wrap{padding:10px}
+  .rs-clock{font-size:16px}
+  .rs-steps{display:none}
+  .rs-summary-row{gap:6px}
+  .rs-sum-card{min-width:90px;padding:8px 10px}
+  .rs-sum-val{font-size:20px}
+  .rs-table-wrap{max-height:calc(100vh - 240px)}
+  #rsTable tbody td{padding:5px 6px;font-size:10px}
+  #rsTable thead th{font-size:9px;padding:5px 5px}
+}
+</style>
+
+<!-- 8.3 RS JavaScript v2 -->
+<script>
+(function(win){
+'use strict';
+
+// ── Constants (same sources as core scanner) ──
+var CORS   = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+var NSE_URL= 'https://www.nseindia.com/api/allIndices';
+var G_CASCADE = [
+  {key:1,model:'gemini-3.1-flash-lite'},
+  {key:1,model:'gemini-3-flash'},
+  {key:1,model:'gemini-3.5-flash'},
+  {key:1,model:'gemini-3.1-pro'},
+  {key:2,model:'gemini-3.1-flash-lite'},
+  {key:2,model:'gemini-3-flash'},
+  {key:2,model:'gemini-3.5-flash'},
+  {key:2,model:'gemini-3.1-pro'},
+];
+var AMC_NAMES = ['HDFC','ICICI','Kotak','ABSL'];
+
+// ── State ──
+var S = {
+  running:false, stopped:false,
+  allNse:[], bench:null, rows:[], amcData:{},
+  sortKey:'rsScore', sortDir:'desc',
+};
+
+// ── DOM ──
+function $(id){return document.getElementById(id);}
+var EL = {};
+['rsScanBtn','rsStopBtn','rsResetBtn','rsProgressWrap','rsProgressLabel',
+ 'rsProgressPct','rsProgressFill','rsProgressSub','rsError','rsSummaryRow',
+ 'rsFormulaBox','rsAmcLegend','rsTableWrap','rsTableBody','rsBenchmarkSelect',
+ 'rsSignalFilter','rsAmcFilter','rsAiBtn','rsAiModal','rsAiClose',
+ 'rsAiLoading','rsAiError','rsAiResult','rsClockDisplay','rsLastUpdated',
+ 'rsStep1','rsStep2','rsStep3','rsStep4','rsStep5'
+].forEach(function(id){ EL[id]=$(''+id); });
+
+// ── Clock ──
+function tick(){
+  var el=EL.rsClockDisplay;
+  if(el) el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+// ── Step indicator ──
+function setStep(n){
+  [1,2,3,4,5].forEach(function(i){
+    var el=EL['rsStep'+i];
+    if(!el) return;
+    el.classList.remove('active','done');
+    if(i<n) el.classList.add('done');
+    else if(i===n) el.classList.add('active');
+  });
+}
+
+// ── Progress ──
+function prog(pct,label,sub){
+  EL.rsProgressPct.textContent=pct+'%';
+  EL.rsProgressFill.style.width=pct+'%';
+  if(label!=null) EL.rsProgressLabel.textContent=label;
+  if(sub!=null) EL.rsProgressSub.textContent=sub;
+}
+
+// ════════════════════════════════════════════
+// STEP 1: Fetch all 139 NSE indices
+// ════════════════════════════════════════════
+async function fetchNSE(){
+  setStep(1); prog(5,'Connecting to NSE…','Fetching allIndices API');
+  var res = await fetch(CORS+encodeURIComponent(NSE_URL),{signal:AbortSignal.timeout(25000)});
+  if(!res.ok) throw new Error('NSE API error HTTP '+res.status);
+  var j = await res.json();
+  var data = j.data||[];
+  if(!data.length) throw new Error('NSE returned empty data');
+  S.allNse = data;
+  prog(20,'NSE data fetched','Got '+data.length+' indices');
+  return data;
+}
+
+// ════════════════════════════════════════════
+// STEP 2: Compute RS for all indices (1M/2M/3M)
+// Formula:
+//   RS_1M = Fund_perChange30d  - Bench_perChange30d
+//   RS_2M = (Fund_1M * 2)     - (Bench_1M * 2)   [proxy: 2× the 30d]
+//   RS_3M = Fund_perChange365d/4 - Bench_perChange365d/4 [proxy: 1Y÷4]
+//   RS_Score = (RS1M×3 + RS2M×2 + RS3M×1) / 6   [recency weighted]
+// ════════════════════════════════════════════
+function computeRS(idx, bench){
+  var p1m  = parseFloat(idx.perChange30d)  || null;
+  var p1y  = parseFloat(idx.perChange365d) || null;
+  var b1m  = bench.chg1m;
+  var b1y  = bench.chg1y;
+
+  var rs1m = (p1m!=null && b1m!=null) ? p1m - b1m : null;
+  var rs2m = rs1m!=null ? rs1m * 1.8 : null;   // proxy: 2M ≈ 1.8× the 1M RS
+  var rs3m = (p1y!=null && b1y!=null) ? (p1y/4) - (b1y/4) : null;
+
+  // weighted score (most recent = highest weight)
+  var score=null, sw=0, sv=0;
+  if(rs1m!=null){sv+=rs1m*3; sw+=3;}
+  if(rs2m!=null){sv+=rs2m*2; sw+=2;}
+  if(rs3m!=null){sv+=rs3m*1; sw+=1;}
+  if(sw>0) score=sv/sw;
+
+  // Signal
+  var signal='WATCH';
+  if(rs1m!=null && rs3m!=null && rs1m>0 && rs3m>0)          signal='LEADER';
+  else if(rs1m!=null && rs1m>0.5)                             signal='IMPROVING';
+  else if(rs1m!=null && rs3m!=null && rs1m<0 && rs3m<0)      signal='LAGGARD';
+  else if(rs1m!=null && Math.abs(rs1m)<=0.5)                  signal='WATCH';
+
+  return {rs1m, rs2m, rs3m, score, signal,
+    chg1d : parseFloat(idx.percentChange)||null,
+    chg1m : p1m,
+    price : parseFloat(idx.last)||null,
+  };
+}
+
+function allRS(data, bench){
+  setStep(2); prog(30,'Computing RS for all indices…','1M / 2M / 3M vs '+bench.name);
+  return data
+    .filter(function(i){ return (i.index||'')!==bench.name; })
+    .map(function(i){
+      var rs=computeRS(i,bench);
+      return {
+        name: i.index||i.indexSymbol||'—',
+        key : (i.key||'').toLowerCase(),
+        rs  : rs,
+        raw : i,
+      };
+    })
+    .filter(function(r){ return r.rs.score!=null; });
+}
+
+// ════════════════════════════════════════════
+// STEP 3: Filter leaders/improving (RS criteria)
+// ════════════════════════════════════════════
+function filterLeaders(rows){
+  setStep(3); prog(45,'Filtering qualifying indices…','RS_1M>0 or RS_3M>0');
+  // Keep ALL for table but tag; leaders+improving go to AMC check
+  return rows;
+}
+
+// ════════════════════════════════════════════
+// STEP 4: Gemini AMC check
+// Ask Gemini: for each qualifying index, which of HDFC/ICICI/Kotak/ABSL
+// have (a) an ETF, (b) an Index MF, tracking it?
+// Returns JSON: { "NIFTY BANK": { HDFC:{etf:"Nifty Bank ETF",mf:null}, ICICI:{etf:"...",mf:"..."}, ...}, ... }
+// ════════════════════════════════════════════
+async function checkAMC(rows){
+  setStep(4); prog(55,'Asking Gemini about AMC products…','Checking HDFC · ICICI · Kotak · ABSL');
+
+  var k1=(localStorage.getItem('ld_scanner_gemini_key1')||'').trim();
+  var k2=(localStorage.getItem('ld_scanner_gemini_key2')||'').trim();
+  var keys={1:k1.length>=20?k1:null, 2:k2.length>=20?k2:null};
+  if(!keys[1]&&!keys[2]){
+    prog(70,'Skipping AMC check (no Gemini key)','Save key in Scanner tab to enable AMC check');
+    // Return empty AMC data — scan still works without it
+    rows.forEach(function(r){ S.amcData[r.name]=null; });
+    return;
+  }
+
+  // Send all index names to Gemini in one batch (max 139)
+  var names = rows.map(function(r){return r.name;}).slice(0,139);
+  var prompt =
+    'You are a mutual fund product database for India.\n'
+   +'TASK: For EACH index listed below, tell me which of these 4 AMCs offers a product tracking it:\n'
+   +'AMCs to check: HDFC Mutual Fund, ICICI Prudential MF, Kotak Mahindra MF, Aditya Birla Sun Life (ABSL) MF.\n'
+   +'For each AMC, note separately:\n'
+   +'  - etf: name of ETF if they have one (e.g. "HDFC Nifty 50 ETF"), else null\n'
+   +'  - mf: name of Index Fund if they have one (e.g. "HDFC Index Fund Nifty 50"), else null\n\n'
+   +'STRICT RULES:\n'
+   +'1. Use your knowledge of Indian MF product universe as of 2024-2025.\n'
+   +'2. Return ONLY valid JSON. No preamble. No markdown. No explanation.\n'
+   +'3. Key = exact index name as given. Value = object with keys HDFC, ICICI, Kotak, ABSL.\n'
+   +'4. If an AMC has no product for an index, set both etf and mf to null.\n'
+   +'5. If you are unsure, set to null — do NOT hallucinate product names.\n\n'
+   +'OUTPUT FORMAT (example):\n'
+   +'{\n'
+   +'  "NIFTY 50": {\n'
+   +'    "HDFC":  {"etf":"HDFC Nifty 50 ETF","mf":"HDFC Index Fund-Nifty 50 Plan"},\n'
+   +'    "ICICI": {"etf":"ICICI Pru Nifty 50 ETF","mf":"ICICI Pru Index Fund"},\n'
+   +'    "Kotak": {"etf":"Kotak Nifty 50 ETF","mf":"Kotak Nifty 50 Index Fund"},\n'
+   +'    "ABSL":  {"etf":null,"mf":"Aditya Birla SL Index Fund"}\n'
+   +'  }\n'
+   +'}\n\n'
+   +'INDICES TO CHECK ('+names.length+' total):\n'
+   +names.join('\n');
+
+  var payload={
+    contents:[{parts:[{text:prompt}]}],
+    generationConfig:{responseMimeType:'application/json', temperature:0.1}
+  };
+
+  var result=null;
+  for(var ci=0;ci<G_CASCADE.length;ci++){
+    if(S.stopped) break;
+    var entry=G_CASCADE[ci];
+    var apiKey=keys[entry.key];
+    if(!apiKey) continue;
+    try{
+      prog(55+ci*2,'Trying Gemini '+entry.model+'…','AMC product database query');
+      var ep='https://generativelanguage.googleapis.com/v1beta/models/'+entry.model+':generateContent?key='+apiKey;
+      var r=await fetch(ep,{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload), signal:AbortSignal.timeout(40000)
+      });
+      var d=await r.json();
+      if(d.error){if(d.error.code===429||d.error.code===503) continue; continue;}
+      var raw=(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts&&d.candidates[0].content.parts[0]?d.candidates[0].content.parts[0].text:'').trim();
+      if(!raw) continue;
+      // strip possible markdown fences
+      raw=raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
+      result=JSON.parse(raw);
+      break;
+    }catch(e){continue;}
+  }
+
+  if(result){
+    S.amcData=result;
+    prog(80,'AMC data received','Gemini returned product info');
+  } else {
+    S.amcData={};
+    prog(80,'AMC check done (partial)','Some indices may show N/A');
+  }
+}
+
+// ════════════════════════════════════════════
+// STEP 5: Render table
+// ════════════════════════════════════════════
+function fmtRS(v){
+  if(v==null||isNaN(v)) return '<span style="color:#bbb;">—</span>';
+  var cls = v>0.5?'rs-pos':v<-0.5?'rs-neg':'rs-zer';
+  var sign = v>0?'+':'';
+  return '<span class="'+cls+'">'+sign+v.toFixed(2)+'%</span>';
+}
+function fmtScore(v){
+  if(v==null||isNaN(v)) return '<span style="color:#bbb;">—</span>';
+  var cls = v>0?'rs-pos':v<0?'rs-neg':'rs-zer';
+  var sign = v>0?'+':'';
+  return '<span class="'+cls+'" style="font-weight:800;">'+sign+v.toFixed(2)+'</span>';
+}
+function amcCell(amc, indexName){
+  var data = S.amcData && S.amcData[indexName];
+  if(!data || !data[amc]) return '<span class="amc-tag-no">—</span>';
+  var d=data[amc];
+  var hasEtf=!!d.etf, hasMf=!!d.mf;
+  if(hasEtf&&hasMf){
+    return '<div class="amc-cell"><span class="amc-tag amc-tag-both" title="'+d.etf+'">✅ ETF+MF</span></div>';
+  } else if(hasEtf){
+    return '<div class="amc-cell"><span class="amc-tag amc-tag-etf" title="'+d.etf+'">🟣 ETF</span></div>';
+  } else if(hasMf){
+    return '<div class="amc-cell"><span class="amc-tag amc-tag-mf" title="'+d.mf+'">🟤 MF</span></div>';
+  }
+  return '<span class="amc-tag-no">—</span>';
+}
+function hasAmcProduct(indexName){
+  var d=S.amcData&&S.amcData[indexName];
+  if(!d) return {any:false,etf:false,mf:false,both:false};
+  var etf=AMC_NAMES.some(function(a){return d[a]&&d[a].etf;});
+  var mf =AMC_NAMES.some(function(a){return d[a]&&d[a].mf;});
+  return {any:etf||mf, etf:etf, mf:mf, both:etf&&mf};
+}
+
+function renderRSTable(){
+  var sigFlt = EL.rsSignalFilter.value;
+  var amcFlt = EL.rsAmcFilter.value;
+  var sk=S.sortKey, sd=S.sortDir;
+
+  var rows=[].concat(S.rows);
+
+  // AMC filter
+  if(amcFlt!=='ALL'){
+    rows=rows.filter(function(r){
+      var h=hasAmcProduct(r.name);
+      if(amcFlt==='AMC_ONLY') return h.any;
+      if(amcFlt==='ETF_ONLY') return h.etf;
+      if(amcFlt==='MF_ONLY')  return h.mf;
+      if(amcFlt==='BOTH')     return h.both;
+      return true;
+    });
+  }
+  // Signal filter
+  if(sigFlt!=='ALL'){
+    rows=rows.filter(function(r){return r.rs.signal===sigFlt;});
+  }
+
+  // Sort
+  rows.sort(function(a,b){
+    var av,bv;
+    if(sk==='name'){return sd==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name);}
+    if(sk==='rs1m')  {av=a.rs.rs1m||0; bv=b.rs.rs1m||0;}
+    else if(sk==='rs2m')  {av=a.rs.rs2m||0; bv=b.rs.rs2m||0;}
+    else if(sk==='rs3m')  {av=a.rs.rs3m||0; bv=b.rs.rs3m||0;}
+    else if(sk==='rsScore'){av=a.rs.score||0; bv=b.rs.score||0;}
+    else if(sk==='signal'){var so={LEADER:0,IMPROVING:1,WATCH:2,LAGGARD:3}; av=so[a.rs.signal]||9;bv=so[b.rs.signal]||9;}
+    else {av=0;bv=0;}
+    return sd==='asc'?av-bv:bv-av;
+  });
+
+  var html='';
+  if(!rows.length){
+    html='<tr><td colspan="11" style="text-align:center;padding:32px;color:#888;font-family:\'Segoe UI\',sans-serif;">No indices matching the current filters.</td></tr>';
+  } else {
+    rows.forEach(function(r,i){
+      var sig=r.rs.signal;
+      html+='<tr>'
+        +'<td style="text-align:center;color:#aaa;font-size:10px;">'+(i+1)+'</td>'
+        +'<td class="rs-td-name" title="'+r.name+'">'+r.name+'</td>'
+        +'<td><span class="rs-pill rs-pill-'+sig+'">'+sig+'</span></td>'
+        +'<td>'+fmtRS(r.rs.rs1m)+'</td>'
+        +'<td>'+fmtRS(r.rs.rs2m)+'</td>'
+        +'<td>'+fmtRS(r.rs.rs3m)+'</td>'
+        +'<td>'+fmtScore(r.rs.score)+'</td>'
+        +'<td>'+amcCell('HDFC',r.name)+'</td>'
+        +'<td>'+amcCell('ICICI',r.name)+'</td>'
+        +'<td>'+amcCell('Kotak',r.name)+'</td>'
+        +'<td>'+amcCell('ABSL',r.name)+'</td>'
+        +'</tr>';
+    });
+  }
+  EL.rsTableBody.innerHTML=html;
+
+  // Sort arrows
+  document.querySelectorAll('#rsTable thead th[data-sort]').forEach(function(th){
+    var k=th.getAttribute('data-sort');
+    var base=th.getAttribute('data-base')||th.textContent.replace(/[▲▼ ]/g,'');
+    th.setAttribute('data-base',base);
+    th.textContent=base+(S.sortKey===k?(S.sortDir==='asc'?' ▲':' ▼'):'');
+  });
+}
+
+// ════════════════════════════════════════════
+// MAIN SCAN
+// ════════════════════════════════════════════
+async function runScan(){
+  if(S.running) return;
+  S.running=true; S.stopped=false; S.rows=[]; S.amcData={};
+
+  EL.rsError.style.display='none';
+  EL.rsSummaryRow.style.display='none';
+  EL.rsFormulaBox.style.display='none';
+  EL.rsAmcLegend.style.display='none';
+  EL.rsTableWrap.style.display='none';
+  EL.rsProgressWrap.style.display='block';
+  EL.rsScanBtn.style.display='none';
+  EL.rsStopBtn.style.display='inline-block';
+  EL.rsAiBtn.style.display='none';
+  setStep(1);
+
+  try{
+    // Step 1: Fetch
+    var data=await fetchNSE();
+    if(S.stopped) return cleanup();
+
+    // Benchmark
+    var benchName=EL.rsBenchmarkSelect.value;
+    var benchRaw=data.find(function(i){return (i.index||'').toUpperCase()===benchName.toUpperCase();});
+    if(!benchRaw) throw new Error('Benchmark "'+benchName+'" not found in NSE data.');
+    S.bench={
+      name:benchRaw.index,
+      price:parseFloat(benchRaw.last)||null,
+      chg1d:parseFloat(benchRaw.percentChange)||null,
+      chg1m:parseFloat(benchRaw.perChange30d)||null,
+      chg1y:parseFloat(benchRaw.perChange365d)||null,
+    };
+    $('rsBenchmarkName').textContent=S.bench.name;
+    $('rsBenchmarkVal').textContent=S.bench.price!=null?'₹'+S.bench.price.toLocaleString('en-IN'):'N/A';
+    $('rsTblBenchName').textContent=S.bench.name;
+    $('rsFmlBench1m').textContent=S.bench.chg1m!=null?S.bench.chg1m.toFixed(2)+'%':'N/A';
+
+    // Step 2: RS for all indices
+    var allRows=allRS(data,S.bench);
+    prog(40,'RS computed for '+allRows.length+' indices');
+    if(S.stopped) return cleanup();
+
+    // Step 3: Filter (keep all but pre-rank)
+    S.rows=filterLeaders(allRows);
+    // Sort by RS Score descending initially
+    S.rows.sort(function(a,b){return (b.rs.score||0)-(a.rs.score||0);});
+
+    var leaders=S.rows.filter(function(r){return r.rs.signal==='LEADER';}).length;
+    var improving=S.rows.filter(function(r){return r.rs.signal==='IMPROVING';}).length;
+    var laggards=S.rows.filter(function(r){return r.rs.signal==='LAGGARD';}).length;
+
+    prog(50,'Filtered — '+leaders+' leaders, '+improving+' improving');
+    if(S.stopped) return cleanup();
+
+    // Step 4: Gemini AMC check
+    await checkAMC(S.rows);
+    if(S.stopped) return cleanup();
+
+    // Step 5: Render
+    setStep(5);
+    prog(95,'Building results table…');
+
+    var amcFound=S.rows.filter(function(r){return hasAmcProduct(r.name).any;}).length;
+    $('rsSumTotal').textContent=allRows.length;
+    $('rsSumLeaders').textContent=leaders;
+    $('rsSumImproving').textContent=improving;
+    $('rsSumLaggards').textContent=laggards;
+    $('rsSumAmcFound').textContent=amcFound;
+
+    S.lastScan=new Date();
+    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN');
+
+    renderRSTable();
+    EL.rsSummaryRow.style.display='flex';
+    EL.rsFormulaBox.style.display='block';
+    EL.rsAmcLegend.style.display='flex';
+    EL.rsTableWrap.style.display='block';
+    EL.rsAiBtn.style.display='inline-block';
+
+    prog(100,'Scan complete ✓ — '+S.rows.length+' indices · '+leaders+' leaders · '+amcFound+' AMC products found');
+    setTimeout(function(){EL.rsProgressWrap.style.display='none';},2000);
+
+  }catch(err){
+    EL.rsError.textContent='⚠ '+err.message;
+    EL.rsError.style.display='block';
+    setStep(1);
+  } finally {
+    cleanup();
+  }
+}
+
+function cleanup(){
+  S.running=false;
+  EL.rsScanBtn.style.display='inline-block';
+  EL.rsStopBtn.style.display='none';
+}
+
+// ── Sort click ──
+document.getElementById('rsTable').addEventListener('click',function(e){
+  var th=e.target.closest('th[data-sort]');
+  if(!th||!S.rows.length) return;
+  var k=th.getAttribute('data-sort');
+  S.sortDir=(S.sortKey===k&&S.sortDir==='desc')?'asc':'desc';
+  S.sortKey=k;
+  renderRSTable();
+});
+
+// ── Filters ──
+EL.rsSignalFilter.addEventListener('change',function(){if(S.rows.length) renderRSTable();});
+EL.rsAmcFilter.addEventListener('change',function(){if(S.rows.length) renderRSTable();});
+
+// ── Buttons ──
+EL.rsScanBtn.addEventListener('click', runScan);
+EL.rsStopBtn.addEventListener('click',function(){S.stopped=true; cleanup();});
+EL.rsResetBtn.addEventListener('click',function(){
+  S.rows=[]; S.amcData={}; S.running=false; S.stopped=false; S.bench=null;
+  EL.rsError.style.display='none';
+  EL.rsSummaryRow.style.display='none';
+  EL.rsFormulaBox.style.display='none';
+  EL.rsAmcLegend.style.display='none';
+  EL.rsTableWrap.style.display='none';
+  EL.rsProgressWrap.style.display='none';
+  EL.rsTableBody.innerHTML='';
+  EL.rsAiBtn.style.display='none';
+  EL.rsLastUpdated.textContent='Not scanned yet';
+  setStep(0);
+});
+
+// ── AI Deep Analysis ──
+EL.rsAiBtn.addEventListener('click',async function(){
+  if(!S.rows.length){alert('Run scan first.');return;}
+  EL.rsAiModal.style.display='flex';
+  EL.rsAiLoading.style.display='block';
+  EL.rsAiError.style.display='none';
+  EL.rsAiResult.style.display='none';
+
+  var k1=(localStorage.getItem('ld_scanner_gemini_key1')||'').trim();
+  var k2=(localStorage.getItem('ld_scanner_gemini_key2')||'').trim();
+  var keys={1:k1.length>=20?k1:null,2:k2.length>=20?k2:null};
+  if(!keys[1]&&!keys[2]){
+    EL.rsAiLoading.style.display='none';
+    EL.rsAiError.textContent='⚠ No Gemini key found. Save in Scanner tab → Gemini Key Setup.';
+    EL.rsAiError.style.display='block';
+    return;
+  }
+
+  var leaders=S.rows.filter(function(r){return r.rs.signal==='LEADER';}).slice(0,10);
+  var improving=S.rows.filter(function(r){return r.rs.signal==='IMPROVING';}).slice(0,5);
+  var bench=S.bench;
+
+  function fRow(r){
+    var d=S.amcData[r.name]||{};
+    var amc=AMC_NAMES.map(function(a){
+      var dd=d[a]||{};
+      var parts=[];
+      if(dd.etf) parts.push('ETF:'+dd.etf);
+      if(dd.mf)  parts.push('MF:'+dd.mf);
+      return a+'['+( parts.length?parts.join('/'):'-')+']';
+    }).join(' | ');
+    return r.name
+      +' | RS_1M='+(r.rs.rs1m!=null?(r.rs.rs1m>0?'+':'')+r.rs.rs1m.toFixed(2)+'%':'N/A')
+      +' | RS_2M='+(r.rs.rs2m!=null?(r.rs.rs2m>0?'+':'')+r.rs.rs2m.toFixed(2)+'%':'N/A')
+      +' | RS_3M='+(r.rs.rs3m!=null?(r.rs.rs3m>0?'+':'')+r.rs.rs3m.toFixed(2)+'%':'N/A')
+      +' | Score='+(r.rs.score!=null?(r.rs.score>0?'+':'')+r.rs.score.toFixed(2):'N/A')
+      +'\n  AMC: '+amc;
+  }
+
+  var today=new Date().toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'});
+  var prompt=
+    'You are an Indian Mutual Fund RS Strategist.\n'
+   +'RULE: Use ONLY data below. No assumptions.\n\n'
+   +'## RS SCAN RESULTS — '+today+'\n'
+   +'Benchmark: '+(bench?bench.name:'N/A')+' | 1M: '+(bench&&bench.chg1m!=null?(bench.chg1m>0?'+':'')+bench.chg1m.toFixed(2)+'%':'N/A')+'\n\n'
+   +'RS FORMULA: RS_1M = Fund_1M% − Bench_1M% | RS_Score = (1M×3+2M×2+3M×1)÷6\n\n'
+   +'## LEADERS (RS_1M>0 & RS_3M>0):\n'
+   +(leaders.length?leaders.map(fRow).join('\n'):'None')+'\n\n'
+   +'## IMPROVING:\n'
+   +(improving.length?improving.map(fRow).join('\n'):'None')+'\n\n'
+   +'## OUTPUT FORMAT:\n\n'
+   +'### 1. Market RS Context\n[Benchmark momentum + broad RS picture]\n\n'
+   +'### 2. Top 3 Leaders — Buy/Hold\n[Name | Why RS strong | Which AMC product to use]\n\n'
+   +'### 3. Emerging Leaders (Improving)\n[Early movers with accelerating RS]\n\n'
+   +'### 4. AMC Product Selection Guide\n'
+   +'[For each top leader: recommend ETF vs Index MF — which AMC, which product name, and why]\n\n'
+   +'### 5. RS Strategy Verdict\n'
+   +'Regime: [BULL RS / MIXED / DEFENSIVE]\n'
+   +'Allocation Bias: [Specific]\n'
+   +'Sacred Rule: [One clear action rule from this RS data]';
+
+  var payload={contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'text/plain'}};
+  var result=null;
+  for(var ci=0;ci<G_CASCADE.length;ci++){
+    var e=G_CASCADE[ci]; var ak=keys[e.key];
+    if(!ak) continue;
+    try{
+      var ep='https://generativelanguage.googleapis.com/v1beta/models/'+e.model+':generateContent?key='+ak;
+      var rr=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(35000)});
+      var dd=await rr.json();
+      if(dd.error) continue;
+      result=(dd.candidates&&dd.candidates[0]&&dd.candidates[0].content&&dd.candidates[0].content.parts&&dd.candidates[0].content.parts[0]?dd.candidates[0].content.parts[0].text:'').trim();
+      if(result) break;
+    }catch(ex){continue;}
+  }
+
+  EL.rsAiLoading.style.display='none';
+  if(result){
+    EL.rsAiResult.textContent=result;
+    EL.rsAiResult.style.display='block';
+  } else {
+    EL.rsAiError.textContent='⚠ Gemini returned no response. Try again or check API key.';
+    EL.rsAiError.style.display='block';
+  }
+});
+
+EL.rsAiClose.addEventListener('click',function(){EL.rsAiModal.style.display='none';});
+EL.rsAiModal.addEventListener('click',function(e){if(e.target===EL.rsAiModal)EL.rsAiModal.style.display='none';});
+
+// Tab hook
+win.onRSTabActivated=function(){};
+
 })(window);
 </script>
 
