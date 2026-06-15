@@ -4407,32 +4407,80 @@ win.rsToggleWL=rsToggleWL;
 .ba-period-block:first-child .ba-period-head .ba-period-label{color:var(--green);}
 </style>
 
+<!-- 9.3 BA Grid CSS -->
+<style>
+.ba-grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ba-grid-hdr{display:flex;min-width:580px;background:var(--surface2);border:1px solid var(--border2);border-bottom:none;}
+.ba-grid-hdr-rank{width:42px;min-width:42px;padding:8px 4px;font-family:var(--mono);font-size:9px;font-weight:700;color:#888;text-align:center;letter-spacing:1px;border-right:1px solid var(--border2);display:flex;align-items:center;justify-content:center;}
+.ba-grid-hdr-period{flex:1;min-width:88px;padding:6px 4px;text-align:center;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:2px;}
+.ba-grid-hdr-latest{background:var(--orange-dim);border-left:2px solid var(--orange)!important;}
+.ba-ghp-top{height:16px;display:flex;align-items:center;justify-content:center;}
+.ba-ghp-label{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text);}
+.ba-ghp-year{font-family:var(--mono);font-size:9px;color:#888;}
+.ba-latest-badge{background:var(--orange);color:#000;font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;letter-spacing:1px;}
+.ba-period-badge2{background:var(--surface);border:1px solid var(--border2);color:#888;font-family:var(--mono);font-size:8px;padding:1px 5px;}
+.ba-grid-bench{display:flex;min-width:580px;background:#fafafa;border:1px solid var(--border2);border-bottom:none;}
+.ba-grid-bench-cell{flex:1;min-width:88px;padding:5px 4px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
+.ba-bc-row{display:flex;align-items:center;justify-content:space-between;gap:3px;}
+.ba-bc-lbl{font-family:var(--mono);font-size:8px;color:#aaa;width:14px;}
+.ba-grid-row{display:flex;min-width:580px;border:1px solid var(--border2);border-bottom:none;}
+.ba-grid-row:last-of-type{border-bottom:1px solid var(--border2);}
+.ba-grid-rank-lbl{width:42px;min-width:42px;padding:8px 4px;text-align:center;border-right:1px solid var(--border2);display:flex;align-items:center;justify-content:center;}
+.ba-rank-medal{font-size:14px;line-height:1;}
+.ba-grid-cell{flex:1;min-width:88px;padding:6px 5px;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:flex-start;gap:3px;}
+.ba-grid-cell-latest{background:rgba(255,152,0,0.05)!important;border-left:2px solid var(--orange)!important;}
+.ba-cell-mix{display:flex;flex-direction:column;gap:1px;}
+.ba-cm-eq{font-family:var(--mono);font-size:9px;color:#1a4a8a;font-weight:600;}
+.ba-cm-db{font-family:var(--mono);font-size:9px;color:#0a5a2a;font-weight:600;}
+.ba-cm-gd{font-family:var(--mono);font-size:9px;color:#7a4a00;font-weight:600;}
+.ba-cell-ret{font-family:var(--mono);font-size:11px;font-weight:700;margin-top:2px;}
+.ba-pos{color:var(--green);font-weight:700;}
+.ba-neg{color:var(--red);font-weight:700;}
+.ba-zer{color:#888;}
+.ba-na{color:#ccc;}
+.ba-grid-avg-row{display:flex;min-width:580px;border:1px solid var(--border2);border-top:2px solid var(--orange);margin-top:4px;}
+.ba-grid-footer{font-family:var(--mono);font-size:10px;color:#555;padding:8px 6px;margin-top:2px;background:var(--orange-dim);border:1px solid var(--orange);}
+.ba-port-legend{margin-top:14px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);}
+.ba-pl-title{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--orange);letter-spacing:1.5px;margin-bottom:8px;}
+.ba-pl-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.ba-pl-card{background:#fff;border:1px solid var(--border);padding:6px 10px;min-width:110px;}
+.ba-pl-id{font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:3px;color:var(--text);}
+.ba-pl-mix{display:flex;flex-direction:column;gap:1px;}
+.ba-data-src{font-family:var(--mono);font-size:9px;color:#aaa;margin-top:6px;padding:4px 6px;border-top:1px solid var(--border);}
+</style>
+
 <!-- 9.3 BA JavaScript -->
 <script>
 (function(win){
 'use strict';
 
+// ── Shared CORS proxy (same as TTF and RS tabs) ──
 var BA_CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+var NSE_ALL = 'https://www.nseindia.com/api/allIndices';
+var NSE_CSV = 'https://archives.nseindia.com/content/indices/ind_close_all_';
+
 var baStop = false;
 
-// ── Portfolio definitions (Equity / Debt / Gold weights) ──
+// ── 7 portfolio compositions (matches ET Wealth TrendMap) ──
 var BA_PORTFOLIOS = [
-  { rank:1, eq:34, db:33, gd:33 },  // Equal tilt-gold
-  { rank:2, eq:70, db:20, gd:10 },  // Equity heavy, small gold
-  { rank:3, eq:60, db:20, gd:20 },  // Balanced + gold
-  { rank:4, eq:50, db:40, gd:10 },  // Conservative equity
-  { rank:5, eq:50, db:30, gd:20 },  // Balanced + moderate gold
-  { rank:6, eq:60, db:40, gd:0  },  // Equity-debt, no gold
-  { rank:7, eq:20, db:60, gd:20 },  // Debt heavy, some gold
+  { id:1, eq:34, db:33, gd:33 },
+  { id:2, eq:70, db:20, gd:10 },
+  { id:3, eq:60, db:20, gd:20 },
+  { id:4, eq:50, db:40, gd:10 },
+  { id:5, eq:50, db:30, gd:20 },
+  { id:6, eq:60, db:40, gd:0  },
+  { id:7, eq:20, db:60, gd:20 },
 ];
 
-// ── Symbols ──
-var SYM_EQUITY = '^NSEI';
+// ── Debt index name options (as they appear in NSE CSV / allIndices) ──
+// Key: dropdown value, Value: exact NSE index name (lowercase for matching)
+var BA_DEBT_NSE = {
+  'nifty10yr':   'nifty 10 yr benchmark g-sec',
+  'nifty8_13':   'nifty 8-13 yr g-sec index',
+  'crisil_comp': 'crisil composite bond fund index',
+};
 
-// ── Elements ──
 function baEl(id){return document.getElementById(id);}
-
-// ── Helpers ──
 function setBAProgress(pct,label){
   baEl('baProgressWrap').style.display='block';
   baEl('baProgressFill').style.width=pct+'%';
@@ -4444,9 +4492,100 @@ function setBAError(msg){
   el.textContent=msg; el.style.display=msg?'block':'none';
 }
 
-// ── Fetch Yahoo Finance price series (monthly closes) ──
+// ── Date helpers ──
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtDDMMYYYY(d){return pad2(d.getDate())+pad2(d.getMonth()+1)+d.getFullYear();}
+function mName(m){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];}
+
+// ── Build list of month-end dates we need (prev month of period start + period end) ──
+// For 6 half-year periods, we need 7 month-end closes
+function buildMonthEnds(){
+  var now=new Date();
+  var cm=now.getMonth()+1, cy=now.getFullYear();
+  // Last fully closed month
+  var lm=cm-1, ly=cy;
+  if(lm===0){lm=12;ly=cy-1;}
+  // Snap to nearest completed half-year end
+  var em=lm, ey=ly;
+  if(em<6){em=12;ey=ey-1;}
+  else if(em<12){em=6;}
+
+  // Collect all period boundary months (7 points for 6 periods)
+  var months=[];
+  var curEm=em, curEy=ey;
+  for(var i=0;i<6;i++){
+    months.push({y:curEy,m:curEm}); // period end
+    if(curEm===6){curEm=12;curEy=curEy-1;}
+    else{curEm=6;}
+  }
+  // Add one more (the start-minus-1 of the oldest period)
+  months.push({y:curEy,m:curEm});
+  return months; // [newest_end ... oldest_end, oldest_start_prev]
+}
+
+// ── Build the 6 periods from month-ends ──
+function buildPeriods(){
+  var now=new Date();
+  var cm=now.getMonth()+1, cy=now.getFullYear();
+  var lm=cm-1, ly=cy;
+  if(lm===0){lm=12;ly=cy-1;}
+  var em=lm, ey=ly;
+  if(em<6){em=12;ey=ey-1;}
+  else if(em<12){em=6;}
+  var periods=[];
+  for(var i=0;i<6;i++){
+    var sm=em===6?1:7, sy=ey;
+    periods.push({sy:sy,sm:sm,ey:ey,em:em});
+    if(em===6){em=12;ey=ey-1;} else{em=6;}
+  }
+  return periods;
+}
+
+// ── Get last trading day of a given month ──
+// Strategy: find the last Friday or earlier in that month
+function lastTradingDayOfMonth(y,m){
+  // Start from last day of month, walk back to find Mon-Fri
+  var d=new Date(y,m,0); // last day of month (m is 1-based, Date month is 0-based)
+  while(d.getDay()===0||d.getDay()===6){
+    d.setDate(d.getDate()-1);
+  }
+  return d;
+}
+
+// ── Fetch NSE CSV for a specific date, return index close prices ──
+async function fetchNSEcsv(date){
+  var ds=fmtDDMMYYYY(date);
+  var url=NSE_CSV+ds+'.csv';
+  try{
+    var res=await fetch(BA_CORS+encodeURIComponent(url),{signal:AbortSignal.timeout(12000)});
+    if(!res.ok) return null;
+    var text=await res.text();
+    if(!text||text.length<100) return null;
+    var lines=text.trim().split('\n').filter(function(l){return l.trim();});
+    if(lines.length<2) return null;
+    var map={};
+    for(var i=1;i<lines.length;i++){
+      var v=lines[i].split(',');
+      var name=(v[0]||'').trim().toLowerCase();
+      var close=parseFloat(v[5]);
+      if(name&&!isNaN(close)) map[name]=close;
+    }
+    return map;
+  }catch(e){return null;}
+}
+
+// ── Fetch NSE allIndices for current prices (Equity + Gold ETF via Yahoo) ──
+async function fetchNSEallIndices(){
+  try{
+    var res=await fetch(BA_CORS+encodeURIComponent(NSE_ALL),{signal:AbortSignal.timeout(20000)});
+    if(!res.ok) return null;
+    var j=await res.json();
+    return j.data||null;
+  }catch(e){return null;}
+}
+
+// ── Fetch Yahoo Finance monthly for Gold ETF (GOLDBEES.NS etc.) ──
 async function fetchYahooMonthly(symbol){
-  // Fetch 3 years of daily data, then compute month-end closes
   var url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+'?interval=1mo&range=4y';
   try{
     var res=await fetch(BA_CORS+encodeURIComponent(url),{signal:AbortSignal.timeout(18000)});
@@ -4455,186 +4594,256 @@ async function fetchYahooMonthly(symbol){
     var r=j&&j.chart&&j.chart.result&&j.chart.result[0];
     if(!r) return null;
     var ts=r.timestamps||r.timestamp||[];
-    var closes=r.indicators&&r.indicators.adjclose&&r.indicators.adjclose[0]&&r.indicators.adjclose[0].adjclose
-              || (r.indicators&&r.indicators.quote&&r.indicators.quote[0]&&r.indicators.quote[0].close)
-              || [];
+    var adj=r.indicators&&r.indicators.adjclose&&r.indicators.adjclose[0]&&r.indicators.adjclose[0].adjclose;
+    var raw=r.indicators&&r.indicators.quote&&r.indicators.quote[0]&&r.indicators.quote[0].close;
+    var closes=adj||raw||[];
     if(!ts.length||!closes.length) return null;
     var out=[];
     for(var i=0;i<ts.length;i++){
       if(closes[i]==null||isNaN(closes[i])) continue;
       var d=new Date(ts[i]*1000);
-      out.push({year:d.getFullYear(),month:d.getMonth()+1,close:closes[i],date:d});
+      out.push({year:d.getFullYear(),month:d.getMonth()+1,close:closes[i]});
     }
-    return out;
+    return out.length?out:null;
   }catch(e){return null;}
 }
 
-// ── Compute 6-month return from a monthly series ──
-// startYear/startMonth = first month of period, endYear/endMonth = last month
-function get6MReturn(series,startYear,startMonth,endYear,endMonth){
-  if(!series||!series.length) return null;
-  // Find closest entry for start (price at END of month BEFORE period = start price)
-  // We use: return = (price at endMonth end) / (price at month before startMonth end) - 1
-  var prevM=startMonth-1, prevY=startYear;
-  if(prevM===0){prevM=12;prevY=startYear-1;}
+// ── Get Gold close for year+month from Yahoo series ──
+function getGoldClose(series,y,m){
+  if(!series) return null;
+  var best=null;
+  for(var i=0;i<series.length;i++){
+    if(series[i].year===y&&series[i].month===m) best=series[i].close;
+  }
+  return best;
+}
 
-  function findClose(y,m){
-    // Find the entry with matching year+month (last entry for that month)
-    var best=null;
-    for(var i=0;i<series.length;i++){
-      if(series[i].year===y&&series[i].month===m) best=series[i].close;
+// ── Compute 6M return given two price points ──
+function ret6m(p0,p1){
+  if(p0==null||p1==null||p0===0) return null;
+  return (p1/p0-1)*100;
+}
+
+// ── Format percentage ──
+function fmtPct(v){
+  if(v==null) return '<span class="ba-na">—</span>';
+  var abs=Math.abs(v).toFixed(1)+'%';
+  if(v>0.05) return '<span class="ba-pos">+'+abs+'</span>';
+  if(v<-0.05) return '<span class="ba-neg">-'+abs+'</span>';
+  return '<span class="ba-zer">'+v.toFixed(1)+'%</span>';
+}
+
+// ── Render ET Wealth style grid ──
+function renderBAGrid(periods, data, debtLabel){
+  var N=periods.length;
+  var MEDALS=['🥇','🥈','🥉','4','5','6','7'];
+  var ROWBG=['#fffde7','#f3f4ff','#f1fff5','#fafafa','#fafafa','#fafafa','#fafafa'];
+  var container=baEl('baTableOuter');
+  var html='<div class="ba-grid-wrap">';
+
+  // Header
+  html+='<div class="ba-grid-hdr"><div class="ba-grid-hdr-rank">RANK</div>';
+  for(var pi=0;pi<N;pi++){
+    var p=periods[pi], isL=pi===0;
+    html+='<div class="ba-grid-hdr-period'+(isL?' ba-grid-hdr-latest':'')+'">'+
+          '<div class="ba-ghp-top">'+(isL?'<span class="ba-latest-badge">LATEST</span>':'<span class="ba-period-badge2">H'+(pi+1)+'</span>')+'</div>'+
+          '<div class="ba-ghp-label">'+mName(p.sm)+'–'+mName(p.em)+'</div>'+
+          '<div class="ba-ghp-year">'+p.ey+'</div></div>';
+  }
+  html+='</div>';
+
+  // Asset benchmark row
+  html+='<div class="ba-grid-bench"><div class="ba-grid-hdr-rank" style="font-size:8px;color:#aaa;flex-direction:column;line-height:1.4;display:flex;align-items:center;justify-content:center;">ASSET<br>RET</div>';
+  for(var pi=0;pi<N;pi++){
+    var d=data[pi];
+    html+='<div class="ba-grid-bench-cell">'+
+          '<div class="ba-bc-row"><span class="ba-bc-lbl">Eq</span>'+fmtPct(d.eqR)+'</div>'+
+          '<div class="ba-bc-row"><span class="ba-bc-lbl">Db</span>'+fmtPct(d.dbR)+'</div>'+
+          '<div class="ba-bc-row"><span class="ba-bc-lbl">Au</span>'+fmtPct(d.gdR)+'</div>'+
+          '</div>';
+  }
+  html+='</div>';
+
+  // 7 rank rows
+  for(var rank=1;rank<=7;rank++){
+    html+='<div class="ba-grid-row" style="background:'+ROWBG[rank-1]+'">'+
+          '<div class="ba-grid-rank-lbl"><span class="ba-rank-medal">'+(rank<=3?MEDALS[rank-1]:rank)+'</span></div>';
+    for(var pi=0;pi<N;pi++){
+      var d=data[pi], isL=pi===0;
+      var item=d.sorted[rank-1];
+      html+='<div class="ba-grid-cell'+(isL?' ba-grid-cell-latest':'')+'">';
+      if(item){
+        var port=item.port;
+        html+='<div class="ba-cell-mix">'+
+              '<span class="ba-cm-eq">Eq '+port.eq+'%</span>'+
+              '<span class="ba-cm-db">Db '+port.db+'%</span>'+
+              (port.gd>0?'<span class="ba-cm-gd">Au '+port.gd+'%</span>':'')+
+              '</div>'+
+              '<div class="ba-cell-ret">'+fmtPct(item.ret)+'</div>';
+      } else {
+        html+='<span class="ba-na">N/A</span>';
+      }
+      html+='</div>';
     }
-    return best;
+    html+='</div>';
   }
 
-  var startPrice=findClose(prevY,prevM);
-  var endPrice=findClose(endYear,endMonth);
-  if(startPrice==null||endPrice==null||startPrice===0) return null;
-  return (endPrice/startPrice-1)*100;
-}
-
-// ── Build list of last 6 six-month periods (ending last full month) ──
-function buildPeriods(){
-  var now=new Date();
-  var curYear=now.getFullYear();
-  var curMonth=now.getMonth()+1; // 1-based
-  // Last fully closed month
-  var lastM=curMonth-1, lastY=curYear;
-  if(lastM===0){lastM=12;lastY=curYear-1;}
-
-  // We want periods like Jan-Jun, Jul-Dec
-  // Find the most recent completed 6-month block end
-  // Blocks: Jan-Jun (ends Jun), Jul-Dec (ends Dec)
-  var periods=[];
-  var ey=lastY, em=lastM;
-
-  // Align em to end of a 6-month block (Jun=6 or Dec=12)
-  if(em<6){em=12;ey=ey-1;}
-  else if(em<12){em=6;}
-  // em is now 6 or 12
-
-  for(var i=0;i<6;i++){
-    var sy,sm;
-    if(em===6){sy=ey;sm=1;}
-    else{sy=ey;sm=7;}
-    periods.push({startYear:sy,startMonth:sm,endYear:ey,endMonth:em});
-    // Go to previous block
-    if(em===6){em=12;ey=ey-1;}
-    else{em=6;}
+  // Best portfolio footer
+  var portScore={};
+  BA_PORTFOLIOS.forEach(function(p){portScore[p.id]=[];});
+  for(var pi=0;pi<N;pi++){
+    data[pi].sorted.forEach(function(item,idx){
+      if(portScore[item.port.id]) portScore[item.port.id].push(idx+1);
+    });
   }
-  return periods; // most recent first
-}
+  var best=BA_PORTFOLIOS.map(function(p){
+    var arr=portScore[p.id]||[];
+    return {port:p, avg:arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:99};
+  }).sort(function(a,b){return a.avg-b.avg;})[0];
+  if(best){
+    html+='<div class="ba-grid-footer">🏆 Best avg rank (3 yrs): <b>Portfolio '+best.port.id+
+          '</b> — Eq '+best.port.eq+'% / Db '+best.port.db+'% / Au '+best.port.gd+'%'+
+          ' (avg rank '+best.avg.toFixed(1)+')</div>';
+  }
 
-// ── Month name helper ──
-function mName(m){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];}
-
-// ── Format return ──
-function fmtRet(v,dec){
-  if(v==null) return '<span class="ba-ret-zero">N/A</span>';
-  dec=dec!=null?dec:1;
-  var s=v.toFixed(dec)+'%';
-  if(v>0) return '<span class="ba-ret-pos">▲'+s+'</span>';
-  if(v<0) return '<span class="ba-ret-neg">▼'+Math.abs(v).toFixed(dec)+'%</span>';
-  return '<span class="ba-ret-zero">'+s+'</span>';
-}
-
-// ── Render portfolio definition cards ──
-function renderPortCards(){
-  var box=baEl('baPortdefGrid');
-  if(!box) return;
-  var h='';
+  // Portfolio key
+  html+='<div class="ba-port-legend"><div class="ba-pl-title">PORTFOLIO KEY</div><div class="ba-pl-grid">';
   BA_PORTFOLIOS.forEach(function(p,i){
-    var medals=['🥇','🥈','🥉','④','⑤','⑥','⑦'];
-    h+='<div class="ba-portcard">'
-      +'<div class="ba-portcard-rank">'+medals[i]+' Portfolio '+p.rank+'</div>'
-      +'<div class="ba-portcard-mix">'
-      +'<span class="ba-pc-eq">Eq '+p.eq+'%</span> · '
-      +'<span class="ba-pc-db">Db '+p.db+'%</span> · '
-      +'<span class="ba-pc-gd">Au '+p.gd+'%</span>'
-      +'</div></div>';
+    html+='<div class="ba-pl-card"><div class="ba-pl-id">'+(i<3?MEDALS[i]:i+1)+' P'+p.id+'</div>'+
+          '<div class="ba-pl-mix">'+
+          '<span class="ba-cm-eq">Eq '+p.eq+'%</span>'+
+          '<span class="ba-cm-db">Db '+p.db+'%</span>'+
+          (p.gd>0?'<span class="ba-cm-gd">Au '+p.gd+'%</span>':'')+
+          '</div></div>';
   });
-  box.innerHTML=h;
-  baEl('baPortdefBox').style.display='block';
+  html+='</div></div>';
+
+  // Data source note
+  html+='<div class="ba-data-src">📡 Equity & Debt: NSE archives (ind_close_all CSV) · Gold: Yahoo Finance · Debt index: '+debtLabel+'</div>';
+  html+='</div>';
+  container.innerHTML=html;
+  container.style.display='block';
 }
 
-// ── Main ranking logic ──
+// ── Main scan ──
 async function runBAsScan(){
   baStop=false;
   setBAError('');
   baEl('baTableOuter').style.display='none';
   baEl('baTableOuter').innerHTML='';
-  baEl('baPortdefBox').style.display='none';
   baEl('baFootnote').style.display='none';
   baEl('baScanBtn').style.display='none';
   baEl('baStopBtn').style.display='inline-block';
-  setBAProgress(5,'Fetching Equity (Nifty 50)…');
 
-  var debtSym=baEl('baDebtProxy').value;
+  var debtKey=baEl('baDebtProxy').value;
   var goldSym=baEl('baGoldProxy').value;
-  baEl('baDebtLabel').textContent=debtSym;
+
+  // Debt index name as it appears in NSE CSV (lowercase)
+  var debtNSEname=BA_DEBT_NSE[debtKey]||'nifty 10 yr benchmark g-sec';
+  var debtLabel={
+    'nifty10yr':'Nifty 10yr Benchmark G-Sec',
+    'nifty8_13':'Nifty 8-13yr G-Sec Index',
+    'crisil_comp':'CRISIL Composite Bond Index'
+  }[debtKey]||debtNSEname;
+
+  // Equity index name in NSE CSV
+  var eqNSEname='nifty 50';
+
+  baEl('baDebtLabel').textContent=debtLabel;
 
   try{
-    // Fetch all 3 assets in parallel
-    var [eqSeries,dbSeries,gdSeries]=await Promise.all([
-      fetchYahooMonthly(SYM_EQUITY),
-      fetchYahooMonthly(debtSym),
-      fetchYahooMonthly(goldSym)
-    ]);
-    if(baStop){reset();return;}
-
-    setBAProgress(55,'Computing 6-month returns…');
-
+    // Build month-end dates needed: 7 points covering 6 half-year periods
+    var monthEnds=buildMonthEnds(); // [{y,m}] newest first
     var periods=buildPeriods();
 
-    // Only last 3 years = 6 periods of 6 months
-    // periods array is already max 6 and most-recent first
-    // Filter to last 3 years only
-    var cutYear=new Date().getFullYear()-3;
-    periods=periods.filter(function(p){return p.endYear>cutYear;});
+    setBAProgress(5,'Finding month-end trading days…');
 
-    setBAProgress(70,'Ranking portfolios…');
+    // Get last trading day for each of the 7 month-end points
+    var tradingDays=monthEnds.map(function(me){
+      return lastTradingDayOfMonth(me.y,me.m);
+    });
 
-    // Build table data
-    var allPeriodData=[];
-    periods.forEach(function(p){
-      var eqR=get6MReturn(eqSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
-      var dbR=get6MReturn(dbSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
-      var gdR=get6MReturn(gdSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
+    // Fetch NSE CSV for each date (sequential to avoid hammering server)
+    var csvMaps=[]; // array of {date, map} or null
+    for(var i=0;i<tradingDays.length;i++){
+      if(baStop){resetBA();return;}
+      var pct=Math.round(5+i/tradingDays.length*55);
+      setBAProgress(pct,'Fetching NSE CSV: '+fmtDDMMYYYY(tradingDays[i])+'… ('+( i+1)+'/'+tradingDays.length+')');
+      var map=await fetchNSEcsv(tradingDays[i]);
+      // If exact date fails (holiday), try 1-2 days back
+      if(!map){
+        var d2=new Date(tradingDays[i]); d2.setDate(d2.getDate()-1);
+        if(d2.getDay()===0) d2.setDate(d2.getDate()-1);
+        map=await fetchNSEcsv(d2);
+      }
+      if(!map){
+        var d3=new Date(tradingDays[i]); d3.setDate(d3.getDate()-2);
+        if(d3.getDay()===0) d3.setDate(d3.getDate()-2);
+        map=await fetchNSEcsv(d3);
+      }
+      csvMaps.push(map);
+    }
+
+    if(baStop){resetBA();return;}
+    setBAProgress(62,'Fetching Gold ETF from Yahoo…');
+
+    // Gold: use Yahoo Finance (NSE CSV doesn't have ETF prices)
+    var goldSeries=await fetchYahooMonthly(goldSym);
+    var goldFallbacks={'GOLDBEES.NS':['HDFCGOLD.NS','SBIGETS.NS'],'HDFCGOLD.NS':['GOLDBEES.NS','SBIGETS.NS'],'SBIGETS.NS':['GOLDBEES.NS','HDFCGOLD.NS']};
+    if(!goldSeries){
+      var fb=goldFallbacks[goldSym]||[];
+      for(var fi=0;fi<fb.length&&!goldSeries;fi++){
+        goldSeries=await fetchYahooMonthly(fb[fi]);
+      }
+    }
+
+    setBAProgress(75,'Computing 6-month returns…');
+
+    // Extract equity and debt prices from CSV maps
+    // csvMaps[0] = newest period end, csvMaps[6] = oldest period start prev month
+    // periods[0] = newest period (sy,sm,ey,em)
+    // For period[i]: start price = csvMaps[i+1][eqName], end price = csvMaps[i][eqName]
+
+    var allData=[];
+    for(var pi=0;pi<periods.length;pi++){
+      var p=periods[pi];
+      var endMap=csvMaps[pi];      // end of period
+      var startMap=csvMaps[pi+1];  // end of month BEFORE period start
+
+      var eqEnd  = endMap  ? (endMap[eqNSEname]||null)   : null;
+      var eqStart= startMap? (startMap[eqNSEname]||null)  : null;
+      var dbEnd  = endMap  ? (endMap[debtNSEname]||null)  : null;
+      var dbStart= startMap? (startMap[debtNSEname]||null) : null;
+
+      var eqR = ret6m(eqStart, eqEnd);
+      var dbR = ret6m(dbStart, dbEnd);
+
+      // Gold from Yahoo series: get close for period end month and start-prev month
+      var prevM=p.sm-1, prevY=p.sy;
+      if(prevM===0){prevM=12;prevY=p.sy-1;}
+      var gdEnd  = getGoldClose(goldSeries,p.ey,p.em);
+      var gdStart= getGoldClose(goldSeries,prevY,prevM);
+      var gdR    = ret6m(gdStart,gdEnd);
 
       // Compute portfolio returns
       var portReturns=BA_PORTFOLIOS.map(function(port){
-        var r=null;
-        var eq=(eqR!=null)?(eqR*port.eq/100):null;
-        var db=(dbR!=null)?(dbR*port.db/100):null;
-        var gd=(gdR!=null)?(gdR*port.gd/100):null;
-        // Only compute if we have the assets used
-        var valid=true;
-        if(port.eq>0&&eqR==null) valid=false;
-        if(port.db>0&&dbR==null) valid=false;
-        if(port.gd>0&&gdR==null) valid=false;
-        if(valid){
-          r=(eq||0)+(db||0)+(gd||0);
-        }
-        return {port:port,ret:r};
+        if(port.eq>0&&eqR==null) return {port:port,ret:null};
+        var r=0, tw=0;
+        if(port.eq>0&&eqR!=null){r+=eqR*port.eq/100;tw+=port.eq;}
+        if(port.db>0&&dbR!=null){r+=dbR*port.db/100;tw+=port.db;}
+        if(port.gd>0&&gdR!=null){r+=gdR*port.gd/100;tw+=port.gd;}
+        var ew=port.eq+port.db+port.gd;
+        if(tw>0&&tw<ew) r=r*(ew/tw); // scale if some weights missing
+        return {port:port, ret:tw>0?r:null};
       });
 
-      // Rank them
-      var sorted=[...portReturns].filter(function(x){return x.ret!=null;}).sort(function(a,b){return b.ret-a.ret;});
-      var rankMap={};
-      sorted.forEach(function(x,i){rankMap[x.port.rank]=i+1;});
+      var sorted=portReturns.filter(function(x){return x.ret!=null;})
+                            .sort(function(a,b){return b.ret-a.ret;});
+      allData.push({eqR:eqR,dbR:dbR,gdR:gdR,sorted:sorted});
+    }
 
-      allPeriodData.push({
-        period:p,
-        eqR:eqR,dbR:dbR,gdR:gdR,
-        portReturns:portReturns,
-        rankMap:rankMap,
-        sorted:sorted
-      });
-    });
-
-    setBAProgress(88,'Rendering table…');
-    renderBATable(allPeriodData,debtSym,goldSym);
-    renderPortCards();
+    setBAProgress(90,'Rendering grid…');
+    renderBAGrid(periods,allData,debtLabel);
 
     setBAProgress(100,'Done!');
     setTimeout(function(){baEl('baProgressWrap').style.display='none';},1200);
@@ -4650,81 +4859,23 @@ async function runBAsScan(){
   }
 }
 
-// ── Render ──
-function renderBATable(allPeriodData,debtSym,goldSym){
-  var medals=['🥇','🥈','🥉','4','5','6','7'];
-  var container=baEl('baTableOuter');
-  var html='';
-
-  allPeriodData.forEach(function(pd,periodIdx){
-    var p=pd.period;
-    var label=mName(p.startMonth)+' – '+mName(p.endMonth)+' '+p.endYear;
-    var isRecent=periodIdx===0;
-    var isBadge=isRecent?'LATEST':'H'+(periodIdx+1);
-
-    html+='<div class="ba-period-block">';
-    html+='<div class="ba-period-head">'
-         +'<span class="ba-period-label">'+label+'</span>'
-         +'<span class="ba-period-badge">'+isBadge+'</span>'
-         +'<span class="ba-period-dates">'+mName(p.startMonth)+' 1 – '+mName(p.endMonth)+' 30, '+p.endYear+'</span>'
-         +'</div>';
-
-    // Asset returns row
-    html+='<div class="ba-asset-returns">'
-         +'<span class="ba-ar-item"><span class="ba-ar-label">Nifty 50:</span>'+fmtRet(pd.eqR)+'</span>'
-         +'<span class="ba-ar-item"><span class="ba-ar-label">'+debtSym+':</span>'+fmtRet(pd.dbR)+'</span>'
-         +'<span class="ba-ar-item"><span class="ba-ar-label">'+goldSym+':</span>'+fmtRet(pd.gdR)+'</span>'
-         +'</div>';
-
-    html+='<table class="ba-rank-table"><thead><tr>'
-         +'<th>RANK</th><th>PORTFOLIO</th><th>EQUITY (Nifty 50)</th><th>DEBT ('+debtSym+')</th><th>GOLD ('+goldSym+')</th><th>6M RETURN</th>'
-         +'</tr></thead><tbody>';
-
-    // Show sorted order
-    pd.sorted.forEach(function(item,idx){
-      var port=item.port;
-      var periodRank=idx+1; // rank within this period
-      var medal=medals[periodRank-1]||periodRank;
-      var isTop3=periodRank<=3;
-      html+='<tr'+(isTop3?' style="background:'+(periodRank===1?'#fffbe6':periodRank===2?'#f5f5ff':'#f5fff8')+';"':'')+'>'
-           +'<td><span class="ba-medal">'+(periodRank<=3?medal:'')+'</span>'
-           +'<span class="ba-rank-num"'+(periodRank<=3?' style="background:var(--orange);color:#000;"':'')+'>'+periodRank+'</span></td>'
-           +'<td>'
-             +'<div style="font-weight:700;font-size:11px;margin-bottom:3px;">Portfolio '+port.rank+'</div>'
-             +'<div class="ba-weights">'
-               +(port.eq>0?'<span class="ba-w-pill ba-w-eq">Eq '+port.eq+'%</span>':'')
-               +(port.db>0?'<span class="ba-w-pill ba-w-db">Db '+port.db+'%</span>':'')
-               +(port.gd>0?'<span class="ba-w-pill ba-w-gd">Au '+port.gd+'%</span>':'')
-             +'</div>'
-           +'</td>'
-           +'<td>'+(port.eq>0?fmtRet(pd.eqR!=null?pd.eqR*port.eq/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.eq+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
-           +'<td>'+(port.db>0?fmtRet(pd.dbR!=null?pd.dbR*port.db/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.db+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
-           +'<td>'+(port.gd>0?fmtRet(pd.gdR!=null?pd.gdR*port.gd/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.gd+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
-           +'<td style="font-size:13px;font-weight:800;">'+fmtRet(item.ret)+'</td>'
-           +'</tr>';
-    });
-
-    html+='</tbody></table></div>';
-  });
-
-  container.innerHTML=html;
-  container.style.display='block';
-}
-
-function reset(){
+function resetBA(){
   baEl('baScanBtn').style.display='inline-block';
   baEl('baStopBtn').style.display='none';
   baEl('baProgressWrap').style.display='none';
-  baStop=true;
 }
 
-// ── Event bindings ──
 baEl('baScanBtn').addEventListener('click',runBAsScan);
-baEl('baStopBtn').addEventListener('click',function(){baStop=true;reset();});
+baEl('baStopBtn').addEventListener('click',function(){baStop=true;resetBA();});
 
-// Tab hook
+// Update dropdown options to match NSE index keys
+baEl('baDebtProxy').innerHTML=
+  '<option value="nifty10yr">Nifty 10yr Benchmark G-Sec</option>'+
+  '<option value="nifty8_13">Nifty 8-13yr G-Sec Index</option>'+
+  '<option value="crisil_comp">CRISIL Composite Bond Index</option>';
+baEl('baDebtLabel').textContent='Nifty 10yr Benchmark G-Sec';
+
 win.onBATabActivated=function(){};
-
 })(window);
 </script>
 
