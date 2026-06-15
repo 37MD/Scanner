@@ -513,6 +513,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   <button class="tab-btn" onclick="switchTab('scanner')">⚡ Scanner</button>
   <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
   <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
+  <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
 <div id="tab-breadth" class="tab-panel active breadth-panel">
@@ -2238,6 +2239,7 @@ function switchTab(name) {
   if (name === 'breadth' && !window._bpInited) { window._bpInited = true; initBreadthScanner(); }
   if (name === 'ttf' && window.TTFScanner && !window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); }
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
+  if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
 }
 </script>
 
@@ -4209,6 +4211,526 @@ win.onRSTabActivated=function(){};
 
 // Expose watchlist toggle globally for inline onclick
 win.rsToggleWL=rsToggleWL;
+
+})(window);
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!--  9. BALANCED ALLOCATION TRENDMAP                               -->
+<!--  Inspired by ET Wealth TrendMap · 6-month blocks              -->
+<!--  Portfolios: 7 combos of Equity / Debt / Gold                 -->
+<!--  Equity: Nifty 50 ETF  Debt: Bharat Bond / Nifty 10yr ETF    -->
+<!--  Gold: Nippon Gold ETF (GOLDBEES)                             -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+
+<!-- 9.1 BA HTML Panel -->
+<div id="tab-ba" class="tab-panel">
+<div class="ba-wrap">
+
+  <!-- Header -->
+  <div class="ba-header">
+    <div class="ba-header-left">
+      <div class="ba-logo">BALANCED<span>ALLOCATION</span></div>
+      <div class="ba-subtitle">Gold-powered portfolio rankings · 6-month blocks · Last 3 years</div>
+    </div>
+    <div class="ba-header-right">
+      <div class="ba-clock" id="baClockDisplay">--:--:--</div>
+      <div class="ba-lastupdated" id="baLastUpdated">Not loaded yet</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="ba-legend-row">
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-eq"></span>Equity — Nifty 50 (^NSEI)</div>
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-db"></span>Debt — Bharat Bond 2033 ETF / Nifty 10yr (<span id="baDebtLabel">BBETF0433.NS</span>)</div>
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-gd"></span>Gold — GOLDBEES.NS</div>
+    <div class="ba-legend-item ba-legend-formula">Return = weighted sum of 6M period returns</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ba-controls">
+    <button class="ba-btn-primary" id="baScanBtn">▶ Fetch & Rank Portfolios</button>
+    <button class="ba-btn-stop" id="baStopBtn" style="display:none;">■ Stop</button>
+    <div class="ba-filter-group">
+      <span class="ba-filter-label">DEBT PROXY</span>
+      <select class="ba-select" id="baDebtProxy">
+        <option value="BBETF0433.NS">Bharat Bond 2033 ETF</option>
+        <option value="BBETF0428.NS">Bharat Bond 2028 ETF</option>
+        <option value="N10YBEES.NS">Nifty 10yr Gsec ETF</option>
+      </select>
+    </div>
+    <div class="ba-filter-group">
+      <span class="ba-filter-label">GOLD PROXY</span>
+      <select class="ba-select" id="baGoldProxy">
+        <option value="GOLDBEES.NS">Nippon Gold ETF (GOLDBEES)</option>
+        <option value="HDFCGOLD.NS">HDFC Gold ETF</option>
+        <option value="SBIGETS.NS">SBI Gold ETF</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="ba-progress-wrap" id="baProgressWrap" style="display:none;">
+    <div class="ba-progress-top">
+      <span class="ba-progress-label" id="baProgressLabel">Initialising…</span>
+      <span class="ba-progress-pct" id="baProgressPct">0%</span>
+    </div>
+    <div class="ba-progress-track"><div class="ba-progress-fill" id="baProgressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Error -->
+  <div class="ba-error" id="baError" style="display:none;"></div>
+
+  <!-- Portfolio definitions box -->
+  <div class="ba-portdef-box" id="baPortdefBox" style="display:none;">
+    <div class="ba-portdef-title">📐 7 PORTFOLIO COMBINATIONS</div>
+    <div class="ba-portdef-grid" id="baPortdefGrid"></div>
+  </div>
+
+  <!-- Main ranking table -->
+  <div class="ba-table-outer" id="baTableOuter" style="display:none;"></div>
+
+  <!-- Footer note -->
+  <div class="ba-footnote" id="baFootnote" style="display:none;">
+    ⓘ Returns are 6-month period returns (not annualised). Ranks are assigned per period: 🥇 best return, 🥈 2nd, 🥉 3rd. Negative returns shown in red.
+    Portfolio return = Σ (weight × asset_6M_return). Data via Yahoo Finance through CORS proxy.
+  </div>
+
+</div><!-- .ba-wrap -->
+</div><!-- #tab-ba -->
+
+<!-- 9.2 BA CSS -->
+<style>
+.ba-wrap{max-width:1400px;margin:0 auto;padding:20px;font-family:var(--sans);}
+
+/* Header */
+.ba-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.ba-header-left{display:flex;flex-direction:column;gap:4px;}
+.ba-logo{font-family:var(--mono);font-size:20px;font-weight:800;color:var(--text);letter-spacing:2px;}
+.ba-logo span{color:var(--orange);}
+.ba-subtitle{font-family:var(--mono);font-size:10px;color:#666;}
+.ba-header-right{text-align:right;}
+.ba-clock{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);}
+.ba-lastupdated{font-family:var(--mono);font-size:10px;color:#888;margin-top:2px;}
+
+/* Legend */
+.ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#555;}
+.ba-legend-item{display:flex;align-items:center;gap:6px;}
+.ba-dot{width:10px;height:10px;border-radius:2px;display:inline-block;}
+.ba-dot-eq{background:#3a7abf;}
+.ba-dot-db{background:#1a8a4a;}
+.ba-dot-gd{background:#d4880f;}
+.ba-legend-formula{margin-left:auto;color:var(--orange);font-size:9px;border:1px solid var(--orange);padding:2px 8px;background:var(--orange-dim);}
+
+/* Controls */
+.ba-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.ba-btn-primary{background:var(--orange);color:#000;font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+.ba-btn-primary:hover{background:#ffb87d;transform:translateY(-1px);}
+.ba-btn-stop{background:transparent;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:1px solid var(--red);cursor:pointer;}
+.ba-filter-group{display:flex;align-items:center;gap:8px;}
+.ba-filter-label{font-family:var(--mono);font-size:10px;font-weight:600;color:#555;letter-spacing:1px;text-transform:uppercase;}
+.ba-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:6px 10px;cursor:pointer;outline:none;}
+.ba-select:focus{border-color:var(--orange);}
+
+/* Progress */
+.ba-progress-wrap{background:var(--surface);border:1px solid var(--border2);padding:10px 18px;margin-bottom:14px;}
+.ba-progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ba-progress-label{font-family:var(--mono);font-size:11px;color:#555;}
+.ba-progress-pct{font-family:var(--mono);font-size:11px;color:var(--orange);font-weight:600;}
+.ba-progress-track{height:3px;background:var(--border2);width:100%;}
+.ba-progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ffcc66);transition:width .3s ease;box-shadow:0 0 8px var(--orange);}
+
+/* Error */
+.ba-error{background:var(--red-dim);border:1px solid var(--red);color:var(--red);font-family:var(--mono);font-size:11px;padding:12px 16px;margin-bottom:12px;}
+
+/* Portfolio definitions */
+.ba-portdef-box{border:1px solid var(--border2);background:var(--surface2);padding:12px 16px;margin-bottom:16px;}
+.ba-portdef-title{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--orange);letter-spacing:1.5px;margin-bottom:8px;}
+.ba-portdef-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.ba-portcard{border:1px solid var(--border);background:#fff;padding:8px 12px;font-family:var(--mono);font-size:10px;min-width:140px;}
+.ba-portcard-rank{font-size:13px;margin-bottom:2px;}
+.ba-portcard-mix{color:#555;line-height:1.6;}
+.ba-portcard-mix span{font-weight:700;}
+.ba-portcard-mix .ba-pc-eq{color:#3a7abf;}
+.ba-portcard-mix .ba-pc-db{color:#1a8a4a;}
+.ba-portcard-mix .ba-pc-gd{color:#d4880f;}
+
+/* ── Main ranking table wrapper ── */
+.ba-table-outer{overflow-x:auto;}
+
+/* Period block */
+.ba-period-block{margin-bottom:28px;}
+.ba-period-head{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.ba-period-label{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);letter-spacing:1px;}
+.ba-period-dates{font-family:var(--mono);font-size:10px;color:#888;}
+.ba-period-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--orange-dim);border:1px solid var(--orange);color:var(--orange);font-weight:700;}
+
+/* The ranking table inside each period */
+.ba-rank-table{width:100%;border-collapse:collapse;border:1px solid var(--border2);font-size:12px;}
+.ba-rank-table thead th{background:var(--surface2);font-family:var(--mono);font-size:10px;font-weight:600;color:#000;letter-spacing:1px;padding:8px 12px;border:1px solid var(--border);text-transform:uppercase;white-space:nowrap;}
+.ba-rank-table tbody tr{border-bottom:1px solid var(--border);}
+.ba-rank-table tbody tr:hover{background:var(--orange-dim);}
+.ba-rank-table tbody td{padding:8px 12px;font-family:var(--mono);font-size:11px;border-right:1px solid var(--border);white-space:nowrap;}
+.ba-rank-table tbody td:last-child{border-right:none;}
+
+/* Rank medal */
+.ba-medal{font-size:15px;margin-right:4px;}
+.ba-rank-num{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);text-align:center;line-height:20px;font-size:10px;font-weight:700;}
+
+/* Asset weight pills in portfolio column */
+.ba-weights{display:flex;gap:4px;flex-wrap:wrap;}
+.ba-w-pill{padding:2px 6px;font-size:9px;font-weight:600;border-radius:2px;}
+.ba-w-eq{background:#d4e4f4;color:#1a4a7a;}
+.ba-w-db{background:#d4f0e0;color:#0a5a2a;}
+.ba-w-gd{background:#fff3e0;color:#8a5000;}
+
+/* Return values */
+.ba-ret-pos{color:var(--green);font-weight:700;}
+.ba-ret-neg{color:var(--red);font-weight:700;}
+.ba-ret-zero{color:#888;}
+
+/* Asset returns row */
+.ba-asset-returns{display:flex;gap:12px;font-family:var(--mono);font-size:10px;padding:4px 0;}
+.ba-ar-item{display:flex;align-items:center;gap:4px;}
+.ba-ar-label{color:#888;}
+
+/* Benchmark row */
+.ba-bench-row td{background:#fafafa;font-style:italic;color:#555;}
+
+/* Footnote */
+.ba-footnote{font-family:var(--mono);font-size:10px;color:#888;text-align:center;margin-top:8px;padding:8px;border-top:1px solid var(--border);}
+
+/* Top-period highlight */
+.ba-period-block:first-child .ba-period-badge{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.ba-period-block:first-child .ba-period-head .ba-period-label{color:var(--green);}
+</style>
+
+<!-- 9.3 BA JavaScript -->
+<script>
+(function(win){
+'use strict';
+
+var BA_CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+var baStop = false;
+
+// ── Portfolio definitions (Equity / Debt / Gold weights) ──
+var BA_PORTFOLIOS = [
+  { rank:1, eq:34, db:33, gd:33 },  // Equal tilt-gold
+  { rank:2, eq:70, db:20, gd:10 },  // Equity heavy, small gold
+  { rank:3, eq:60, db:20, gd:20 },  // Balanced + gold
+  { rank:4, eq:50, db:40, gd:10 },  // Conservative equity
+  { rank:5, eq:50, db:30, gd:20 },  // Balanced + moderate gold
+  { rank:6, eq:60, db:40, gd:0  },  // Equity-debt, no gold
+  { rank:7, eq:20, db:60, gd:20 },  // Debt heavy, some gold
+];
+
+// ── Symbols ──
+var SYM_EQUITY = '^NSEI';
+
+// ── Clock ──
+function baClock(){
+  var el=document.getElementById('baClockDisplay');
+  if(!el) return;
+  var d=new Date();
+  el.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(function(x){return String(x).padStart(2,'0');}).join(':');
+}
+setInterval(baClock,1000); baClock();
+
+// ── Elements ──
+function baEl(id){return document.getElementById(id);}
+
+// ── Helpers ──
+function setBAProgress(pct,label){
+  baEl('baProgressWrap').style.display='block';
+  baEl('baProgressFill').style.width=pct+'%';
+  baEl('baProgressPct').textContent=pct+'%';
+  baEl('baProgressLabel').textContent=label||'';
+}
+function setBAError(msg){
+  var el=baEl('baError');
+  el.textContent=msg; el.style.display=msg?'block':'none';
+}
+
+// ── Fetch Yahoo Finance price series (monthly closes) ──
+async function fetchYahooMonthly(symbol){
+  // Fetch 3 years of daily data, then compute month-end closes
+  var url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+'?interval=1mo&range=4y';
+  try{
+    var res=await fetch(BA_CORS+encodeURIComponent(url),{signal:AbortSignal.timeout(18000)});
+    if(!res.ok) return null;
+    var j=await res.json();
+    var r=j&&j.chart&&j.chart.result&&j.chart.result[0];
+    if(!r) return null;
+    var ts=r.timestamps||r.timestamp||[];
+    var closes=r.indicators&&r.indicators.adjclose&&r.indicators.adjclose[0]&&r.indicators.adjclose[0].adjclose
+              || (r.indicators&&r.indicators.quote&&r.indicators.quote[0]&&r.indicators.quote[0].close)
+              || [];
+    if(!ts.length||!closes.length) return null;
+    var out=[];
+    for(var i=0;i<ts.length;i++){
+      if(closes[i]==null||isNaN(closes[i])) continue;
+      var d=new Date(ts[i]*1000);
+      out.push({year:d.getFullYear(),month:d.getMonth()+1,close:closes[i],date:d});
+    }
+    return out;
+  }catch(e){return null;}
+}
+
+// ── Compute 6-month return from a monthly series ──
+// startYear/startMonth = first month of period, endYear/endMonth = last month
+function get6MReturn(series,startYear,startMonth,endYear,endMonth){
+  if(!series||!series.length) return null;
+  // Find closest entry for start (price at END of month BEFORE period = start price)
+  // We use: return = (price at endMonth end) / (price at month before startMonth end) - 1
+  var prevM=startMonth-1, prevY=startYear;
+  if(prevM===0){prevM=12;prevY=startYear-1;}
+
+  function findClose(y,m){
+    // Find the entry with matching year+month (last entry for that month)
+    var best=null;
+    for(var i=0;i<series.length;i++){
+      if(series[i].year===y&&series[i].month===m) best=series[i].close;
+    }
+    return best;
+  }
+
+  var startPrice=findClose(prevY,prevM);
+  var endPrice=findClose(endYear,endMonth);
+  if(startPrice==null||endPrice==null||startPrice===0) return null;
+  return (endPrice/startPrice-1)*100;
+}
+
+// ── Build list of last 6 six-month periods (ending last full month) ──
+function buildPeriods(){
+  var now=new Date();
+  var curYear=now.getFullYear();
+  var curMonth=now.getMonth()+1; // 1-based
+  // Last fully closed month
+  var lastM=curMonth-1, lastY=curYear;
+  if(lastM===0){lastM=12;lastY=curYear-1;}
+
+  // We want periods like Jan-Jun, Jul-Dec
+  // Find the most recent completed 6-month block end
+  // Blocks: Jan-Jun (ends Jun), Jul-Dec (ends Dec)
+  var periods=[];
+  var ey=lastY, em=lastM;
+
+  // Align em to end of a 6-month block (Jun=6 or Dec=12)
+  if(em<6){em=12;ey=ey-1;}
+  else if(em<12){em=6;}
+  // em is now 6 or 12
+
+  for(var i=0;i<6;i++){
+    var sy,sm;
+    if(em===6){sy=ey;sm=1;}
+    else{sy=ey;sm=7;}
+    periods.push({startYear:sy,startMonth:sm,endYear:ey,endMonth:em});
+    // Go to previous block
+    if(em===6){em=12;ey=ey-1;}
+    else{em=6;}
+  }
+  return periods; // most recent first
+}
+
+// ── Month name helper ──
+function mName(m){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];}
+
+// ── Format return ──
+function fmtRet(v,dec){
+  if(v==null) return '<span class="ba-ret-zero">N/A</span>';
+  dec=dec!=null?dec:1;
+  var s=v.toFixed(dec)+'%';
+  if(v>0) return '<span class="ba-ret-pos">▲'+s+'</span>';
+  if(v<0) return '<span class="ba-ret-neg">▼'+Math.abs(v).toFixed(dec)+'%</span>';
+  return '<span class="ba-ret-zero">'+s+'</span>';
+}
+
+// ── Render portfolio definition cards ──
+function renderPortCards(){
+  var box=baEl('baPortdefGrid');
+  if(!box) return;
+  var h='';
+  BA_PORTFOLIOS.forEach(function(p,i){
+    var medals=['🥇','🥈','🥉','④','⑤','⑥','⑦'];
+    h+='<div class="ba-portcard">'
+      +'<div class="ba-portcard-rank">'+medals[i]+' Portfolio '+p.rank+'</div>'
+      +'<div class="ba-portcard-mix">'
+      +'<span class="ba-pc-eq">Eq '+p.eq+'%</span> · '
+      +'<span class="ba-pc-db">Db '+p.db+'%</span> · '
+      +'<span class="ba-pc-gd">Au '+p.gd+'%</span>'
+      +'</div></div>';
+  });
+  box.innerHTML=h;
+  baEl('baPortdefBox').style.display='block';
+}
+
+// ── Main ranking logic ──
+async function runBAsScan(){
+  baStop=false;
+  setBAError('');
+  baEl('baTableOuter').style.display='none';
+  baEl('baTableOuter').innerHTML='';
+  baEl('baPortdefBox').style.display='none';
+  baEl('baFootnote').style.display='none';
+  baEl('baScanBtn').style.display='none';
+  baEl('baStopBtn').style.display='inline-block';
+  setBAProgress(5,'Fetching Equity (Nifty 50)…');
+
+  var debtSym=baEl('baDebtProxy').value;
+  var goldSym=baEl('baGoldProxy').value;
+  baEl('baDebtLabel').textContent=debtSym;
+
+  try{
+    // Fetch all 3 assets in parallel
+    var [eqSeries,dbSeries,gdSeries]=await Promise.all([
+      fetchYahooMonthly(SYM_EQUITY),
+      fetchYahooMonthly(debtSym),
+      fetchYahooMonthly(goldSym)
+    ]);
+    if(baStop){reset();return;}
+
+    setBAProgress(55,'Computing 6-month returns…');
+
+    var periods=buildPeriods();
+
+    // Only last 3 years = 6 periods of 6 months
+    // periods array is already max 6 and most-recent first
+    // Filter to last 3 years only
+    var cutYear=new Date().getFullYear()-3;
+    periods=periods.filter(function(p){return p.endYear>cutYear;});
+
+    setBAProgress(70,'Ranking portfolios…');
+
+    // Build table data
+    var allPeriodData=[];
+    periods.forEach(function(p){
+      var eqR=get6MReturn(eqSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
+      var dbR=get6MReturn(dbSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
+      var gdR=get6MReturn(gdSeries,p.startYear,p.startMonth,p.endYear,p.endMonth);
+
+      // Compute portfolio returns
+      var portReturns=BA_PORTFOLIOS.map(function(port){
+        var r=null;
+        var eq=(eqR!=null)?(eqR*port.eq/100):null;
+        var db=(dbR!=null)?(dbR*port.db/100):null;
+        var gd=(gdR!=null)?(gdR*port.gd/100):null;
+        // Only compute if we have the assets used
+        var valid=true;
+        if(port.eq>0&&eqR==null) valid=false;
+        if(port.db>0&&dbR==null) valid=false;
+        if(port.gd>0&&gdR==null) valid=false;
+        if(valid){
+          r=(eq||0)+(db||0)+(gd||0);
+        }
+        return {port:port,ret:r};
+      });
+
+      // Rank them
+      var sorted=[...portReturns].filter(function(x){return x.ret!=null;}).sort(function(a,b){return b.ret-a.ret;});
+      var rankMap={};
+      sorted.forEach(function(x,i){rankMap[x.port.rank]=i+1;});
+
+      allPeriodData.push({
+        period:p,
+        eqR:eqR,dbR:dbR,gdR:gdR,
+        portReturns:portReturns,
+        rankMap:rankMap,
+        sorted:sorted
+      });
+    });
+
+    setBAProgress(88,'Rendering table…');
+    renderBATable(allPeriodData,debtSym,goldSym);
+    renderPortCards();
+
+    setBAProgress(100,'Done!');
+    setTimeout(function(){baEl('baProgressWrap').style.display='none';},1200);
+    baEl('baLastUpdated').textContent='Updated '+new Date().toLocaleTimeString('en-IN');
+    baEl('baFootnote').style.display='block';
+
+  }catch(e){
+    setBAError('⚠ Error: '+(e.message||e));
+    baEl('baProgressWrap').style.display='none';
+  }finally{
+    baEl('baScanBtn').style.display='inline-block';
+    baEl('baStopBtn').style.display='none';
+  }
+}
+
+// ── Render ──
+function renderBATable(allPeriodData,debtSym,goldSym){
+  var medals=['🥇','🥈','🥉','4','5','6','7'];
+  var container=baEl('baTableOuter');
+  var html='';
+
+  allPeriodData.forEach(function(pd,periodIdx){
+    var p=pd.period;
+    var label=mName(p.startMonth)+' – '+mName(p.endMonth)+' '+p.endYear;
+    var isRecent=periodIdx===0;
+    var isBadge=isRecent?'LATEST':'H'+(periodIdx+1);
+
+    html+='<div class="ba-period-block">';
+    html+='<div class="ba-period-head">'
+         +'<span class="ba-period-label">'+label+'</span>'
+         +'<span class="ba-period-badge">'+isBadge+'</span>'
+         +'<span class="ba-period-dates">'+mName(p.startMonth)+' 1 – '+mName(p.endMonth)+' 30, '+p.endYear+'</span>'
+         +'</div>';
+
+    // Asset returns row
+    html+='<div class="ba-asset-returns">'
+         +'<span class="ba-ar-item"><span class="ba-ar-label">Nifty 50:</span>'+fmtRet(pd.eqR)+'</span>'
+         +'<span class="ba-ar-item"><span class="ba-ar-label">'+debtSym+':</span>'+fmtRet(pd.dbR)+'</span>'
+         +'<span class="ba-ar-item"><span class="ba-ar-label">'+goldSym+':</span>'+fmtRet(pd.gdR)+'</span>'
+         +'</div>';
+
+    html+='<table class="ba-rank-table"><thead><tr>'
+         +'<th>RANK</th><th>PORTFOLIO</th><th>EQUITY (Nifty 50)</th><th>DEBT ('+debtSym+')</th><th>GOLD ('+goldSym+')</th><th>6M RETURN</th>'
+         +'</tr></thead><tbody>';
+
+    // Show sorted order
+    pd.sorted.forEach(function(item,idx){
+      var port=item.port;
+      var periodRank=idx+1; // rank within this period
+      var medal=medals[periodRank-1]||periodRank;
+      var isTop3=periodRank<=3;
+      html+='<tr'+(isTop3?' style="background:'+(periodRank===1?'#fffbe6':periodRank===2?'#f5f5ff':'#f5fff8')+';"':'')+'>'
+           +'<td><span class="ba-medal">'+(periodRank<=3?medal:'')+'</span>'
+           +'<span class="ba-rank-num"'+(periodRank<=3?' style="background:var(--orange);color:#000;"':'')+'>'+periodRank+'</span></td>'
+           +'<td>'
+             +'<div style="font-weight:700;font-size:11px;margin-bottom:3px;">Portfolio '+port.rank+'</div>'
+             +'<div class="ba-weights">'
+               +(port.eq>0?'<span class="ba-w-pill ba-w-eq">Eq '+port.eq+'%</span>':'')
+               +(port.db>0?'<span class="ba-w-pill ba-w-db">Db '+port.db+'%</span>':'')
+               +(port.gd>0?'<span class="ba-w-pill ba-w-gd">Au '+port.gd+'%</span>':'')
+             +'</div>'
+           +'</td>'
+           +'<td>'+(port.eq>0?fmtRet(pd.eqR!=null?pd.eqR*port.eq/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.eq+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
+           +'<td>'+(port.db>0?fmtRet(pd.dbR!=null?pd.dbR*port.db/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.db+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
+           +'<td>'+(port.gd>0?fmtRet(pd.gdR!=null?pd.gdR*port.gd/100:null)+'<span style="color:#aaa;font-size:9px;margin-left:4px;">('+port.gd+'%)</span>':'<span class="ba-ret-zero">—</span>')+'</td>'
+           +'<td style="font-size:13px;font-weight:800;">'+fmtRet(item.ret)+'</td>'
+           +'</tr>';
+    });
+
+    html+='</tbody></table></div>';
+  });
+
+  container.innerHTML=html;
+  container.style.display='block';
+}
+
+function reset(){
+  baEl('baScanBtn').style.display='inline-block';
+  baEl('baStopBtn').style.display='none';
+  baEl('baProgressWrap').style.display='none';
+  baStop=true;
+}
+
+// ── Event bindings ──
+baEl('baScanBtn').addEventListener('click',runBAsScan);
+baEl('baStopBtn').addEventListener('click',function(){baStop=true;reset();});
+
+// Tab hook
+win.onBATabActivated=function(){};
 
 })(window);
 </script>
