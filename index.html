@@ -196,6 +196,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .tab-panel.active{display:block}
 @media(max-width:600px){.app-tabs{padding:0 8px}.tab-btn{font-size:9px;padding:8px 10px;letter-spacing:0.5px}}
 @media(max-width:480px){.tab-btn{font-size:8px;padding:6px 5px;letter-spacing:0}.app-tabs{gap:2px}}
+@media(max-width:600px){#runAllBtn{font-size:9px;padding:5px 8px}#runAllStatus{display:none}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
 .breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#f5f5f5;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
@@ -508,12 +509,22 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!--  3. HTML: 3-TAB PAGE STRUCTURE             -->
 <!-- ════════════════════════════════════════════ -->
 <!-- ── 3.1 Tab Navigation ── -->
-<div class="app-tabs">
-  <button class="tab-btn active" onclick="switchTab('breadth')">📊 Market Breadth</button>
-  <button class="tab-btn" onclick="switchTab('scanner')">⚡ Scanner</button>
-  <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
-  <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
-  <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
+<div class="app-tabs" style="justify-content:space-between;align-items:center">
+  <div style="display:flex;gap:0">
+    <button class="tab-btn active" onclick="switchTab('breadth')">📊 Market Breadth</button>
+    <button class="tab-btn" onclick="switchTab('scanner')">⚡ Scanner</button>
+    <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
+    <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
+    <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding-right:12px;flex-shrink:0">
+    <span id="runAllStatus" style="font-family:var(--mono);font-size:10px;color:var(--orange);white-space:nowrap"></span>
+    <button id="runAllBtn" onclick="runAllScans()"
+      style="background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)"
+      title="Run Scanner → TTF RSI → RS Scanner sequentially">
+      ⚡ RUN ALL
+    </button>
+  </div>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
 <div id="tab-breadth" class="tab-panel active breadth-panel">
@@ -664,7 +675,12 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 const { useState, useRef, useMemo, useEffect } = React;
 
 // ── 4.2 Configuration ──
-const CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+// CORS_FALLBACKS: primary proxy first, two fallbacks
+const CORS_FALLBACKS = [
+  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=',
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+];
 const NSE_API = 'https://www.nseindia.com/api/allIndices';
 
 function normalize(n) { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
@@ -744,9 +760,10 @@ function fmtDDMMYYYY(d) {
 }
 
 function computeAction(regime, dRsi) {
-  if (regime === "A" && dRsi >= 40 && dRsi <= 50) return { action: "BUY", rec: "STRIKE — Optimal Entry" };
-  if (regime === "A" && dRsi > 70) return { action: "HOLD", rec: "OVERHEATED — Wait for daily dip" };
-  if (regime === "B") return { action: "REDUCE", rec: "TRAP — Fatigue" };
+  if (regime === "A" && dRsi >= 40 && dRsi <= 50) return { action: "BUY",    rec: "STRIKE — Optimal Entry" };
+  if (regime === "A" && dRsi > 70)                 return { action: "HOLD",   rec: "OVERHEATED — Wait for daily dip" };
+  if (regime === "A")                              return { action: "HOLD",   rec: "REGIME A — Awaiting daily pullback to 40-50" };
+  if (regime === "B")                              return { action: "REDUCE", rec: "TRAP — Fatigue" };
   return { action: "SELL", rec: "AVOID — Trust Break" };
 }
 
@@ -1290,19 +1307,28 @@ Reasoning: [One-line explanation tying data to the rule]`;
   const handleScan = async () => {
     stopRef.current = false;
     setError(null);
+    try {
 
     // Phase 1: Fetch NSE prices via CORS proxy
     setPhase('prices');
     setProgress({ done: 0, total: 1, label: "Fetching NSE indices…" });
 
     let nseRaw = [];
-    try {
-      const res = await fetch(CORS + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const json = await res.json();
-      nseRaw = json.data || [];
-    } catch (e) {
-      setError('Failed to fetch NSE data: ' + e.message + '. Try refreshing or check your internet connection.');
+    let nseError = null;
+    for (const proxy of CORS_FALLBACKS) {
+      try {
+        const res = await fetch(proxy + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        nseRaw = json.data || [];
+        nseError = null;
+        break;
+      } catch (e) {
+        nseError = e;
+      }
+    }
+    if (nseError && nseRaw.length === 0) {
+      setError('Failed to fetch NSE data: ' + nseError.message + '. All proxies failed. Try refreshing or check your internet connection.');
       setPhase('init');
       return;
     }
@@ -1387,6 +1413,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
         setResults({ ...tempResults });
         done++;
       }
+      // Share with RS tab
+      window._ldScannerData = { priceMap, indexList, dailyMap: {}, nseRaw };
     } else {
       // Two-pass: first 25 files for D-RSI, then 75 more for W-RSI
       const tradingDays = genTradingDays(100);
@@ -1400,9 +1428,15 @@ Reasoning: [One-line explanation tying data to the rule]`;
           await Promise.all(tradingDays.slice(bs, bs + 5).map(async (td) => {
             const ds = fmtDDMMYYYY(td);
             try {
-              const res = await fetch(CORS + encodeURIComponent(`https://archives.nseindia.com/content/indices/ind_close_all_${ds}.csv`), { signal: AbortSignal.timeout(10000) });
-              if (!res.ok) return;
-              const text = await res.text();
+              let csvText = null;
+              for (const proxy of CORS_FALLBACKS) {
+                try {
+                  const r2 = await fetch(proxy + encodeURIComponent(`https://archives.nseindia.com/content/indices/ind_close_all_${ds}.csv`), { signal: AbortSignal.timeout(10000) });
+                  if (r2.ok) { csvText = await r2.text(); break; }
+                } catch(_) {}
+              }
+              if (!csvText) return;
+              const text = csvText;
               const lines = text.trim().split('\n').filter(l => l.trim());
               if (lines.length < 2) return;
               for (let i = 1; i < lines.length; i++) {
@@ -1494,9 +1528,18 @@ Reasoning: [One-line explanation tying data to the rule]`;
         if (row.wRsi14 == null && YAHOO[idx.key]) {
           try {
             const symbol = YAHOO[idx.key];
+            const fetchWithFallback = async (url) => {
+              for (const proxy of CORS_FALLBACKS) {
+                try {
+                  const r = await fetch(proxy + encodeURIComponent(url), { signal: AbortSignal.timeout(12000) });
+                  if (r.ok) return r;
+                } catch(_) {}
+              }
+              return null;
+            };
             const [wkRes, dRes] = await Promise.all([
-              fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
-              fetch(CORS + encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`), { signal: AbortSignal.timeout(12000) }).catch(() => null),
+              fetchWithFallback(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1wk&range=2y`),
+              fetchWithFallback(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=6mo`),
             ]);
             if (wkRes?.ok) {
               const wJson = await wkRes.json();
@@ -1534,7 +1577,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
 
       const remaining = indexList.filter(idx => !tempResults[idx.key]);
       remaining.forEach(idx => { tempResults[idx.key] = { name: idx.name, ...priceMap[idx.key] }; });
-      window._ldScannerData = { dailyMap: dailyMap, priceMap: priceMap, indexList: indexList };
+      window._ldScannerData = { dailyMap: dailyMap, priceMap: priceMap, indexList: indexList, nseRaw: nseRaw };
     }
 
     setResults({ ...tempResults });
@@ -1599,6 +1642,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
     setProgress({ done: 0, total: 0, label: "" });
     setLastUpdated(new Date());
     setPhase('done');
+    // Notify Run All orchestrator
+    if (typeof window.onScannerComplete === 'function') { try { window.onScannerComplete(); } catch(e) {} }
     // Cache snapshot for offline use
     try {
       // Save only display-critical fields (omit _dailyCloses to save space)
@@ -1617,6 +1662,13 @@ Reasoning: [One-line explanation tying data to the rule]`;
       localStorage.setItem('ld_scanner_cache', JSON.stringify({ results: slimResults, baResults: snapBa }));
       console.log('[LD] Cache saved:', Object.keys(slimResults).length, 'indices,', Object.keys(snapBa).length, 'BA entries');
     } catch(e) { console.warn('[LD] Cache save failed:', e); }
+
+    } catch(e) {
+      // Top-level catch: unexpected crash — reset phase so button reappears
+      console.error('[LD Scanner] Unexpected error in handleScan:', e);
+      setError('Scan failed: ' + (e.message || e));
+      setPhase('init');
+    }
   };
 
   useEffect(() => {
@@ -2241,6 +2293,73 @@ function switchTab(name) {
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
 }
+
+// ── Run All: Sequential auto-scan across Scanner → TTF → RS ──
+window._runAllActive = false;
+function runAllScans() {
+  if (window._runAllActive) return;
+  window._runAllActive = true;
+
+  var btn = document.getElementById('runAllBtn');
+  var statusEl = document.getElementById('runAllStatus');
+  function setStatus(msg, done) {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.color = done ? 'var(--green)' : 'var(--orange)'; }
+    if (btn) btn.disabled = !done;
+  }
+
+  setStatus('1/3 Scanner…');
+  switchTab('scanner');
+
+  // Step 1: Scanner completes → run TTF
+  window.onScannerComplete = function() {
+    window.onScannerComplete = null;
+    setStatus('2/3 TTF RSI…');
+    switchTab('ttf');
+    // Small delay to let tab render before triggering scan
+    setTimeout(function() {
+      if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
+        window.TTFScanner.onComplete = function() {
+          window.TTFScanner.onComplete = null;
+          setStatus('3/3 RS Scanner…');
+          switchTab('rs');
+          setTimeout(function() {
+            if (window.RSScanner && typeof window.RSScanner.run === 'function') {
+              window.RSScanner.onComplete = function() {
+                window.RSScanner.onComplete = null;
+                window._runAllActive = false;
+                switchTab('scanner'); // return to Scanner tab to view results
+                setStatus('✓ All scans complete', true);
+              };
+              window.RSScanner.run();
+            } else {
+              window._runAllActive = false;
+              setStatus('✓ Done (RS not ready)', true);
+            }
+          }, 300);
+        };
+        window.TTFScanner.run();
+      } else {
+        // TTF not ready — skip to RS
+        setStatus('3/3 RS Scanner…');
+        switchTab('rs');
+        setTimeout(function() {
+          if (window.RSScanner) window.RSScanner.run();
+          window._runAllActive = false;
+          setStatus('✓ Done', true);
+        }, 300);
+      }
+    }, 300);
+  };
+
+  // Trigger Scanner scan (React button click)
+  var scanReactBtn = document.querySelector('#tab-scanner .btn-scan');
+  if (scanReactBtn) {
+    scanReactBtn.click();
+  } else {
+    window._runAllActive = false;
+    setStatus('⚠ Scanner not ready', true);
+  }
+}
 </script>
 
 <script>
@@ -2512,9 +2631,20 @@ initBreadthScanner();
 (function(win) {
   'use strict';
   // ── 7.1 Configuration ──
-  var CORS        = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+  var CORS_LIST   = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
   var NSE_API     = 'https://www.nseindia.com/api/allIndices';
   var CSV_URL     = 'https://archives.nseindia.com/content/indices/ind_close_all_';
+  async function fetchProxy(url, opts) {
+    var lastErr = new Error('All proxies failed for: ' + url);
+    for (var pi = 0; pi < CORS_LIST.length; pi++) {
+      try {
+        var r = await fetch(CORS_LIST[pi] + encodeURIComponent(url), opts || {});
+        if (r.ok) return r;
+        lastErr = new Error('HTTP ' + r.status + ' from proxy ' + pi);
+      } catch(e) { lastErr = e; }
+    }
+    throw lastErr;
+  }
   var RSI_PERIODS = [4, 6, 8];
   var FETCH_DAYS  = 100;
   var BATCH_SIZE  = 5;
@@ -2637,7 +2767,7 @@ initBreadthScanner();
       setStatus('<span class="spinner"></span> NSE: ' + Math.min(idx, total) + '/' + total + ' days...');
       Promise.all(slice.map(function(td) {
         var ds = fmtDDMMYYYY(td);
-        return fetch(CORS + encodeURIComponent(CSV_URL + ds + '.csv'), { signal: AbortSignal.timeout(10000) })
+        return fetchProxy(CSV_URL + ds + '.csv', { signal: AbortSignal.timeout(10000) })
           .then(function(r) { if (!r.ok) { errors++; return ''; } return r.text(); })
           .then(function(text) {
             if (!text) return;
@@ -2836,7 +2966,7 @@ initBreadthScanner();
       return;
     }
     setStatus('<span class="spinner"></span> Fetching NSE index list...');
-    fetch(CORS + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) })
+    fetchProxy(NSE_API, { signal: AbortSignal.timeout(20000) })
       .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function(json) {
         var nseRaw = json.data || [];
@@ -2945,7 +3075,8 @@ initBreadthScanner();
   window.addEventListener('storage', function(e) {
     if (e.key === 'ld_scanner_watchlist' && _lastResults) render(_lastResults);
   });
-  loadFromCache();
+  // Note: cache restore is handled by switchTab('ttf') via TTFScanner._loadCache()
+  // to avoid double-restore on page load
 })(window);
 </script>
 
@@ -3508,8 +3639,19 @@ initBreadthScanner();
 'use strict';
 
 // ── Constants (same sources as core scanner) ──
-var CORS   = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+var CORS_LIST_RS = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
 var NSE_URL= 'https://www.nseindia.com/api/allIndices';
+async function fetchProxyRS(url, opts) {
+  var lastErr = new Error('All proxies failed for: ' + url);
+  for (var pi = 0; pi < CORS_LIST_RS.length; pi++) {
+    try {
+      var r = await fetch(CORS_LIST_RS[pi] + encodeURIComponent(url), opts || {});
+      if (r.ok) return r;
+      lastErr = new Error('HTTP ' + r.status + ' from proxy ' + pi);
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr;
+}
 var G_CASCADE = [
   {key:1,model:'gemini-3.1-flash-lite'},
   {key:1,model:'gemini-3-flash'},
@@ -3592,7 +3734,14 @@ function prog(pct,label,sub){
 // ════════════════════════════════════════════
 async function fetchNSE(){
   setStep(1); prog(5,'Connecting to NSE…','Fetching allIndices API');
-  var res = await fetch(CORS+encodeURIComponent(NSE_URL),{signal:AbortSignal.timeout(25000)});
+  // Reuse data already fetched by Scanner tab if available
+  var cached = window._ldScannerData && window._ldScannerData.nseRaw;
+  if(cached && cached.length > 10){
+    S.allNse = cached;
+    prog(20,'NSE data reused from Scanner tab','Got '+cached.length+' indices (no extra fetch)');
+    return cached;
+  }
+  var res = await fetchProxyRS(NSE_URL,{signal:AbortSignal.timeout(25000)});
   if(!res.ok) throw new Error('NSE API error HTTP '+res.status);
   var j = await res.json();
   var data = j.data||[];
@@ -4066,6 +4215,7 @@ async function runScan(){
 
     prog(100,'Scan complete ✓ — '+S.rows.length+' indices · '+leaders+' leaders · '+amcFound+' AMC products found');
     setTimeout(function(){EL.rsProgressWrap.style.display='none';},2000);
+    if(typeof RSScanner.onComplete==='function'){try{RSScanner.onComplete(S.rows);}catch(e){}}
 
   }catch(err){
     EL.rsError.textContent='⚠ '+err.message;
@@ -4080,6 +4230,10 @@ function cleanup(){
   S.running=false;
   EL.rsScanBtn.style.display='inline-block';
   EL.rsStopBtn.style.display='none';
+  // Release RunAll lock if it was waiting on RS
+  if(window._runAllActive && typeof window.RSScanner !== 'undefined' && !RSScanner.onComplete){
+    window._runAllActive=false;
+  }
 }
 
 // ── Sort click ──
@@ -4212,6 +4366,10 @@ EL.rsAiModal.addEventListener('click',function(e){if(e.target===EL.rsAiModal)EL.
 
 // Tab hook
 win.onRSTabActivated=function(){};
+
+// Expose for Run All orchestration
+var RSScanner = { run: runScan, onComplete: null };
+win.RSScanner = RSScanner;
 
 // Expose watchlist toggle globally for inline onclick
 win.rsToggleWL=rsToggleWL;
@@ -4455,7 +4613,18 @@ win.rsToggleWL=rsToggleWL;
 'use strict';
 
 // ── Shared CORS proxy (same as TTF and RS tabs) ──
-var BA_CORS = 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=';
+var BA_CORS_LIST = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+async function fetchProxyBA(url, opts) {
+  var lastErr = new Error('All proxies failed for: ' + url);
+  for (var pi = 0; pi < BA_CORS_LIST.length; pi++) {
+    try {
+      var r = await fetch(BA_CORS_LIST[pi] + encodeURIComponent(url), opts || {});
+      if (r.ok) return r;
+      lastErr = new Error('HTTP ' + r.status + ' from proxy ' + pi);
+    } catch(e) { lastErr = e; }
+  }
+  throw lastErr;
+}
 var NSE_ALL = 'https://www.nseindia.com/api/allIndices';
 var NSE_CSV = 'https://archives.nseindia.com/content/indices/ind_close_all_';
 
@@ -4557,8 +4726,8 @@ async function fetchNSEcsv(date){
   var ds=fmtDDMMYYYY(date);
   var url=NSE_CSV+ds+'.csv';
   try{
-    var res=await fetch(BA_CORS+encodeURIComponent(url),{signal:AbortSignal.timeout(12000)});
-    if(!res.ok) return null;
+    var res=await fetchProxyBA(url,{signal:AbortSignal.timeout(12000)});
+    if(!res||!res.ok) return null;
     var text=await res.text();
     if(!text||text.length<100) return null;
     var lines=text.trim().split('\n').filter(function(l){return l.trim();});
@@ -4577,8 +4746,8 @@ async function fetchNSEcsv(date){
 // ── Fetch NSE allIndices for current prices (Equity + Gold ETF via Yahoo) ──
 async function fetchNSEallIndices(){
   try{
-    var res=await fetch(BA_CORS+encodeURIComponent(NSE_ALL),{signal:AbortSignal.timeout(20000)});
-    if(!res.ok) return null;
+    var res=await fetchProxyBA(NSE_ALL,{signal:AbortSignal.timeout(20000)});
+    if(!res||!res.ok) return null;
     var j=await res.json();
     return j.data||null;
   }catch(e){return null;}
@@ -4588,8 +4757,8 @@ async function fetchNSEallIndices(){
 async function fetchYahooMonthly(symbol){
   var url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(symbol)+'?interval=1mo&range=4y';
   try{
-    var res=await fetch(BA_CORS+encodeURIComponent(url),{signal:AbortSignal.timeout(18000)});
-    if(!res.ok) return null;
+    var res=await fetchProxyBA(url,{signal:AbortSignal.timeout(18000)});
+    if(!res||!res.ok) return null;
     var j=await res.json();
     var r=j&&j.chart&&j.chart.result&&j.chart.result[0];
     if(!r) return null;
