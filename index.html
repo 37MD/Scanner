@@ -1989,7 +1989,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
                 </tr>
                 <tr>
                   <th style={{width:34,textAlign:"center",cursor:'pointer',userSelect:'auto'}} title="Click to add/remove from Watchlist">#</th>
-                  <th onClick={() => requestSort('name')}>Index{getSortIcon('name')}</th>
+                  <th onClick={() => requestSort('name')}>Index Name{getSortIcon('name')}</th>
                   <th data-group="1" className="group-start" onClick={() => requestSort('price')}>Price{getSortIcon('price')}</th>
                   <th data-group="1" style={{textAlign:"center"}} onClick={() => requestSort('changePct')}>% Chg{getSortIcon('changePct')}</th>
                   <th data-group="2" className="group-start" style={{textAlign:"center"}} onClick={() => requestSort('dRsi14')}>D RSI 4·8·14{getSortIcon('dRsi14')}</th>
@@ -2270,7 +2270,7 @@ const BP_MACRO = [
   {icon:'🏦',label:'RBI RATE',value:'6.25%',trend:'↓ Cut 25bps',status:'pos'},
   {icon:'🏭',label:'PMI MFG',value:'58.5',trend:'↑ 3yr high',status:'pos'},
   {icon:'💰',label:'GST COLLECT',value:'₹2.1L Cr',trend:'↑ 12% YoY',status:'pos'},
-  {icon:'💱',label:'USD/INR',value:'83.4',trend:'→ Stable',status:'neu'}
+  {icon:'💱',label:'USD/INR',value:'₹95.2',trend:'↑ Weak INR',status:'neu'}
 ];
 
 let bpChartInst = null;
@@ -2978,7 +2978,6 @@ initBreadthScanner();
       </div>
     </div>
     <div class="rs-header-right">
-      <div class="rs-clock" id="rsClockDisplay">--:--:--</div>
       <div class="rs-lastupdated" id="rsLastUpdated">Not scanned yet</div>
     </div>
   </div>
@@ -3001,7 +3000,6 @@ initBreadthScanner();
     <div class="rs-controls-left">
       <button class="rs-btn-primary" id="rsScanBtn">▶ Step 3 — Run Relative Strength Scan</button>
       <button class="rs-btn-stop" id="rsStopBtn" style="display:none;">■ Stop</button>
-      <button class="rs-btn-secondary" id="rsResetBtn">↺ Reset</button>
 
       <div class="rs-filter-group">
         <span class="rs-filter-label">BENCHMARK</span>
@@ -3041,6 +3039,10 @@ initBreadthScanner();
       <button class="rs-btn-cache-clear" id="rsClearCacheBtn" title="Clear saved AMC cache — will force Gemini re-query on next scan">🗑 Clear AMC Cache</button>
       <button class="rs-btn-ai" id="rsAiBtn" style="display:none;">🤖 AI Deep Analysis</button>
     </div>
+  </div>
+  <!-- Reset at bottom-right of controls box -->
+  <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+    <button class="rs-btn-secondary" id="rsResetBtn" style="font-size:11px;padding:5px 14px;">↺ Reset</button>
   </div>
 
   <!-- Progress bar -->
@@ -3199,8 +3201,7 @@ initBreadthScanner();
 .rs-fml sub { font-size:8px; }
 .rs-fml-sep { color:#aaa; font-size:10px; }
 .rs-header-right { text-align:right; }
-.rs-clock { font-family:'Segoe UI Mono','Courier New',monospace; font-size:22px; font-weight:700; color:var(--text); }
-.rs-lastupdated { font-size:10px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; margin-top:2px; }
+.rs-lastupdated { font-size:9px; color:#aaa; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
 
 /* Steps */
 .rs-steps { display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
@@ -3364,7 +3365,7 @@ initBreadthScanner();
   z-index:5!important;
   background:var(--surface2)!important;
 }
-.rs-th-name { min-width:180px; text-align:left!important; }
+.rs-th-name { width:150px; min-width:150px; max-width:150px; text-align:left!important; white-space:nowrap; }
 .rs-th-group-sec { border-left:2px solid var(--border2)!important; }
 .rs-th-group-amc { border-left:2px solid var(--border2)!important; background:var(--surface2)!important; }
 #rsTable thead th:last-child { border-right:none; }
@@ -3385,9 +3386,12 @@ initBreadthScanner();
   text-align:left;
   font-weight:600;
   font-size:11px;
-  max-width:200px;
+  width:150px;
+  min-width:150px;
+  max-width:150px;
   overflow:hidden;
   text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 /* ── Sticky columns — col 1 (#) and col 2 (name) ── */
@@ -3396,33 +3400,35 @@ initBreadthScanner();
 #rsTable tbody  td:nth-child(1) {
   position:sticky;
   left:0;
-  /* z-index must be below thead (5) but above regular cells (auto) */
   z-index:2;
-  width:30px;
-  min-width:30px;
+  width:28px;
+  min-width:28px;
+  max-width:28px;
 }
 #rsTable thead th:nth-child(1) {
   background:var(--surface2);
-  z-index:7; /* corner: above both row-sticky and col-sticky */
+  z-index:7;
 }
 #rsTable tbody td:nth-child(1) {
-  background:var(--surface);
+  background:#ffffff;
 }
 
 #rsTable thead th:nth-child(2),
 #rsTable tbody  td:nth-child(2) {
   position:sticky;
-  left:30px;
+  left:28px;
   z-index:2;
-  /* Shadow only on right edge to show content slides under */
-  box-shadow:3px 0 6px -2px rgba(0,0,0,0.18);
+  box-shadow:4px 0 8px -2px rgba(0,0,0,0.22);
+  width:150px;
+  min-width:150px;
+  max-width:150px;
 }
 #rsTable thead th:nth-child(2) {
   background:var(--surface2);
-  z-index:7; /* corner cell */
+  z-index:7;
 }
 #rsTable tbody td:nth-child(2) {
-  background:var(--surface);
+  background:#ffffff;
 }
 /* When a row has a green highlighted name, preserve that bg on sticky col */
 #rsTable tbody td:nth-child(2)[style*="background:#d4f0e0"] {
@@ -3434,7 +3440,7 @@ initBreadthScanner();
 
 /* The two row-group header th spanning both sticky positions */
 .rs-thead-group th:nth-child(1) { z-index:8!important; left:0; background:var(--surface2)!important; }
-.rs-thead-group th:nth-child(2) { z-index:8!important; left:30px; background:var(--surface2)!important; }
+.rs-thead-group th:nth-child(2) { z-index:8!important; left:28px; background:var(--surface2)!important; }
 
 /* Pills */
 .rs-pill { display:inline-block; padding:3px 9px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; border-radius:2px; min-width:70px; text-align:center; }
@@ -3473,7 +3479,7 @@ initBreadthScanner();
 
 @media(max-width:600px){
   .rs-wrap{padding:10px}
-  .rs-clock{font-size:16px}
+  .rs-logo{font-size:16px}
   .rs-steps{display:none}
   .rs-summary-row{gap:6px}
   .rs-sum-card{min-width:90px;padding:8px 10px}
@@ -3483,8 +3489,9 @@ initBreadthScanner();
   #rsTable tbody td{padding:5px 6px;font-size:10px}
   #rsTable thead th{font-size:9px;padding:5px 5px}
   /* Tighter sticky column on mobile */
-  #rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1){width:22px;min-width:22px}
-  #rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2){left:22px}
+  #rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1){width:22px;min-width:22px;max-width:22px;}
+  #rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2){left:22px;width:120px;min-width:120px;max-width:120px;}
+  #rsTable tbody td.rs-td-name{width:120px;min-width:120px;max-width:120px;font-size:10px;}
 }
 /* Tablet landscape */
 @media(min-width:601px) and (max-width:900px){
@@ -3534,11 +3541,8 @@ var EL = {};
  'rsClearCacheBtn','rsAmcCacheStatus'
 ].forEach(function(id){ EL[id]=$(''+id); });
 
-// ── Clock ──
-function tick(){
-  var el=EL.rsClockDisplay;
-  if(el) el.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-}
+// ── Clock removed — only last scan time shown ──
+function tick(){ /* clock removed */ }
 setInterval(tick,1000); tick();
 
 // ── AMC Cache status display ──
@@ -4044,7 +4048,7 @@ async function runScan(){
     $('rsSumAmcFound').textContent=amcFound;
 
     S.lastScan=new Date();
-    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN');
+    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     updateCacheStatus(); // refresh badge to show if cache was used or freshly saved
 
     // Save RS leader+AMC names for cross-tab green highlight
@@ -4234,16 +4238,15 @@ win.rsToggleWL=rsToggleWL;
       <div class="ba-subtitle">Gold-powered portfolio rankings · 6-month blocks · Last 3 years</div>
     </div>
     <div class="ba-header-right">
-      <div class="ba-clock" id="baClockDisplay">--:--:--</div>
-      <div class="ba-lastupdated" id="baLastUpdated">Not loaded yet</div>
+      <div class="ba-lastupdated" id="baLastUpdated"></div>
     </div>
   </div>
 
   <!-- Legend -->
   <div class="ba-legend-row">
-    <div class="ba-legend-item"><span class="ba-dot ba-dot-eq"></span>Equity — Nifty 50 (^NSEI)</div>
-    <div class="ba-legend-item"><span class="ba-dot ba-dot-db"></span>Debt — Bharat Bond 2033 ETF / Nifty 10yr (<span id="baDebtLabel">BBETF0433.NS</span>)</div>
-    <div class="ba-legend-item"><span class="ba-dot ba-dot-gd"></span>Gold — GOLDBEES.NS</div>
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-eq"></span>Equity — Nifty 50</div>
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-db"></span>Debt — <span id="baDebtLabel">Bharat Bond 2033 ETF</span></div>
+    <div class="ba-legend-item"><span class="ba-dot ba-dot-gd"></span>Gold — Nippon Gold ETF</div>
     <div class="ba-legend-item ba-legend-formula">Return = weighted sum of 6M period returns</div>
   </div>
 
@@ -4310,8 +4313,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-logo span{color:var(--orange);}
 .ba-subtitle{font-family:var(--mono);font-size:10px;color:#666;}
 .ba-header-right{text-align:right;}
-.ba-clock{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);}
-.ba-lastupdated{font-family:var(--mono);font-size:10px;color:#888;margin-top:2px;}
+.ba-lastupdated{font-family:var(--mono);font-size:9px;color:#aaa;text-align:right;}
 
 /* Legend */
 .ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#555;}
@@ -4426,15 +4428,6 @@ var BA_PORTFOLIOS = [
 
 // ── Symbols ──
 var SYM_EQUITY = '^NSEI';
-
-// ── Clock ──
-function baClock(){
-  var el=document.getElementById('baClockDisplay');
-  if(!el) return;
-  var d=new Date();
-  el.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(function(x){return String(x).padStart(2,'0');}).join(':');
-}
-setInterval(baClock,1000); baClock();
 
 // ── Elements ──
 function baEl(id){return document.getElementById(id);}
@@ -4645,7 +4638,7 @@ async function runBAsScan(){
 
     setBAProgress(100,'Done!');
     setTimeout(function(){baEl('baProgressWrap').style.display='none';},1200);
-    baEl('baLastUpdated').textContent='Updated '+new Date().toLocaleTimeString('en-IN');
+    baEl('baLastUpdated').textContent='Last scan: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     baEl('baFootnote').style.display='block';
 
   }catch(e){
