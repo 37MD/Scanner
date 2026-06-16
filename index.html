@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner v8</title>
+<title>Scanner v9E</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -521,8 +521,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <span id="runAllStatus" style="font-family:var(--mono);font-size:10px;color:var(--orange);white-space:nowrap"></span>
     <button id="runAllBtn" onclick="runAllScans()"
       style="background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)"
-      title="Run Scanner → TTF RSI → RS Scanner sequentially">
-      ⚡ RUN ALL
+      title="Scan All: Scanner → TTF RSI → RS Scanner → Balanced Allocation sequentially">
+      ⚡ SCAN ALL
     </button>
   </div>
 </div>
@@ -637,7 +637,6 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <h1>&#9650; TTF RSI Weekly Scanner</h1>
 <p class="subtitle">NSE Daily OHLC &middot; RSI(4,6,8) Weekly Zones + Daily</p>
 <div class="controls">
-  <button class="btn" id="scanBtn">&#9654; Step 2 - Scan</button>
   <button class="btn btn-reset" id="resetBtn">&#8635; Reset</button>
   <label><input type="checkbox" id="rsi8Filter" checked> RSI(8) Weekly &ge; 45 only</label>
 </div>
@@ -1797,7 +1796,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Scanner v8</h1>
+            <h1>Scanner v9E</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -1805,7 +1804,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
           {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)",marginLeft:"2.5em",whiteSpace:"normal",textAlign:"right",lineHeight:1.3}}>Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>}
           {hasData && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-dim)"}}>{sortedRows.length} idx</span>}
           <span className={`live-dot ${phase === 'rsi' ? 'active' : ''}`}>
-            {phase === 'rsi' ? `Daily RSI ✓` : phase === 'done' ? (dataSource||'READY') : phase === 'prices' ? 'LOADING' : 'INIT'}
+            {phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? (dataSource||'SCANNED') : phase === 'prices' ? 'LOADING' : 'INIT'}
           </span>
         </div>
       </header>
@@ -2294,7 +2293,7 @@ function switchTab(name) {
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
 }
 
-// ── Run All: Sequential auto-scan across Scanner → TTF → RS ──
+// ── Scan All: Sequential auto-scan across Scanner → TTF → RS → BA ──
 window._runAllActive = false;
 function runAllScans() {
   if (window._runAllActive) return;
@@ -2307,45 +2306,73 @@ function runAllScans() {
     if (btn) btn.disabled = !done;
   }
 
-  setStatus('1/3 Scanner…');
+  setStatus('1/4 Scanner…');
   switchTab('scanner');
 
   // Step 1: Scanner completes → run TTF
   window.onScannerComplete = function() {
     window.onScannerComplete = null;
-    setStatus('2/3 TTF RSI…');
+    setStatus('2/4 TTF RSI…');
     switchTab('ttf');
     // Small delay to let tab render before triggering scan
     setTimeout(function() {
       if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
         window.TTFScanner.onComplete = function() {
           window.TTFScanner.onComplete = null;
-          setStatus('3/3 RS Scanner…');
+          setStatus('3/4 RS Scanner…');
           switchTab('rs');
           setTimeout(function() {
             if (window.RSScanner && typeof window.RSScanner.run === 'function') {
               window.RSScanner.onComplete = function() {
                 window.RSScanner.onComplete = null;
-                window._runAllActive = false;
-                switchTab('scanner'); // return to Scanner tab to view results
-                setStatus('✓ All scans complete', true);
+                setStatus('4/4 Balanced Allocation…');
+                switchTab('ba');
+                setTimeout(function() {
+                  if (typeof window.runBAsScan === 'function') {
+                    var origBA = window.onBAsScanComplete;
+                    window._baRunAllWaiting = true;
+                    // BA has no onComplete callback — poll for scan end
+                    var baPoller = setInterval(function() {
+                      var baStopBtn = document.getElementById('baStopBtn');
+                      if (baStopBtn && baStopBtn.style.display === 'none') {
+                        clearInterval(baPoller);
+                        window._baRunAllWaiting = false;
+                        window._runAllActive = false;
+                        switchTab('scanner');
+                        setStatus('✓ All 4 scans complete', true);
+                      }
+                    }, 800);
+                    window.runBAsScan();
+                  } else {
+                    window._runAllActive = false;
+                    switchTab('scanner');
+                    setStatus('✓ 3/4 done (BA not ready)', true);
+                  }
+                }, 300);
               };
               window.RSScanner.run();
             } else {
-              window._runAllActive = false;
-              setStatus('✓ Done (RS not ready)', true);
+              // RS not ready — skip to BA
+              setStatus('4/4 Balanced Allocation…');
+              switchTab('ba');
+              setTimeout(function() {
+                if (typeof window.runBAsScan === 'function') window.runBAsScan();
+                window._runAllActive = false;
+                switchTab('scanner');
+                setStatus('✓ Done (RS skipped)', true);
+              }, 300);
             }
           }, 300);
         };
         window.TTFScanner.run();
       } else {
         // TTF not ready — skip to RS
-        setStatus('3/3 RS Scanner…');
+        setStatus('3/4 RS Scanner…');
         switchTab('rs');
         setTimeout(function() {
           if (window.RSScanner) window.RSScanner.run();
           window._runAllActive = false;
-          setStatus('✓ Done', true);
+          setStatus('✓ Done (TTF skipped)', true);
         }, 300);
       }
     }, 300);
@@ -2652,6 +2679,7 @@ initBreadthScanner();
   var $ = function(id) { return document.getElementById(id); };
   var statusEl = $('status'), headEl = $('tableHead'), bodyEl = $('tableBody');
   var scanBtn = $('scanBtn'), resetBtn = $('resetBtn'), tsEl = $('ts'), rsi8Filter = $('rsi8Filter');
+  var _ttfRunning = false; // replaces scanBtn.disabled since button was removed
   var CACHE_KEY = 'ttf_scanner_cache';
   var _lastResults = null, _sortKey = 'name', _sortDir = 'asc', _debugData = {};
   function sleep(ms)         { return new Promise(function(r) { setTimeout(r, ms); }); }
@@ -2950,15 +2978,17 @@ initBreadthScanner();
     render(results);
     tsEl.textContent = new Date().toLocaleString();
     setStatus('Done. <strong>' + results.length + '</strong> indices, ' + sourceLabel + '.', 'success');
-    scanBtn.disabled = false;
+    _ttfRunning = false;
+    if (scanBtn) scanBtn.disabled = false;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ results: results, ts: new Date().toISOString() })); } catch(e) {}
     if (typeof TTFScanner.onComplete === 'function') { try { TTFScanner.onComplete(results); } catch(e) {} }
   }
 
   // ── 7.9 Scan Engine (Cached or Fresh Fetch) ──
   function runScan() {
-    if (scanBtn.disabled) return;
-    scanBtn.disabled = true;
+    if (_ttfRunning) return;
+    _ttfRunning = true;
+    if (scanBtn) scanBtn.disabled = true;
     var sd = window._ldScannerData;
     if (sd && sd.dailyMap && Object.keys(sd.dailyMap).length > 10) {
       setStatus('<span class="spinner"></span> Using cached data from Lie Detector (' + Object.keys(sd.dailyMap).length + ' dates)...');
@@ -2988,7 +3018,7 @@ initBreadthScanner();
           completeScan(priceMap, indexList, dailyMap, errors + ' failed fetches');
         });
       })
-      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); scanBtn.disabled = false; });
+      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); _ttfRunning = false; if (scanBtn) scanBtn.disabled = false; });
   }
   // ── 7.10 Cache Restore ──
   function loadFromCache() {
@@ -3053,7 +3083,7 @@ initBreadthScanner();
   }
   var TTFScanner = { run: runScan, reset: reset, onComplete: null, _results: function() { return _lastResults; }, _loadCache: loadFromCache };
   win.TTFScanner = TTFScanner;
-  scanBtn.addEventListener('click', runScan);
+  if (scanBtn) scanBtn.addEventListener('click', runScan);
   resetBtn.addEventListener('click', reset);
   rsi8Filter.addEventListener('change', function() { if (_lastResults) render(_lastResults); });
   headEl.addEventListener('click', function(e) {
@@ -3129,7 +3159,6 @@ initBreadthScanner();
   <!-- Controls -->
   <div class="rs-controls-bar">
     <div class="rs-controls-left">
-      <button class="rs-btn-primary" id="rsScanBtn">▶ Step 3 — Run Relative Strength Scan</button>
       <button class="rs-btn-stop" id="rsStopBtn" style="display:none;">■ Stop</button>
 
       <div class="rs-filter-group">
@@ -4138,7 +4167,7 @@ async function runScan(){
   EL.rsAmcLegend.style.display='none';
   EL.rsTableWrap.style.display='none';
   EL.rsProgressWrap.style.display='block';
-  EL.rsScanBtn.style.display='none';
+  if(EL.rsScanBtn) EL.rsScanBtn.style.display='none';
   EL.rsStopBtn.style.display='inline-block';
   EL.rsAiBtn.style.display='none';
   setStep(1);
@@ -4215,6 +4244,19 @@ async function runScan(){
 
     prog(100,'Scan complete ✓ — '+S.rows.length+' indices · '+leaders+' leaders · '+amcFound+' AMC products found');
     setTimeout(function(){EL.rsProgressWrap.style.display='none';},2000);
+
+    // ── Save RS scan results to persistent cache ──
+    try {
+      var rsSnapRows = S.rows.map(function(r) {
+        return { name: r.name, key: r.key, rs: r.rs };
+      });
+      localStorage.setItem('ld_rs_scan_cache', JSON.stringify({
+        rows: rsSnapRows, amcData: S.amcData,
+        bench: S.bench ? { name: S.bench.name } : null,
+        ts: new Date().toISOString()
+      }));
+    } catch(e) {}
+
     if(typeof RSScanner.onComplete==='function'){try{RSScanner.onComplete(S.rows);}catch(e){}}
 
   }catch(err){
@@ -4228,7 +4270,7 @@ async function runScan(){
 
 function cleanup(){
   S.running=false;
-  EL.rsScanBtn.style.display='inline-block';
+  if(EL.rsScanBtn) EL.rsScanBtn.style.display='inline-block';
   EL.rsStopBtn.style.display='none';
   // Release RunAll lock if it was waiting on RS
   if(window._runAllActive && typeof window.RSScanner !== 'undefined' && !RSScanner.onComplete){
@@ -4251,7 +4293,7 @@ EL.rsSignalFilter.addEventListener('change',function(){if(S.rows.length) renderR
 EL.rsAmcFilter.addEventListener('change',function(){if(S.rows.length) renderRSTable();});
 
 // ── Buttons ──
-EL.rsScanBtn.addEventListener('click', runScan);
+if(EL.rsScanBtn) EL.rsScanBtn.addEventListener('click', runScan);
 EL.rsStopBtn.addEventListener('click',function(){S.stopped=true; cleanup();});
 EL.rsResetBtn.addEventListener('click',function(){
   S.rows=[]; S.amcData={}; S.running=false; S.stopped=false; S.bench=null;
@@ -4364,8 +4406,39 @@ EL.rsAiBtn.addEventListener('click',async function(){
 EL.rsAiClose.addEventListener('click',function(){EL.rsAiModal.style.display='none';});
 EL.rsAiModal.addEventListener('click',function(e){if(e.target===EL.rsAiModal)EL.rsAiModal.style.display='none';});
 
-// Tab hook
-win.onRSTabActivated=function(){};
+// Tab hook — restore RS cache if no data currently shown
+win.onRSTabActivated=function(){
+  if(S.rows.length) return; // already have data
+  try {
+    var raw = localStorage.getItem('ld_rs_scan_cache');
+    if (!raw) return;
+    var snap = JSON.parse(raw);
+    if (!snap.rows || !snap.rows.length) return;
+    S.rows = snap.rows;
+    S.amcData = snap.amcData || {};
+    if (snap.bench) S.bench = snap.bench;
+    var leaders = S.rows.filter(function(r){return r.rs&&r.rs.signal==='LEADER';}).length;
+    var improving = S.rows.filter(function(r){return r.rs&&r.rs.signal==='IMPROVING';}).length;
+    var laggards = S.rows.filter(function(r){return r.rs&&r.rs.signal==='LAGGARD';}).length;
+    var amcFound = S.rows.filter(function(r){return hasAmcProduct(r.name).any;}).length;
+    var t=$('rsSumTotal'); if(t) t.textContent=S.rows.length;
+    var sl=$('rsSumLeaders'); if(sl) sl.textContent=leaders;
+    var si=$('rsSumImproving'); if(si) si.textContent=improving;
+    var sla=$('rsSumLaggards'); if(sla) sla.textContent=laggards;
+    var sf=$('rsSumAmcFound'); if(sf) sf.textContent=amcFound;
+    if(snap.ts){
+      var d=new Date(snap.ts);
+      EL.rsLastUpdated.textContent='Last scan: '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (cached)';
+    }
+    renderRSTable();
+    EL.rsSummaryRow.style.display='flex';
+    EL.rsFormulaBox.style.display='block';
+    EL.rsAmcLegend.style.display='flex';
+    EL.rsTableWrap.style.display='block';
+    EL.rsAiBtn.style.display='inline-block';
+    setStep(5);
+  } catch(e) {}
+};
 
 // Expose for Run All orchestration
 var RSScanner = { run: runScan, onComplete: null };
@@ -4410,7 +4483,6 @@ win.rsToggleWL=rsToggleWL;
 
   <!-- Controls -->
   <div class="ba-controls">
-    <button class="ba-btn-primary" id="baScanBtn">▶ Fetch & Rank Portfolios</button>
     <button class="ba-btn-stop" id="baStopBtn" style="display:none;">■ Stop</button>
     <div class="ba-filter-group">
       <span class="ba-filter-label">DEBT PROXY</span>
@@ -4892,6 +4964,8 @@ function renderBAGrid(periods, data, debtLabel){
   html+='</div>';
   container.innerHTML=html;
   container.style.display='block';
+  // Save BA results to persistent cache
+  try { saveBACache(html, debtLabel, new Date().toISOString()); } catch(e) {}
 }
 
 // ── Main scan ──
@@ -4901,7 +4975,7 @@ async function runBAsScan(){
   baEl('baTableOuter').style.display='none';
   baEl('baTableOuter').innerHTML='';
   baEl('baFootnote').style.display='none';
-  baEl('baScanBtn').style.display='none';
+  var _baSB=baEl('baScanBtn'); if(_baSB) _baSB.style.display='none';
   baEl('baStopBtn').style.display='inline-block';
 
   var debtKey=baEl('baDebtProxy').value;
@@ -5023,18 +5097,18 @@ async function runBAsScan(){
     setBAError('⚠ Error: '+(e.message||e));
     baEl('baProgressWrap').style.display='none';
   }finally{
-    baEl('baScanBtn').style.display='inline-block';
+    var _baSB2=baEl('baScanBtn'); if(_baSB2) _baSB2.style.display='inline-block';
     baEl('baStopBtn').style.display='none';
   }
 }
 
 function resetBA(){
-  baEl('baScanBtn').style.display='inline-block';
+  var _baSB2=baEl('baScanBtn'); if(_baSB2) _baSB2.style.display='inline-block';
   baEl('baStopBtn').style.display='none';
   baEl('baProgressWrap').style.display='none';
 }
 
-baEl('baScanBtn').addEventListener('click',runBAsScan);
+
 baEl('baStopBtn').addEventListener('click',function(){baStop=true;resetBA();});
 
 // Update dropdown options to match NSE index keys
@@ -5044,7 +5118,48 @@ baEl('baDebtProxy').innerHTML=
   '<option value="crisil_comp">CRISIL Composite Bond Index</option>';
 baEl('baDebtLabel').textContent='Nifty 10yr Benchmark G-Sec';
 
-win.onBATabActivated=function(){};
+// ── BA Persistent Cache: save/restore ──
+var BA_CACHE_KEY = 'ld_ba_cache';
+
+function saveBACache(html, debtLabel, ts) {
+  try {
+    localStorage.setItem(BA_CACHE_KEY, JSON.stringify({
+      html: html, debtLabel: debtLabel,
+      ts: ts || new Date().toISOString()
+    }));
+  } catch(e) {}
+}
+
+function restoreBACache() {
+  try {
+    var raw = localStorage.getItem(BA_CACHE_KEY);
+    if (!raw) return false;
+    var snap = JSON.parse(raw);
+    if (!snap.html) return false;
+    var container = baEl('baTableOuter');
+    container.innerHTML = snap.html;
+    container.style.display = 'block';
+    baEl('baFootnote').style.display = 'block';
+    if (snap.debtLabel) baEl('baDebtLabel').textContent = snap.debtLabel;
+    if (snap.ts) {
+      var d = new Date(snap.ts);
+      baEl('baLastUpdated').textContent = 'Last scan: ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (cached)';
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+// Restore BA cache on tab activation
+win.onBATabActivated = function() {
+  var container = baEl('baTableOuter');
+  if (!container.innerHTML || container.innerHTML.trim() === '') {
+    restoreBACache();
+  }
+};
+
+// Expose runBAsScan globally so runAllScans can call it
+win.runBAsScan = runBAsScan;
+
 })(window);
 </script>
 
