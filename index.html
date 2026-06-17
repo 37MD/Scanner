@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner v8</title>
+<title>Scanner v9E</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -17,13 +17,23 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <!-- ── 1.3 External Fonts & Libraries ── -->
 <!-- fonts: using system Segoe UI across all pages -->
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.5/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+window.addEventListener("error", function(e) {
+  var fb = document.getElementById("react-fallback");
+  var em = document.getElementById("react-err-msg");
+  if (fb && fb.style.display !== "none") {
+    fb.style.display = "block";
+    if (em) em.textContent = (e.message || "") + (e.filename ? " @ " + e.filename.split("/").pop() + ":" + e.lineno : "");
+  }
+}, true);
+</script>
 <style>
 /* ── 2.1 CSS Variables & Reset ── */
-:root{--bg:#ffffff;--surface:#ffffff;--surface2:#f5f5f5;--border:#e0e0e0;--border2:#cccccc;--text:#000000;--text-dim:#000000;--text-faint:#000000;--orange:#d4880f;--orange-dim:#fff3e0;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'Segoe UI Mono','Courier New',monospace;--sans:'Segoe UI',Arial,sans-serif}
+:root{--bg:#ffffff;--surface:#ffffff;--surface2:#ffffff;--border:#e0e0e0;--border2:#cccccc;--text:#000000;--text-dim:#000000;--text-faint:#000000;--orange:#d4880f;--orange-dim:#ffffff;--green:#1a8a4a;--green-dim:#d4f0e0;--red:#cc3344;--red-dim:#f0d4d8;--amber:#b8860b;--amber-dim:#f0e8c8;--blue:#3a7abf;--blue-dim:#d4e4f4;--mono:'Segoe UI Mono','Courier New',monospace;--sans:'Segoe UI',Arial,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
 #root{position:relative;z-index:1}
@@ -199,9 +209,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:600px){#runAllBtn{font-size:9px;padding:5px 8px}#runAllStatus{display:none}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
-.breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#f5f5f5;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
+.breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#ffffff;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
 .breadth-panel *{margin:0;padding:0;box-sizing:border-box}
-.breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:linear-gradient(135deg,#ffffff 0%,#f5f5f5 100%);border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#ffffff;border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .breadth-panel .bp-h-left{display:flex;align-items:center;gap:16px}
 .breadth-panel .bp-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:var(--bp-accent);letter-spacing:3px}
 .breadth-panel .bp-logo span{color:var(--bp-text)}
@@ -433,8 +443,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .btn { background:#d4880f; color:#000; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
 #tab-ttf .ttf-panel .btn:hover { background:#e6a020; }
 #tab-ttf .ttf-panel .btn:disabled { opacity:0.5; cursor:not-allowed; }
-#tab-ttf .ttf-panel .btn-reset { background:#f5f5f5; border:1px solid #cccccc; color:#000; }
-#tab-ttf .ttf-panel .btn-reset:hover { background:#eeeeee; }
+#tab-ttf .ttf-panel .btn-reset { background:#ffffff; border:1px solid #cccccc; color:#000; }
+#tab-ttf .ttf-panel .btn-reset:hover { background:#ffffff; }
 #tab-ttf .ttf-panel .status { font-size:13px; color:#000; margin-bottom:10px; padding:8px 0; }
 #tab-ttf .ttf-panel .status.error { color:#cc3344; }
 #tab-ttf .ttf-panel .status.success { color:#1a8a4a; }
@@ -445,14 +455,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; table-layout:fixed; }
 #tab-ttf .ttf-panel thead { z-index:4; }
 #tab-ttf .ttf-panel thead th { background:#ffffff; color:#000; padding:6px 4px; border:1px solid #cccccc; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
-#tab-ttf .ttf-panel thead th.group-header { background:#f5f5f5; color:#d4880f; }
+#tab-ttf .ttf-panel thead th.group-header { background:#ffffff; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { width:28px;min-width:28px;max-width:28px; }
 #tab-ttf .ttf-panel thead th.group-header:nth-child(2) { min-width:40px; }
 #tab-ttf .ttf-panel thead th.sub-header { background:#ffffff; font-weight:400; font-size:10px; color:#000 !important; padding:4px 3px; overflow:hidden; }
 #tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #cccccc; text-align:center; white-space:nowrap; color:#000; }
 #tab-ttf .ttf-panel tbody td.idx { font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; width:170px; }
-#tab-ttf .ttf-panel tbody tr:hover td { background:#f5f5f5; }
-#tab-ttf .ttf-panel tbody tr:hover td.idx { background:#f5f5f5; }
+#tab-ttf .ttf-panel tbody tr:hover td { background:#ffffff; }
+#tab-ttf .ttf-panel tbody tr:hover td.idx { background:#ffffff; }
 #tab-ttf .ttf-panel .empty-row td { color:#000; font-style:italic; text-align:center; }
 #tab-ttf .ttf-panel .rsi-cell { font-weight:600; font-size:12px; text-align:center; overflow:hidden; }
 #tab-ttf .ttf-panel .zone-45-50 { color:#000; }
@@ -471,7 +481,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel #debugContent { font-family:monospace; font-size:12px; color:#000; white-space:pre-wrap; line-height:1.6; }
 /* ── TTF: FREEZE PANE — via inline styles in render() JS, thead th sticky is intentional ── */
 /* hover: keep frozen col visible on row hover */
-#tab-ttf .ttf-panel tbody tr:hover td { background:#f5f5f5 !important; }
+#tab-ttf .ttf-panel tbody tr:hover td { background:#f0f0f0 !important; }
 #tab-ttf .ttf-panel tbody { position:static; }
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
@@ -516,13 +526,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
+    <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
   </div>
   <div style="display:flex;align-items:center;gap:10px;padding-right:12px;flex-shrink:0">
     <span id="runAllStatus" style="font-family:var(--mono);font-size:10px;color:var(--orange);white-space:nowrap"></span>
     <button id="runAllBtn" onclick="runAllScans()"
       style="background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)"
-      title="Run Scanner → TTF RSI → RS Scanner sequentially">
-      ⚡ RUN ALL
+      title="Scan All: Scanner → TTF RSI → RS Scanner → Balanced Allocation sequentially">
+      ⚡ SCAN ALL
     </button>
   </div>
 </div>
@@ -628,7 +639,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 <!-- ── 3.3 Lie Detector V7 (React mount point) ── -->
 <div id="tab-scanner" class="tab-panel">
-<div id="root"></div>
+<div id="root"><div id="react-fallback" style="padding:20px;font-family:monospace;color:#cc3344;background:#fff0f0;border:1px solid #cc3344;margin:20px;border-radius:4px"><b>⚠ Scanner loading...</b><br><small>If this persists, check internet connection and reload the page.<br>Error details: <span id="react-err-msg"></span></small></div></div>
 </div>
 
 <!-- ── 3.4 TTF RSI Weekly Scanner Panel ── -->
@@ -637,7 +648,6 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <h1>&#9650; TTF RSI Weekly Scanner</h1>
 <p class="subtitle">NSE Daily OHLC &middot; RSI(4,6,8) Weekly Zones + Daily</p>
 <div class="controls">
-  <button class="btn" id="scanBtn">&#9654; Step 2 - Scan</button>
   <button class="btn btn-reset" id="resetBtn">&#8635; Reset</button>
   <label><input type="checkbox" id="rsi8Filter" checked> RSI(8) Weekly &ge; 45 only</label>
 </div>
@@ -660,7 +670,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <div id="debugModal">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <h2 id="debugTitle"></h2>
-    <button onclick="this.closest('#debugModal').style.display='none'" style="background:#f5f5f5;color:#000;border:1px solid #cccccc;padding:4px 12px;border-radius:4px;cursor:pointer;">Close</button>
+    <button onclick="this.closest('#debugModal').style.display='none'" style="background:#ffffff;color:#000;border:1px solid #cccccc;padding:4px 12px;border-radius:4px;cursor:pointer;">Close</button>
   </div>
   <pre id="debugContent"></pre>
 </div>
@@ -670,16 +680,17 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ════════════════════════════════════════════ -->
 <!--  4. LIE DETECTOR V7 (REACT SCANNER)       -->
 <!-- ════════════════════════════════════════════ -->
-<script type="text/babel">
+<script type="text/babel" data-presets="env,react">
 // ── 4.1 React Imports ──
 const { useState, useRef, useMemo, useEffect } = React;
 
 // ── 4.2 Configuration ──
 // CORS_FALLBACKS: primary proxy first, two fallbacks
 const CORS_FALLBACKS = [
-  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=',
-  'https://corsproxy.io/?',
   'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://cors.sh/?',
+  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=',
 ];
 const NSE_API = 'https://www.nseindia.com/api/allIndices';
 
@@ -1315,12 +1326,22 @@ Reasoning: [One-line explanation tying data to the rule]`;
 
     let nseRaw = [];
     let nseError = null;
+
+    // NSE session prime: fetch homepage first to get cookies (required by NSE API)
+    const primeNSE = async (proxy) => {
+      try {
+        await fetch(proxy + encodeURIComponent('https://www.nseindia.com'), { signal: AbortSignal.timeout(8000) });
+      } catch(_) {}
+    };
+
     for (const proxy of CORS_FALLBACKS) {
       try {
-        const res = await fetch(proxy + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(20000) });
+        await primeNSE(proxy);
+        const res = await fetch(proxy + encodeURIComponent(NSE_API), { signal: AbortSignal.timeout(15000) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         nseRaw = json.data || [];
+        if (nseRaw.length === 0) throw new Error('Empty response');
         nseError = null;
         break;
       } catch (e) {
@@ -1328,6 +1349,18 @@ Reasoning: [One-line explanation tying data to the rule]`;
       }
     }
     if (nseError && nseRaw.length === 0) {
+      // Graceful fallback: use cached data if available, don't hard-stop
+      try {
+        const cachedRaw = localStorage.getItem('ld_scanner_cache');
+        if (cachedRaw) {
+          const snap = JSON.parse(cachedRaw);
+          if (snap.results && Object.keys(snap.results).length > 0) {
+            setError('⚠ Live NSE fetch failed (' + nseError.message + '). Showing cached data from last scan. Tap SCAN again to retry.');
+            setPhase('init');
+            return;
+          }
+        }
+      } catch(_) {}
       setError('Failed to fetch NSE data: ' + nseError.message + '. All proxies failed. Try refreshing or check your internet connection.');
       setPhase('init');
       return;
@@ -1797,7 +1830,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         <div className="brand">
           <div className="brand-icon">LD</div>
           <div className="brand-text">
-            <h1>Scanner v8</h1>
+            <h1>Scanner v9E</h1>
             <p>NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals</p>
           </div>
         </div>
@@ -1805,7 +1838,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
           {lastUpdated && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-faint)",marginLeft:"2.5em",whiteSpace:"normal",textAlign:"right",lineHeight:1.3}}>Updated {lastUpdated.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>}
           {hasData && <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text-dim)"}}>{sortedRows.length} idx</span>}
           <span className={`live-dot ${phase === 'rsi' ? 'active' : ''}`}>
-            {phase === 'rsi' ? `Daily RSI ✓` : phase === 'done' ? (dataSource||'READY') : phase === 'prices' ? 'LOADING' : 'INIT'}
+            {phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? (dataSource||'SCANNED') : phase === 'prices' ? 'LOADING' : 'INIT'}
           </span>
         </div>
       </header>
@@ -2210,6 +2243,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
 // 4.6 Mount Scanner into DOM
 // ═══════════════════════════════════════════════════════════════
 ReactDOM.createRoot(document.getElementById('root')).render(<Scanner />);
+const fb = document.getElementById('react-fallback');
+if (fb) fb.style.display = 'none';
 </script>
 
 <!-- ════════════════════════════════════════════ -->
@@ -2292,9 +2327,10 @@ function switchTab(name) {
   if (name === 'ttf' && window.TTFScanner && !window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); }
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
+  if (name === 'pt' && typeof window.onPTTabActivated === 'function') { window.onPTTabActivated(); }
 }
 
-// ── Run All: Sequential auto-scan across Scanner → TTF → RS ──
+// ── Scan All: Sequential auto-scan across Scanner → TTF → RS → BA ──
 window._runAllActive = false;
 function runAllScans() {
   if (window._runAllActive) return;
@@ -2307,45 +2343,73 @@ function runAllScans() {
     if (btn) btn.disabled = !done;
   }
 
-  setStatus('1/3 Scanner…');
+  setStatus('1/4 Scanner…');
   switchTab('scanner');
 
   // Step 1: Scanner completes → run TTF
   window.onScannerComplete = function() {
     window.onScannerComplete = null;
-    setStatus('2/3 TTF RSI…');
+    setStatus('2/4 TTF RSI…');
     switchTab('ttf');
     // Small delay to let tab render before triggering scan
     setTimeout(function() {
       if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
         window.TTFScanner.onComplete = function() {
           window.TTFScanner.onComplete = null;
-          setStatus('3/3 RS Scanner…');
+          setStatus('3/4 RS Scanner…');
           switchTab('rs');
           setTimeout(function() {
             if (window.RSScanner && typeof window.RSScanner.run === 'function') {
               window.RSScanner.onComplete = function() {
                 window.RSScanner.onComplete = null;
-                window._runAllActive = false;
-                switchTab('scanner'); // return to Scanner tab to view results
-                setStatus('✓ All scans complete', true);
+                setStatus('4/4 Balanced Allocation…');
+                switchTab('ba');
+                setTimeout(function() {
+                  if (typeof window.runBAsScan === 'function') {
+                    var origBA = window.onBAsScanComplete;
+                    window._baRunAllWaiting = true;
+                    // BA has no onComplete callback — poll for scan end
+                    var baPoller = setInterval(function() {
+                      var baStopBtn = document.getElementById('baStopBtn');
+                      if (baStopBtn && baStopBtn.style.display === 'none') {
+                        clearInterval(baPoller);
+                        window._baRunAllWaiting = false;
+                        window._runAllActive = false;
+                        switchTab('scanner');
+                        setStatus('✓ All 4 scans complete', true);
+                      }
+                    }, 800);
+                    window.runBAsScan();
+                  } else {
+                    window._runAllActive = false;
+                    switchTab('scanner');
+                    setStatus('✓ 3/4 done (BA not ready)', true);
+                  }
+                }, 300);
               };
               window.RSScanner.run();
             } else {
-              window._runAllActive = false;
-              setStatus('✓ Done (RS not ready)', true);
+              // RS not ready — skip to BA
+              setStatus('4/4 Balanced Allocation…');
+              switchTab('ba');
+              setTimeout(function() {
+                if (typeof window.runBAsScan === 'function') window.runBAsScan();
+                window._runAllActive = false;
+                switchTab('scanner');
+                setStatus('✓ Done (RS skipped)', true);
+              }, 300);
             }
           }, 300);
         };
         window.TTFScanner.run();
       } else {
         // TTF not ready — skip to RS
-        setStatus('3/3 RS Scanner…');
+        setStatus('3/4 RS Scanner…');
         switchTab('rs');
         setTimeout(function() {
           if (window.RSScanner) window.RSScanner.run();
           window._runAllActive = false;
-          setStatus('✓ Done', true);
+          setStatus('✓ Done (TTF skipped)', true);
         }, 300);
       }
     }, 300);
@@ -2631,7 +2695,7 @@ initBreadthScanner();
 (function(win) {
   'use strict';
   // ── 7.1 Configuration ──
-  var CORS_LIST   = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+  var CORS_LIST   = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?','https://cors.sh/?','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
   var NSE_API     = 'https://www.nseindia.com/api/allIndices';
   var CSV_URL     = 'https://archives.nseindia.com/content/indices/ind_close_all_';
   async function fetchProxy(url, opts) {
@@ -2652,6 +2716,7 @@ initBreadthScanner();
   var $ = function(id) { return document.getElementById(id); };
   var statusEl = $('status'), headEl = $('tableHead'), bodyEl = $('tableBody');
   var scanBtn = $('scanBtn'), resetBtn = $('resetBtn'), tsEl = $('ts'), rsi8Filter = $('rsi8Filter');
+  var _ttfRunning = false; // replaces scanBtn.disabled since button was removed
   var CACHE_KEY = 'ttf_scanner_cache';
   var _lastResults = null, _sortKey = 'name', _sortDir = 'asc', _debugData = {};
   function sleep(ms)         { return new Promise(function(r) { setTimeout(r, ms); }); }
@@ -2845,12 +2910,12 @@ initBreadthScanner();
     // ── Freeze-pane inline style helpers ──
     // Header sticky: position:sticky;top works in <thead>, not <tbody>
     var C1W = 'width:28px;min-width:28px;max-width:28px;overflow:hidden;';
-    var FROW1 = 'position:sticky;top:0;z-index:4;background:#eeeeee;';
-    var FROW2 = 'position:sticky;top:0;z-index:4;background:#eeeeee;';
+    var FROW1 = 'position:sticky;top:0;z-index:4;background:#ffffff;';
+    var FROW2 = 'position:sticky;top:0;z-index:4;background:#ffffff;';
     var FCOL1 = 'position:sticky;left:0;z-index:3;background:#ffffff;' + C1W;
     var FCOL2 = 'position:sticky;left:28px;z-index:3;background:#ffffff;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
-    var FCOR1C1 = 'position:sticky;top:0;left:0;z-index:8;background:#eeeeee;' + C1W;
-    var FCOR1C2 = 'position:sticky;top:0;left:28px;z-index:8;background:#eeeeee;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
+    var FCOR1C1 = 'position:sticky;top:0;left:0;z-index:8;background:#ffffff;' + C1W;
+    var FCOR1C2 = 'position:sticky;top:0;left:28px;z-index:8;background:#ffffff;box-shadow:3px 0 5px -2px rgba(0,0,0,0.22);';
     var BASE_HDR = 'border:1px solid #cccccc;text-align:center;font-size:9px;padding:5px 3px;';
     // ── Build header into headEl (thead) using <th> tags ──
     var hb = '';
@@ -2950,15 +3015,17 @@ initBreadthScanner();
     render(results);
     tsEl.textContent = new Date().toLocaleString();
     setStatus('Done. <strong>' + results.length + '</strong> indices, ' + sourceLabel + '.', 'success');
-    scanBtn.disabled = false;
+    _ttfRunning = false;
+    if (scanBtn) scanBtn.disabled = false;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ results: results, ts: new Date().toISOString() })); } catch(e) {}
     if (typeof TTFScanner.onComplete === 'function') { try { TTFScanner.onComplete(results); } catch(e) {} }
   }
 
   // ── 7.9 Scan Engine (Cached or Fresh Fetch) ──
   function runScan() {
-    if (scanBtn.disabled) return;
-    scanBtn.disabled = true;
+    if (_ttfRunning) return;
+    _ttfRunning = true;
+    if (scanBtn) scanBtn.disabled = true;
     var sd = window._ldScannerData;
     if (sd && sd.dailyMap && Object.keys(sd.dailyMap).length > 10) {
       setStatus('<span class="spinner"></span> Using cached data from Lie Detector (' + Object.keys(sd.dailyMap).length + ' dates)...');
@@ -2988,7 +3055,7 @@ initBreadthScanner();
           completeScan(priceMap, indexList, dailyMap, errors + ' failed fetches');
         });
       })
-      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); scanBtn.disabled = false; });
+      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); _ttfRunning = false; if (scanBtn) scanBtn.disabled = false; });
   }
   // ── 7.10 Cache Restore ──
   function loadFromCache() {
@@ -3053,7 +3120,7 @@ initBreadthScanner();
   }
   var TTFScanner = { run: runScan, reset: reset, onComplete: null, _results: function() { return _lastResults; }, _loadCache: loadFromCache };
   win.TTFScanner = TTFScanner;
-  scanBtn.addEventListener('click', runScan);
+  if (scanBtn) scanBtn.addEventListener('click', runScan);
   resetBtn.addEventListener('click', reset);
   rsi8Filter.addEventListener('change', function() { if (_lastResults) render(_lastResults); });
   headEl.addEventListener('click', function(e) {
@@ -3129,7 +3196,6 @@ initBreadthScanner();
   <!-- Controls -->
   <div class="rs-controls-bar">
     <div class="rs-controls-left">
-      <button class="rs-btn-primary" id="rsScanBtn">▶ Step 3 — Run Relative Strength Scan</button>
       <button class="rs-btn-stop" id="rsStopBtn" style="display:none;">■ Stop</button>
 
       <div class="rs-filter-group">
@@ -3263,7 +3329,7 @@ initBreadthScanner();
     <span class="rs-amc-pill amc-icici">ICICI</span>
     <span class="rs-amc-pill amc-kotak">Kotak</span>
     <span class="rs-amc-pill amc-absl">ABSL</span>
-    <span style="margin-left:12px;font-size:10px;color:#888;">🟣 ETF &nbsp; 🟤 Index MF &nbsp; ✅ Both available</span>
+    <span style="margin-left:12px;font-size:10px;color:#000000;">🟣 ETF &nbsp; 🟤 Index MF &nbsp; ✅ Both available</span>
   </div>
 
   <!-- Main Table -->
@@ -3302,14 +3368,14 @@ initBreadthScanner();
       </div>
       <div id="rsAiLoading" style="text-align:center;padding:40px;display:none;">
         <div class="rs-spinner"></div>
-        <div style="font-family:'Segoe UI Mono','Courier New',monospace;font-size:11px;color:#888;margin-top:12px;">Gemini analysing RS + AMC data…</div>
+        <div style="font-family:'Segoe UI Mono','Courier New',monospace;font-size:11px;color:#000000;margin-top:12px;">Gemini analysing RS + AMC data…</div>
       </div>
       <div id="rsAiError" style="display:none;color:var(--red);font-family:'Segoe UI Mono','Courier New',monospace;font-size:12px;padding:16px;"></div>
       <pre id="rsAiResult" style="display:none;white-space:pre-wrap;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.75;padding:4px 0;"></pre>
     </div>
   </div>
 
-  <div style="margin-top:16px;font-size:10px;color:#999;text-align:center;font-family:'Segoe UI Mono','Courier New',monospace;">
+  <div style="margin-top:16px;font-size:10px;color:#000000;text-align:center;font-family:'Segoe UI Mono','Courier New',monospace;">
     Data: NSE allIndices API · RS = Return differential vs benchmark · AMC data via Gemini AI · 2M ≈ 2×1M proxy · 3M ≈ 1Y÷4 proxy
   </div>
 
@@ -3326,22 +3392,22 @@ initBreadthScanner();
 .rs-header-left { display:flex; align-items:flex-start; gap:14px; flex-direction:column; }
 .rs-logo { font-family:'Segoe UI Mono','Courier New',monospace; font-size:20px; font-weight:800; color:var(--text); letter-spacing:2px; }
 .rs-logo span { color:var(--orange); }
-.rs-header-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#555; }
+.rs-header-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#000000; }
 .rs-formula-bar { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
 .rs-fml { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:var(--orange); background:var(--orange-dim); padding:2px 8px; border:1px solid var(--orange); }
 .rs-fml sub { font-size:8px; }
-.rs-fml-sep { color:#aaa; font-size:10px; }
+.rs-fml-sep { color:#000000; font-size:10px; }
 .rs-header-right { text-align:right; }
-.rs-lastupdated { font-size:9px; color:#aaa; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
+.rs-lastupdated { font-size:9px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
 
 /* Steps */
 .rs-steps { display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
-.rs-step { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border2); padding:6px 12px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#888; transition:all .3s; }
+.rs-step { display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border2); padding:6px 12px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:#000000; transition:all .3s; }
 .rs-step.active { background:var(--orange-dim); border-color:var(--orange); color:var(--orange); }
 .rs-step.done { background:var(--green-dim); border-color:var(--green); color:var(--green); }
 .rs-step-num { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; border:1.5px solid currentColor; font-size:10px; font-weight:800; flex-shrink:0; }
 .rs-step-lbl { font-size:9px; }
-.rs-step-arrow { color:#ccc; font-size:14px; }
+.rs-step-arrow { color:#000000; font-size:14px; }
 
 /* Controls */
 .rs-controls-bar { background:var(--surface); border:1px solid var(--border2); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
@@ -3359,14 +3425,14 @@ initBreadthScanner();
   border-radius:2px;
   border:1px solid var(--border2);
   background:var(--surface2);
-  color:#888;
+  color:#000000;
   white-space:nowrap;
 }
 .rs-cache-status.cached { background:var(--green-dim); color:var(--green); border-color:var(--green); }
 .rs-cache-status.fresh  { background:var(--orange-dim); color:var(--orange); border-color:var(--orange); }
 .rs-btn-cache-clear {
   background:transparent;
-  color:#888;
+  color:#000000;
   font-family:'Segoe UI Mono','Courier New',monospace;
   font-size:10px;
   padding:6px 12px;
@@ -3383,17 +3449,17 @@ initBreadthScanner();
 }
 .rs-btn-ai:hover { background:#0f3460; }
 .rs-filter-group { display:flex; align-items:center; gap:5px; }
-.rs-filter-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:#555; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+.rs-filter-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:#000000; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
 .rs-select { background:var(--surface2); color:var(--text); border:1px solid var(--border2); font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; padding:6px 22px 6px 8px; cursor:pointer; outline:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 7px center; }
 
 /* Progress */
 .rs-progress-wrap { background:var(--surface); border:1px solid var(--border2); padding:10px 16px; margin-bottom:14px; }
 .rs-progress-top { display:flex; justify-content:space-between; margin-bottom:6px; }
-.rs-progress-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:#555; }
+.rs-progress-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:#000000; }
 .rs-progress-pct { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--orange); font-weight:700; }
 .rs-progress-track { height:4px; background:var(--border2); }
 .rs-progress-fill { height:100%; background:linear-gradient(90deg,var(--orange),#ffcc44); transition:width .3s; box-shadow:0 0 8px var(--orange); }
-.rs-progress-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#888; margin-top:4px; }
+.rs-progress-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#000000; margin-top:4px; }
 
 /* Error */
 .rs-error { background:var(--red-dim); border:1px solid var(--red); color:var(--red); font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; padding:12px 16px; margin-bottom:14px; }
@@ -3405,7 +3471,7 @@ initBreadthScanner();
 .rs-fb-item { background:var(--surface2); border:1px solid var(--border2); padding:10px 14px; flex:1; min-width:180px; }
 .rs-fb-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
 .rs-fb-val { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); font-weight:600; margin-bottom:3px; }
-.rs-fb-note { font-size:10px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; }
+.rs-fb-note { font-size:10px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; }
 .rs-fb-signals { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
 
 /* Summary */
@@ -3417,11 +3483,11 @@ initBreadthScanner();
 .rs-sum-val.rs-red   { color:var(--red); }
 .rs-sum-val.rs-blue  { color:var(--blue); }
 .rs-sum-lbl { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--text); margin-top:5px; text-transform:uppercase; letter-spacing:0.8px; }
-.rs-sum-sub { font-size:9px; color:#888; font-family:'Segoe UI Mono','Courier New',monospace; margin-top:2px; }
+.rs-sum-sub { font-size:9px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; margin-top:2px; }
 
 /* AMC legend */
 .rs-amc-legend { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; }
-.rs-amc-label { font-weight:700; color:#555; text-transform:uppercase; letter-spacing:1px; }
+.rs-amc-label { font-weight:700; color:#000000; text-transform:uppercase; letter-spacing:1px; }
 .rs-amc-pill { padding:3px 8px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:0.5px; }
 .amc-hdfc { background:#e8f4fd; color:#1565c0; border:1px solid #1565c0; }
 .amc-icici { background:#fce8e8; color:#b71c1c; border:1px solid #b71c1c; }
@@ -3565,8 +3631,8 @@ initBreadthScanner();
 #rsTable tbody td:nth-child(2)[style*="background:#d4f0e0"] {
   background:#d4f0e0!important;
 }
-#rsTable tbody td:nth-child(2)[style*="background:#fff3e0"] {
-  background:#fff3e0!important;
+#rsTable tbody td:nth-child(2)[style*="background:#f0f4ff"] {
+  background:#f0f4ff!important;
 }
 
 /* The two row-group header th spanning both sticky positions */
@@ -3583,7 +3649,7 @@ initBreadthScanner();
 /* RS value colors */
 .rs-pos { color:var(--green); font-weight:700; }
 .rs-neg { color:var(--red); }
-.rs-zer { color:#888; }
+.rs-zer { color:#000000; }
 
 /* AMC cell */
 .amc-cell { display:flex; flex-direction:column; gap:2px; align-items:center; }
@@ -3591,11 +3657,11 @@ initBreadthScanner();
 .amc-tag-etf { background:#e8f4fd; color:#1565c0; }
 .amc-tag-mf  { background:#f3e5f5; color:#6a1b9a; }
 .amc-tag-both{ background:var(--green-dim); color:var(--green); }
-.amc-tag-no  { color:#bbb; font-size:10px; }
+.amc-tag-no  { color:#000000; font-size:10px; }
 
 /* ── Divider row between AMC-available and no-AMC sections ── */
 .rs-divider-row td { padding:0 !important; border-right:none !important; }
-.rs-divider-inner { display:flex; align-items:center; gap:10px; padding:6px 10px; background:#fff8f0; border-top:3px solid var(--orange); border-bottom:3px solid var(--orange); }
+.rs-divider-inner { display:flex; align-items:center; gap:10px; padding:6px 10px; background:#ffffff; border-top:3px solid var(--orange); border-bottom:3px solid var(--orange); }
 .rs-divider-line { flex:1; height:1px; background:var(--orange); opacity:0.4; }
 .rs-divider-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--orange); letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
 
@@ -3639,7 +3705,7 @@ initBreadthScanner();
 'use strict';
 
 // ── Constants (same sources as core scanner) ──
-var CORS_LIST_RS = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+var CORS_LIST_RS = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?','https://cors.sh/?','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 var NSE_URL= 'https://www.nseindia.com/api/allIndices';
 async function fetchProxyRS(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
@@ -3946,13 +4012,13 @@ async function checkAMC(rows){
 // STEP 5: Render table
 // ════════════════════════════════════════════
 function fmtRS(v){
-  if(v==null||isNaN(v)) return '<span style="color:#bbb;">—</span>';
+  if(v==null||isNaN(v)) return '<span style="color:#000000;">—</span>';
   var cls = v>0.5?'rs-pos':v<-0.5?'rs-neg':'rs-zer';
   var sign = v>0?'+':'';
   return '<span class="'+cls+'">'+sign+v.toFixed(2)+'%</span>';
 }
 function fmtScore(v){
-  if(v==null||isNaN(v)) return '<span style="color:#bbb;">—</span>';
+  if(v==null||isNaN(v)) return '<span style="color:#000000;">—</span>';
   var cls = v>0?'rs-pos':v<0?'rs-neg':'rs-zer';
   var sign = v>0?'+':'';
   return '<span class="'+cls+'" style="font-weight:800;">'+sign+v.toFixed(2)+'</span>';
@@ -4059,7 +4125,7 @@ function renderRSTable(){
   var rowNum=0;
 
   if(!withAmc.length && !noAmc.length){
-    html='<tr><td colspan="12" style="text-align:center;padding:32px;color:#888;font-family:\'Segoe UI\',sans-serif;">No indices matching the current filters.</td></tr>';
+    html='<tr><td colspan="12" style="text-align:center;padding:32px;color:#000000;font-family:\'Segoe UI\',sans-serif;">No indices matching the current filters.</td></tr>';
   } else {
 
     // ── Render a row ──
@@ -4071,15 +4137,15 @@ function renderRSTable(){
       // Also highlight IMPROVING with AMC in light amber
       var isImprovingAmc=(sig==='IMPROVING' && hasAmc);
       var nameBg = isLeaderAmc   ? 'background:#d4f0e0;font-weight:700;color:#0a5c2a;'
-                 : isImprovingAmc? 'background:#fff3e0;font-weight:600;color:#7a4000;'
+                 : isImprovingAmc? 'background:#f0f4ff;font-weight:600;color:#000000;'
                  : '';
       var inWL=wl.indexOf(r.name)!==-1;
       var wlBtn='<button onclick="rsToggleWL(\''+r.name.replace(/'/g,"\\'")+'\')" '
         +'title="'+(inWL?'Remove from Watchlist':'Add to Watchlist')+'" '
-        +'style="background:'+(inWL?'var(--orange)':'transparent')+';color:'+(inWL?'#000':'#bbb')+';border:1px solid '+(inWL?'var(--orange)':'#ccc')+';border-radius:2px;padding:2px 6px;font-size:11px;cursor:pointer;font-weight:700;line-height:1;">'
+        +'style="background:'+(inWL?'var(--orange)':'transparent')+';color:'+(inWL?'#000':'#000')+';border:1px solid '+(inWL?'var(--orange)':'#ccc')+';border-radius:2px;padding:2px 6px;font-size:11px;cursor:pointer;font-weight:700;line-height:1;">'
         +(inWL?'★':'☆')+'</button>';
       return '<tr>'
-        +'<td style="text-align:center;color:#aaa;font-size:10px;">'+num+'</td>'
+        +'<td style="text-align:center;color:#000000;font-size:10px;">'+num+'</td>'
         +'<td class="rs-td-name" title="'+r.name+'" style="'+nameBg+'">'+r.name+'</td>'
         +'<td><span class="rs-pill rs-pill-'+sig+'">'+sig+'</span></td>'
         +'<td>'+fmtRS(r.rs.rs1m)+'</td>'
@@ -4138,7 +4204,7 @@ async function runScan(){
   EL.rsAmcLegend.style.display='none';
   EL.rsTableWrap.style.display='none';
   EL.rsProgressWrap.style.display='block';
-  EL.rsScanBtn.style.display='none';
+  if(EL.rsScanBtn) EL.rsScanBtn.style.display='none';
   EL.rsStopBtn.style.display='inline-block';
   EL.rsAiBtn.style.display='none';
   setStep(1);
@@ -4215,6 +4281,19 @@ async function runScan(){
 
     prog(100,'Scan complete ✓ — '+S.rows.length+' indices · '+leaders+' leaders · '+amcFound+' AMC products found');
     setTimeout(function(){EL.rsProgressWrap.style.display='none';},2000);
+
+    // ── Save RS scan results to persistent cache ──
+    try {
+      var rsSnapRows = S.rows.map(function(r) {
+        return { name: r.name, key: r.key, rs: r.rs };
+      });
+      localStorage.setItem('ld_rs_scan_cache', JSON.stringify({
+        rows: rsSnapRows, amcData: S.amcData,
+        bench: S.bench ? { name: S.bench.name } : null,
+        ts: new Date().toISOString()
+      }));
+    } catch(e) {}
+
     if(typeof RSScanner.onComplete==='function'){try{RSScanner.onComplete(S.rows);}catch(e){}}
 
   }catch(err){
@@ -4228,7 +4307,7 @@ async function runScan(){
 
 function cleanup(){
   S.running=false;
-  EL.rsScanBtn.style.display='inline-block';
+  if(EL.rsScanBtn) EL.rsScanBtn.style.display='inline-block';
   EL.rsStopBtn.style.display='none';
   // Release RunAll lock if it was waiting on RS
   if(window._runAllActive && typeof window.RSScanner !== 'undefined' && !RSScanner.onComplete){
@@ -4251,7 +4330,7 @@ EL.rsSignalFilter.addEventListener('change',function(){if(S.rows.length) renderR
 EL.rsAmcFilter.addEventListener('change',function(){if(S.rows.length) renderRSTable();});
 
 // ── Buttons ──
-EL.rsScanBtn.addEventListener('click', runScan);
+if(EL.rsScanBtn) EL.rsScanBtn.addEventListener('click', runScan);
 EL.rsStopBtn.addEventListener('click',function(){S.stopped=true; cleanup();});
 EL.rsResetBtn.addEventListener('click',function(){
   S.rows=[]; S.amcData={}; S.running=false; S.stopped=false; S.bench=null;
@@ -4364,8 +4443,39 @@ EL.rsAiBtn.addEventListener('click',async function(){
 EL.rsAiClose.addEventListener('click',function(){EL.rsAiModal.style.display='none';});
 EL.rsAiModal.addEventListener('click',function(e){if(e.target===EL.rsAiModal)EL.rsAiModal.style.display='none';});
 
-// Tab hook
-win.onRSTabActivated=function(){};
+// Tab hook — restore RS cache if no data currently shown
+win.onRSTabActivated=function(){
+  if(S.rows.length) return; // already have data
+  try {
+    var raw = localStorage.getItem('ld_rs_scan_cache');
+    if (!raw) return;
+    var snap = JSON.parse(raw);
+    if (!snap.rows || !snap.rows.length) return;
+    S.rows = snap.rows;
+    S.amcData = snap.amcData || {};
+    if (snap.bench) S.bench = snap.bench;
+    var leaders = S.rows.filter(function(r){return r.rs&&r.rs.signal==='LEADER';}).length;
+    var improving = S.rows.filter(function(r){return r.rs&&r.rs.signal==='IMPROVING';}).length;
+    var laggards = S.rows.filter(function(r){return r.rs&&r.rs.signal==='LAGGARD';}).length;
+    var amcFound = S.rows.filter(function(r){return hasAmcProduct(r.name).any;}).length;
+    var t=$('rsSumTotal'); if(t) t.textContent=S.rows.length;
+    var sl=$('rsSumLeaders'); if(sl) sl.textContent=leaders;
+    var si=$('rsSumImproving'); if(si) si.textContent=improving;
+    var sla=$('rsSumLaggards'); if(sla) sla.textContent=laggards;
+    var sf=$('rsSumAmcFound'); if(sf) sf.textContent=amcFound;
+    if(snap.ts){
+      var d=new Date(snap.ts);
+      EL.rsLastUpdated.textContent='Last scan: '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (cached)';
+    }
+    renderRSTable();
+    EL.rsSummaryRow.style.display='flex';
+    EL.rsFormulaBox.style.display='block';
+    EL.rsAmcLegend.style.display='flex';
+    EL.rsTableWrap.style.display='block';
+    EL.rsAiBtn.style.display='inline-block';
+    setStep(5);
+  } catch(e) {}
+};
 
 // Expose for Run All orchestration
 var RSScanner = { run: runScan, onComplete: null };
@@ -4410,7 +4520,6 @@ win.rsToggleWL=rsToggleWL;
 
   <!-- Controls -->
   <div class="ba-controls">
-    <button class="ba-btn-primary" id="baScanBtn">▶ Fetch & Rank Portfolios</button>
     <button class="ba-btn-stop" id="baStopBtn" style="display:none;">■ Stop</button>
     <div class="ba-filter-group">
       <span class="ba-filter-label">DEBT PROXY</span>
@@ -4460,6 +4569,58 @@ win.rsToggleWL=rsToggleWL;
 </div><!-- .ba-wrap -->
 </div><!-- #tab-ba -->
 
+<!-- ── Paper Trade Tab Panel ── -->
+<div id="tab-pt" class="tab-panel">
+<div id="pt-wrap" style="font-family:'Courier New',monospace;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
+
+<h2 style="color:#cc5500;font-size:16px;margin-bottom:3px">Paper Trade v10</h2>
+<p style="color:#b8860b;font-size:8px;margin-bottom:8px">V9E_DEFAULT + ALL indicators + MONTHLY | Rs 10,00,000 | 139 NSE indices</p>
+
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0">
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Portfolio</div><div id="pt-pv" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 10,00,000</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">P&L</div><div id="pt-tp" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 0</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Return</div><div id="pt-tr" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">+0.00%</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Cash</div><div id="pt-cv" style="font-size:15px;font-weight:bold;margin-top:2px">Rs 10,00,000</div></div>
+</div>
+
+<div style="background:#f5f5f5;border:1px solid #ddd;padding:8px;margin:6px 0;font-size:9px;border-radius:4px">
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Entry:</span><span>V9E_DEFAULT (D-RSI 40-50)</span></div>
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Rebal:</span><span>MONTHLY</span></div>
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Universe:</span><span>139 NSE indices</span></div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 3px">
+  <span id="pt-st" style="font-size:8px;color:#666">Tap SCAN</span>
+  <span id="pt-ts" style="font-size:8px;color:#666"></span>
+</div>
+<div style="display:flex;gap:5px;margin:6px 0">
+  <button onclick="ptRunScan()" style="background:#1a8a1a;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">SCAN</button>
+  <button onclick="ptReset()" style="background:#666;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">RESET</button>
+</div>
+
+<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
+<table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
+  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Regime</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
+  <tbody id="pt-tb"><tr><td colspan="10" style="text-align:center;color:#666;padding:8px">Tap SCAN</td></tr></tbody>
+</table>
+</div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Positions</h3>
+<div style="background:#f5f5f5;border:1px solid #1a8a1a;padding:8px;margin:6px 0;border-radius:4px">
+  <div id="pt-pl"><div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div></div>
+</div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Trade Log</h3>
+<div id="pt-tl" style="background:#f5f5f5;padding:6px;max-height:150px;overflow-y:auto;font-size:8px;border-radius:4px;-webkit-overflow-scrolling:touch"><div style="color:#b8860b">Ready</div></div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Equity Curve</h3>
+<div style="background:#f5f5f5;padding:6px;border-radius:4px;height:120px;position:relative">
+  <canvas id="pt-ec"></canvas>
+</div>
+
+</div>
+</div><!-- #tab-pt -->
+
 <!-- 9.2 BA CSS -->
 <style>
 .ba-wrap{max-width:1400px;margin:0 auto;padding:20px;font-family:var(--sans);}
@@ -4469,12 +4630,12 @@ win.rsToggleWL=rsToggleWL;
 .ba-header-left{display:flex;flex-direction:column;gap:4px;}
 .ba-logo{font-family:var(--mono);font-size:20px;font-weight:800;color:var(--text);letter-spacing:2px;}
 .ba-logo span{color:var(--orange);}
-.ba-subtitle{font-family:var(--mono);font-size:10px;color:#666;}
+.ba-subtitle{font-family:var(--mono);font-size:10px;color:#000000;}
 .ba-header-right{text-align:right;}
-.ba-lastupdated{font-family:var(--mono);font-size:9px;color:#aaa;text-align:right;}
+.ba-lastupdated{font-family:var(--mono);font-size:9px;color:#000000;text-align:right;}
 
 /* Legend */
-.ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#555;}
+.ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#000000;}
 .ba-legend-item{display:flex;align-items:center;gap:6px;}
 .ba-dot{width:10px;height:10px;border-radius:2px;display:inline-block;}
 .ba-dot-eq{background:#3a7abf;}
@@ -4488,14 +4649,14 @@ win.rsToggleWL=rsToggleWL;
 .ba-btn-primary:hover{background:#ffb87d;transform:translateY(-1px);}
 .ba-btn-stop{background:transparent;color:var(--red);font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 22px;border:1px solid var(--red);cursor:pointer;}
 .ba-filter-group{display:flex;align-items:center;gap:8px;}
-.ba-filter-label{font-family:var(--mono);font-size:10px;font-weight:600;color:#555;letter-spacing:1px;text-transform:uppercase;}
+.ba-filter-label{font-family:var(--mono);font-size:10px;font-weight:600;color:#000000;letter-spacing:1px;text-transform:uppercase;}
 .ba-select{background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:6px 10px;cursor:pointer;outline:none;}
 .ba-select:focus{border-color:var(--orange);}
 
 /* Progress */
 .ba-progress-wrap{background:var(--surface);border:1px solid var(--border2);padding:10px 18px;margin-bottom:14px;}
 .ba-progress-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-.ba-progress-label{font-family:var(--mono);font-size:11px;color:#555;}
+.ba-progress-label{font-family:var(--mono);font-size:11px;color:#000000;}
 .ba-progress-pct{font-family:var(--mono);font-size:11px;color:var(--orange);font-weight:600;}
 .ba-progress-track{height:3px;background:var(--border2);width:100%;}
 .ba-progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ffcc66);transition:width .3s ease;box-shadow:0 0 8px var(--orange);}
@@ -4509,7 +4670,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-portdef-grid{display:flex;flex-wrap:wrap;gap:8px;}
 .ba-portcard{border:1px solid var(--border);background:#fff;padding:8px 12px;font-family:var(--mono);font-size:10px;min-width:140px;}
 .ba-portcard-rank{font-size:13px;margin-bottom:2px;}
-.ba-portcard-mix{color:#555;line-height:1.6;}
+.ba-portcard-mix{color:#000000;line-height:1.6;}
 .ba-portcard-mix span{font-weight:700;}
 .ba-portcard-mix .ba-pc-eq{color:#3a7abf;}
 .ba-portcard-mix .ba-pc-db{color:#1a8a4a;}
@@ -4522,7 +4683,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-period-block{margin-bottom:28px;}
 .ba-period-head{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
 .ba-period-label{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);letter-spacing:1px;}
-.ba-period-dates{font-family:var(--mono);font-size:10px;color:#888;}
+.ba-period-dates{font-family:var(--mono);font-size:10px;color:#000000;}
 .ba-period-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;background:var(--orange-dim);border:1px solid var(--orange);color:var(--orange);font-weight:700;}
 
 /* The ranking table inside each period */
@@ -4542,23 +4703,23 @@ win.rsToggleWL=rsToggleWL;
 .ba-w-pill{padding:2px 6px;font-size:9px;font-weight:600;border-radius:2px;}
 .ba-w-eq{background:#d4e4f4;color:#1a4a7a;}
 .ba-w-db{background:#d4f0e0;color:#0a5a2a;}
-.ba-w-gd{background:#fff3e0;color:#8a5000;}
+.ba-w-gd{background:#fff8e1;color:#7a5000;}
 
 /* Return values */
 .ba-ret-pos{color:var(--green);font-weight:700;}
 .ba-ret-neg{color:var(--red);font-weight:700;}
-.ba-ret-zero{color:#888;}
+.ba-ret-zero{color:#000000;}
 
 /* Asset returns row */
 .ba-asset-returns{display:flex;gap:12px;font-family:var(--mono);font-size:10px;padding:4px 0;}
 .ba-ar-item{display:flex;align-items:center;gap:4px;}
-.ba-ar-label{color:#888;}
+.ba-ar-label{color:#000000;}
 
 /* Benchmark row */
-.ba-bench-row td{background:#fafafa;font-style:italic;color:#555;}
+.ba-bench-row td{background:#ffffff;font-style:italic;color:#000000;}
 
 /* Footnote */
-.ba-footnote{font-family:var(--mono);font-size:10px;color:#888;text-align:center;margin-top:8px;padding:8px;border-top:1px solid var(--border);}
+.ba-footnote{font-family:var(--mono);font-size:10px;color:#000000;text-align:center;margin-top:8px;padding:8px;border-top:1px solid var(--border);}
 
 /* Top-period highlight */
 .ba-period-block:first-child .ba-period-badge{background:var(--green-dim);border-color:var(--green);color:var(--green);}
@@ -4569,18 +4730,18 @@ win.rsToggleWL=rsToggleWL;
 <style>
 .ba-grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .ba-grid-hdr{display:flex;min-width:580px;background:var(--surface2);border:1px solid var(--border2);border-bottom:none;}
-.ba-grid-hdr-rank{width:42px;min-width:42px;padding:8px 4px;font-family:var(--mono);font-size:9px;font-weight:700;color:#888;text-align:center;letter-spacing:1px;border-right:1px solid var(--border2);display:flex;align-items:center;justify-content:center;}
+.ba-grid-hdr-rank{width:42px;min-width:42px;padding:8px 4px;font-family:var(--mono);font-size:9px;font-weight:700;color:#000000;text-align:center;letter-spacing:1px;border-right:1px solid var(--border2);display:flex;align-items:center;justify-content:center;}
 .ba-grid-hdr-period{flex:1;min-width:88px;padding:6px 4px;text-align:center;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:2px;}
 .ba-grid-hdr-latest{background:var(--orange-dim);border-left:2px solid var(--orange)!important;}
 .ba-ghp-top{height:16px;display:flex;align-items:center;justify-content:center;}
 .ba-ghp-label{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text);}
-.ba-ghp-year{font-family:var(--mono);font-size:9px;color:#888;}
+.ba-ghp-year{font-family:var(--mono);font-size:9px;color:#000000;}
 .ba-latest-badge{background:var(--orange);color:#000;font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;letter-spacing:1px;}
-.ba-period-badge2{background:var(--surface);border:1px solid var(--border2);color:#888;font-family:var(--mono);font-size:8px;padding:1px 5px;}
+.ba-period-badge2{background:var(--surface);border:1px solid var(--border2);color:#000000;font-family:var(--mono);font-size:8px;padding:1px 5px;}
 .ba-grid-bench{display:flex;min-width:580px;background:#fafafa;border:1px solid var(--border2);border-bottom:none;}
 .ba-grid-bench-cell{flex:1;min-width:88px;padding:5px 4px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
 .ba-bc-row{display:flex;align-items:center;justify-content:space-between;gap:3px;}
-.ba-bc-lbl{font-family:var(--mono);font-size:8px;color:#aaa;width:14px;}
+.ba-bc-lbl{font-family:var(--mono);font-size:8px;color:#000000;width:14px;}
 .ba-grid-row{display:flex;min-width:580px;border:1px solid var(--border2);border-bottom:none;}
 .ba-grid-row:last-of-type{border-bottom:1px solid var(--border2);}
 .ba-grid-rank-lbl{width:42px;min-width:42px;padding:8px 4px;text-align:center;border-right:1px solid var(--border2);display:flex;align-items:center;justify-content:center;}
@@ -4594,17 +4755,17 @@ win.rsToggleWL=rsToggleWL;
 .ba-cell-ret{font-family:var(--mono);font-size:11px;font-weight:700;margin-top:2px;}
 .ba-pos{color:var(--green);font-weight:700;}
 .ba-neg{color:var(--red);font-weight:700;}
-.ba-zer{color:#888;}
-.ba-na{color:#ccc;}
+.ba-zer{color:#000000;}
+.ba-na{color:#000000;}
 .ba-grid-avg-row{display:flex;min-width:580px;border:1px solid var(--border2);border-top:2px solid var(--orange);margin-top:4px;}
-.ba-grid-footer{font-family:var(--mono);font-size:10px;color:#555;padding:8px 6px;margin-top:2px;background:var(--orange-dim);border:1px solid var(--orange);}
+.ba-grid-footer{font-family:var(--mono);font-size:10px;color:#000000;padding:8px 6px;margin-top:2px;background:var(--orange-dim);border:1px solid var(--orange);}
 .ba-port-legend{margin-top:14px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);}
 .ba-pl-title{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--orange);letter-spacing:1.5px;margin-bottom:8px;}
 .ba-pl-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .ba-pl-card{background:#fff;border:1px solid var(--border);padding:6px 10px;min-width:110px;}
 .ba-pl-id{font-family:var(--mono);font-size:11px;font-weight:700;margin-bottom:3px;color:var(--text);}
 .ba-pl-mix{display:flex;flex-direction:column;gap:1px;}
-.ba-data-src{font-family:var(--mono);font-size:9px;color:#aaa;margin-top:6px;padding:4px 6px;border-top:1px solid var(--border);}
+.ba-data-src{font-family:var(--mono);font-size:9px;color:#000000;margin-top:6px;padding:4px 6px;border-top:1px solid var(--border);}
 </style>
 
 <!-- 9.3 BA JavaScript -->
@@ -4613,7 +4774,7 @@ win.rsToggleWL=rsToggleWL;
 'use strict';
 
 // ── Shared CORS proxy (same as TTF and RS tabs) ──
-var BA_CORS_LIST = ['https://cors-proxy-xi-ten.vercel.app/api/proxy?url=','https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+var BA_CORS_LIST = ['https://api.allorigins.win/raw?url=','https://corsproxy.io/?','https://cors.sh/?','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 async function fetchProxyBA(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
   for (var pi = 0; pi < BA_CORS_LIST.length; pi++) {
@@ -4806,7 +4967,7 @@ function fmtPct(v){
 function renderBAGrid(periods, data, debtLabel){
   var N=periods.length;
   var MEDALS=['🥇','🥈','🥉','4','5','6','7'];
-  var ROWBG=['#fffde7','#f3f4ff','#f1fff5','#fafafa','#fafafa','#fafafa','#fafafa'];
+  var ROWBG=['#ffffff','#ffffff','#ffffff','#ffffff','#ffffff','#ffffff','#ffffff'];
   var container=baEl('baTableOuter');
   var html='<div class="ba-grid-wrap">';
 
@@ -4822,7 +4983,7 @@ function renderBAGrid(periods, data, debtLabel){
   html+='</div>';
 
   // Asset benchmark row
-  html+='<div class="ba-grid-bench"><div class="ba-grid-hdr-rank" style="font-size:8px;color:#aaa;flex-direction:column;line-height:1.4;display:flex;align-items:center;justify-content:center;">ASSET<br>RET</div>';
+  html+='<div class="ba-grid-bench"><div class="ba-grid-hdr-rank" style="font-size:8px;color:#000000;flex-direction:column;line-height:1.4;display:flex;align-items:center;justify-content:center;">ASSET<br>RET</div>';
   for(var pi=0;pi<N;pi++){
     var d=data[pi];
     html+='<div class="ba-grid-bench-cell">'+
@@ -4892,6 +5053,8 @@ function renderBAGrid(periods, data, debtLabel){
   html+='</div>';
   container.innerHTML=html;
   container.style.display='block';
+  // Save BA results to persistent cache
+  try { saveBACache(html, debtLabel, new Date().toISOString()); } catch(e) {}
 }
 
 // ── Main scan ──
@@ -4901,7 +5064,7 @@ async function runBAsScan(){
   baEl('baTableOuter').style.display='none';
   baEl('baTableOuter').innerHTML='';
   baEl('baFootnote').style.display='none';
-  baEl('baScanBtn').style.display='none';
+  var _baSB=baEl('baScanBtn'); if(_baSB) _baSB.style.display='none';
   baEl('baStopBtn').style.display='inline-block';
 
   var debtKey=baEl('baDebtProxy').value;
@@ -5023,18 +5186,18 @@ async function runBAsScan(){
     setBAError('⚠ Error: '+(e.message||e));
     baEl('baProgressWrap').style.display='none';
   }finally{
-    baEl('baScanBtn').style.display='inline-block';
+    var _baSB2=baEl('baScanBtn'); if(_baSB2) _baSB2.style.display='inline-block';
     baEl('baStopBtn').style.display='none';
   }
 }
 
 function resetBA(){
-  baEl('baScanBtn').style.display='inline-block';
+  var _baSB2=baEl('baScanBtn'); if(_baSB2) _baSB2.style.display='inline-block';
   baEl('baStopBtn').style.display='none';
   baEl('baProgressWrap').style.display='none';
 }
 
-baEl('baScanBtn').addEventListener('click',runBAsScan);
+
 baEl('baStopBtn').addEventListener('click',function(){baStop=true;resetBA();});
 
 // Update dropdown options to match NSE index keys
@@ -5044,7 +5207,544 @@ baEl('baDebtProxy').innerHTML=
   '<option value="crisil_comp">CRISIL Composite Bond Index</option>';
 baEl('baDebtLabel').textContent='Nifty 10yr Benchmark G-Sec';
 
-win.onBATabActivated=function(){};
+// ── BA Persistent Cache: save/restore ──
+var BA_CACHE_KEY = 'ld_ba_cache';
+
+function saveBACache(html, debtLabel, ts) {
+  try {
+    localStorage.setItem(BA_CACHE_KEY, JSON.stringify({
+      html: html, debtLabel: debtLabel,
+      ts: ts || new Date().toISOString()
+    }));
+  } catch(e) {}
+}
+
+function restoreBACache() {
+  try {
+    var raw = localStorage.getItem(BA_CACHE_KEY);
+    if (!raw) return false;
+    var snap = JSON.parse(raw);
+    if (!snap.html) return false;
+    var container = baEl('baTableOuter');
+    container.innerHTML = snap.html;
+    container.style.display = 'block';
+    baEl('baFootnote').style.display = 'block';
+    if (snap.debtLabel) baEl('baDebtLabel').textContent = snap.debtLabel;
+    if (snap.ts) {
+      var d = new Date(snap.ts);
+      baEl('baLastUpdated').textContent = 'Last scan: ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (cached)';
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+// Restore BA cache on tab activation
+win.onBATabActivated = function() {
+  var container = baEl('baTableOuter');
+  if (!container.innerHTML || container.innerHTML.trim() === '') {
+    restoreBACache();
+  }
+};
+
+// Expose runBAsScan globally so runAllScans can call it
+win.runBAsScan = runBAsScan;
+
+})(window);
+</script>
+
+<!-- ── Paper Trade Tab JS (scoped under window.PT) ── -->
+<script>
+(function(win){'use strict';
+
+// ── Config: same CORS list as Scanner for any CSV gap-fill ──
+var PT_CORS=[
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://cors.sh/?',
+  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url='
+];
+var PT_CSV_URL='https://archives.nseindia.com/content/indices/ind_close_all_';
+var PT_NSE_API='https://www.nseindia.com/api/allIndices';
+var PT_BATCH=5,PT_DELAY=400,PT_FETCH_DAYS=100;
+
+// ── Portfolio state ──
+var ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
+var ptScanR=[];
+
+// ── Helpers ──
+function ptEl(id){return document.getElementById(id)}
+function ptSleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function ptNrm(s){return(s||'').replace(/[^a-z0-9]/gi,'').toLowerCase()}
+function ptPad(v){return String(v).padStart(2,'0')}
+function ptFmtDDMMYYYY(d){return ptPad(d.getDate())+ptPad(d.getMonth()+1)+d.getFullYear()}
+function ptGenDays(n){var a=[],d=new Date();while(a.length<n){if(d.getDay()!==0&&d.getDay()!==6)a.push(new Date(d));d.setDate(d.getDate()-1)}return a}
+function ptFmt(n){return'Rs '+Math.round(n).toLocaleString('en-IN')}
+function ptFmtP(n){return(n>=0?'+':'')+n.toFixed(2)+'%'}
+function ptLog(m,t){
+  var l=ptEl('pt-tl'),e=document.createElement('div');
+  e.style.cssText='padding:2px 0;border-bottom:1px solid #eee;color:'+(t==='b'?'#1a8a1a':t==='s'?'#cc0000':'#b8860b');
+  e.textContent=new Date().toLocaleTimeString()+' - '+m;
+  l.insertBefore(e,l.firstChild);
+  if(l.children.length>60)l.removeChild(l.lastChild);
+}
+
+// ── XHR fetch (Brave PWA compatible) — used for gap-fill CSV ──
+function ptFetchXHR(url,ms){
+  return new Promise(function(resolve,reject){
+    var xhr=new XMLHttpRequest(),done=false;
+    var timer=setTimeout(function(){if(done)return;done=true;xhr.abort();reject(new Error('Timeout'))},ms||15000);
+    xhr.open('GET',url,true);
+    xhr.onload=function(){
+      if(done)return;done=true;clearTimeout(timer);
+      if(xhr.status>=200&&xhr.status<300){
+        var txt=xhr.responseText;
+        resolve({ok:true,status:xhr.status,
+          text:function(){return Promise.resolve(txt)},
+          json:function(){return Promise.resolve(JSON.parse(txt))}});
+      }else{reject(new Error('HTTP '+xhr.status));}
+    };
+    xhr.onerror=function(){if(done)return;done=true;clearTimeout(timer);reject(new Error('Network error'))};
+    xhr.send();
+  });
+}
+
+async function ptFetchProxy(url,ms){
+  var lastErr=new Error('All proxies failed');
+  for(var i=0;i<PT_CORS.length;i++){
+    try{
+      var r=await ptFetchXHR(PT_CORS[i]+encodeURIComponent(url),ms||15000);
+      if(r.ok)return r;
+      lastErr=new Error('HTTP '+r.status);
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr;
+}
+
+// ── RSI / WMA ──
+function ptCalcRSI(closes,period){
+  var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
+  if(v.length<period+1)return[];
+  var rsis=[],gains=0,losses=0;
+  for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)gains+=d;else losses-=d}
+  var ag=gains/period,al=losses/period;
+  rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  for(var j=period+1;j<v.length;j++){
+    var d2=v[j]-v[j-1];
+    ag=(ag*(period-1)+Math.max(d2,0))/period;
+    al=(al*(period-1)+Math.abs(Math.min(d2,0)))/period;
+    rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  }
+  return rsis;
+}
+function ptCalcWMA(d,p){if(!d||d.length<p)return null;var s=0,w=0;for(var i=0;i<p;i++){s+=d[d.length-p+i]*(i+1);w+=i+1}return w?s/w:null}
+
+// ── Compute a row from daily closes + Scanner result row ──
+// Prefers Scanner's already-computed RSI; falls back to own calc from closes
+function ptComputeRow(closes,name,scanRow){
+  if(!closes||closes.length<20)return null;
+
+  // If Scanner already computed RSI values, reuse them directly
+  var dRsi4  = (scanRow&&scanRow.dRsi4  !=null)?scanRow.dRsi4  :null;
+  var dRsi8  = (scanRow&&scanRow.dRsi8  !=null)?scanRow.dRsi8  :null;
+  var dRsi14 = (scanRow&&scanRow.dRsi14 !=null)?scanRow.dRsi14 :null;
+  var wRsi4  = (scanRow&&scanRow.wRsi4  !=null)?scanRow.wRsi4  :null;
+  var wRsi8  = (scanRow&&scanRow.wRsi8  !=null)?scanRow.wRsi8  :null;
+  var wma20  = (scanRow&&scanRow.wma20Price!=null)?scanRow.wma20Price:null;
+  var regime = (scanRow&&scanRow.regime)?scanRow.regime:null;
+
+  // Own computation where Scanner data missing
+  if(dRsi4==null){var r4=ptCalcRSI(closes,4);dRsi4=r4.length?r4[r4.length-1]:50;}
+  if(dRsi8==null){var r8=ptCalcRSI(closes,8);dRsi8=r8.length?r8[r8.length-1]:50;}
+  if(dRsi14==null){var r14=ptCalcRSI(closes,14);dRsi14=r14.length?r14[r14.length-1]:50;}
+
+  if(wRsi4==null||wma20==null){
+    var w=[];
+    for(var i=0;i<closes.length;i+=5)w.push(closes[Math.min(i+4,closes.length-1)]);
+    if(wRsi4==null){var wr4=ptCalcRSI(w,4);wRsi4=wr4.length?wr4[wr4.length-1]:50;}
+    if(wRsi8==null){var wr8=ptCalcRSI(w,8);wRsi8=wr8.length?wr8[wr8.length-1]:50;}
+    if(wma20==null)wma20=ptCalcWMA(w,20);
+  }
+
+  if(!regime){
+    if(wRsi4>=50&&(!wma20||closes[closes.length-1]>wma20))regime='A';
+    else if(wRsi4>=40)regime='B';
+    else regime='C';
+  }
+
+  var macdH=0;
+  if(closes.length>=26){
+    var e12=closes.reduce(function(s,c,i){return i===0?c:s+(2/13)*(c-s)},0);
+    var e26=closes.reduce(function(s,c,i){return i===0?c:s+(2/27)*(c-s)},0);
+    macdH=e12-e26;
+  }
+
+  var price=closes[closes.length-1];
+  var score=0;
+  if(dRsi4>=40&&dRsi4<=60)score+=50;else if(dRsi4>=30&&dRsi4<=70)score+=30;
+  if(dRsi8>=40&&dRsi8<=60)score+=40;else if(dRsi8>=30&&dRsi8<=70)score+=20;
+  if(dRsi14>=40&&dRsi14<=60)score+=30;else if(dRsi14>=30&&dRsi14<=70)score+=10;
+  if(macdH>0)score+=30;if(wRsi4>=50)score+=20;if(regime==='A')score+=30;
+
+  return{
+    name:name,
+    price:Math.round(price*100)/100,
+    r4:Math.round(dRsi4*10)/10,
+    r8:Math.round(dRsi8*10)/10,
+    r14:Math.round(dRsi14*10)/10,
+    macd:Math.round(macdH*100)/100,
+    regime:regime,
+    score:Math.round(score),
+    wRsi:Math.round(wRsi4*10)/10,
+    change:(scanRow&&scanRow.changePct)?scanRow.changePct:0
+  };
+}
+
+// ── Gap-fill: fetch NSE CSV for indices missing historical closes ──
+async function ptGapFillCSV(neededKeys){
+  if(!neededKeys||neededKeys.length===0)return{};
+  var dailyMap={},days=ptGenDays(PT_FETCH_DAYS);
+  ptLog('[GAP-FILL] Fetching '+PT_FETCH_DAYS+' CSV days for '+neededKeys.length+' missing indices...','i');
+  for(var i=0;i<days.length;i+=PT_BATCH){
+    var batch=days.slice(i,i+PT_BATCH);
+    var promises=batch.map(function(td){
+      var ds=ptFmtDDMMYYYY(td);
+      return ptFetchProxy(PT_CSV_URL+ds+'.csv',8000)
+        .then(function(r){return r.text()})
+        .then(function(text){
+          if(!text||text.indexOf('Symbol')<0)return;
+          var lines=text.trim().split('\n');
+          for(var j=1;j<lines.length;j++){
+            var v=lines[j].split(',');
+            var nm=(v[0]||'').trim(),close=parseFloat(v[5]);
+            if(nm&&!isNaN(close)){
+              var key=ptNrm(nm);
+              if(!dailyMap[key])dailyMap[key]=[];
+              dailyMap[key].push(close);
+            }
+          }
+        }).catch(function(){});
+    });
+    await Promise.all(promises);
+    ptEl('pt-st').textContent='[GAP-FILL CSV] '+Math.min(i+PT_BATCH,days.length)+'/'+days.length;
+    await ptSleep(PT_DELAY);
+  }
+  return dailyMap;
+}
+
+// ── Gap-fill: fetch NSE allIndices for current price if missing ──
+async function ptGapFillPrices(){
+  var priceMap={};
+  try{
+    for(var ci=0;ci<PT_CORS.length;ci++){
+      try{
+        var rn=await ptFetchXHR(PT_CORS[ci]+encodeURIComponent(PT_NSE_API),20000);
+        if(!rn.ok)throw new Error('HTTP '+rn.status);
+        var json=await rn.json();
+        var allIdx=json.data||[];
+        if(allIdx.length===0)throw new Error('Empty');
+        for(var i=0;i<allIdx.length;i++){
+          var idx=allIdx[i];
+          var key=ptNrm(idx.index||'');
+          priceMap[key]={price:idx.last||0,changePct:idx.percentChange||idx.pChange||0,name:idx.index||''};
+        }
+        ptLog('[GAP-FILL] NSE allIndices: '+allIdx.length+' prices via proxy '+ci,'b');
+        break;
+      }catch(e){ptLog('[GAP-FILL] Proxy '+ci+' failed: '+e.message,'s');}
+    }
+  }catch(e){}
+  return priceMap;
+}
+
+// ── Main Scan: reads Scanner Tab data — no Yahoo, no independent NSE fetch ──
+async function ptRunScan(){
+  ptEl('pt-st').innerHTML='<span style="display:inline-block;width:10px;height:10px;border:2px solid #b8860b;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span> Reading Scanner data...';
+  ptLog('Starting scan — reading Scanner Tab data...','i');
+  ptScanR=[];
+
+  // ── SOURCE 1: window._ldScannerData (live, set right after Scanner run) ──
+  var scannerLive = win._ldScannerData || null;
+
+  // ── SOURCE 2: localStorage ld_scanner_cache (already-computed RSI/regime from Scanner) ──
+  var scannerCache = null;
+  try{
+    var raw=localStorage.getItem('ld_scanner_cache');
+    if(raw)scannerCache=JSON.parse(raw);
+  }catch(e){}
+
+  // Build a unified results map: key → {name, price, changePct, dRsi4..., regime, ...}
+  // Priority: live > cache
+  var unifiedResults={};
+
+  if(scannerCache&&scannerCache.results){
+    var cr=scannerCache.results;
+    for(var k in cr){
+      unifiedResults[k]=cr[k];
+    }
+    ptLog('[CACHE] '+Object.keys(unifiedResults).length+' indices from ld_scanner_cache','i');
+  }
+
+  if(scannerLive&&scannerLive.priceMap){
+    var lpm=scannerLive.priceMap;
+    // Merge live prices on top of cache (live prices are fresher)
+    for(var k in lpm){
+      if(!unifiedResults[k])unifiedResults[k]={};
+      unifiedResults[k].name  = unifiedResults[k].name || lpm[k]._nseName || k;
+      unifiedResults[k].price = lpm[k].price||unifiedResults[k].price;
+      unifiedResults[k].changePct = lpm[k].changePct||unifiedResults[k].changePct;
+    }
+    ptLog('[LIVE] '+Object.keys(lpm).length+' prices merged from Scanner live data','i');
+  }
+
+  var totalKnown=Object.keys(unifiedResults).length;
+  ptEl('pt-st').textContent='[DATA] '+totalKnown+' indices loaded from Scanner';
+
+  if(totalKnown===0){
+    ptEl('pt-st').textContent='⚠ No Scanner data found — run Scanner Tab first, then tap SCAN';
+    ptLog('No Scanner data. Please run the Scanner Tab first.','s');
+    return;
+  }
+
+  // ── Build closes from Scanner's dailyMap (live run) ──
+  // Scanner stores dailyMap[name.toLowerCase()] = ["DDMMYYYY|O|H|L|C", ...]
+  var liveDailyMap = (scannerLive&&scannerLive.dailyMap)?scannerLive.dailyMap:{};
+
+  function ptGetCloses(key,nseName){
+    // Try Scanner dailyMap with multiple name variants
+    var variants=[
+      key,
+      (nseName||'').toLowerCase(),
+      ptNrm(nseName||''),
+      ptNrm(key)
+    ];
+    for(var vi=0;vi<variants.length;vi++){
+      var v=variants[vi];
+      if(!v)continue;
+      var entries=liveDailyMap[v];
+      if(entries&&entries.length>=20){
+        // Sort ascending by date embedded in entry "DDMMYYYY|O|H|L|C"
+        entries.sort(function(a,b){
+          var da=a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
+          var db=b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
+          return da<db?-1:da>db?1:0;
+        });
+        return entries.map(function(e){return parseFloat(e.split('|')[4])});
+      }
+    }
+    return null;
+  }
+
+  // ── Step 1: Process all indices from Scanner data ──
+  var count=0,missing=[];
+  ptEl('pt-st').textContent='[PT] Computing for '+totalKnown+' indices...';
+
+  for(var key in unifiedResults){
+    var sr=unifiedResults[key];
+    if(!sr.price||sr.price<=0)continue;
+
+    var closes=ptGetCloses(key,sr.name);
+
+    // If closes missing from live dailyMap, try building from Scanner cache's RSI values
+    // (We'll still compute a row using pre-computed RSI values from Scanner)
+    if(!closes||closes.length<20){
+      // Mark as needing gap-fill only if RSI values also missing
+      if(sr.dRsi4==null&&sr.wRsi4==null){
+        missing.push({key:key,name:sr.name,price:sr.price});
+        continue;
+      }
+      // Has pre-computed RSI from Scanner cache — use a synthetic closes array
+      // padded with current price so ptComputeRow can still run
+      closes=[sr.price,sr.price,sr.price,sr.price,sr.price,sr.price,sr.price,
+              sr.price,sr.price,sr.price,sr.price,sr.price,sr.price,sr.price,
+              sr.price,sr.price,sr.price,sr.price,sr.price,sr.price];
+    }else{
+      // Append latest live price to closes
+      if(sr.price>0)closes=closes.concat([sr.price]);
+    }
+
+    var row=ptComputeRow(closes,sr.name||key,sr);
+    if(!row)continue;
+    ptScanR.push(row);
+    count++;
+  }
+
+  // ── Step 2: Gap-fill for indices missing both closes AND RSI ──
+  if(missing.length>0){
+    ptLog('[GAP-FILL] '+missing.length+' indices need CSV fetch...','i');
+    var gapDailyMap=await ptGapFillCSV(missing.map(function(m){return m.key}));
+
+    for(var mi=0;mi<missing.length;mi++){
+      var m=missing[mi];
+      var closes=null;
+
+      // Try gapDailyMap with name variants
+      var variants2=[ptNrm(m.name),m.key];
+      for(var vi=0;vi<variants2.length;vi++){
+        var entries=gapDailyMap[variants2[vi]];
+        if(entries&&entries.length>=20){closes=entries;break;}
+      }
+
+      if(!closes||closes.length<20){
+        ptLog('[SKIP] '+m.name+': no closes after gap-fill','s');
+        continue;
+      }
+      if(m.price>0)closes=closes.concat([m.price]);
+
+      // Also check if Scanner cache now has RSI for this key
+      var sr2=unifiedResults[m.key]||{};
+      var row=ptComputeRow(closes,m.name||m.key,sr2);
+      if(!row)continue;
+      ptScanR.push(row);
+      count++;
+    }
+  }
+
+  // ── Step 3: If NO prices at all (neither live nor cache), do emergency NSE fetch ──
+  if(count===0){
+    ptLog('[EMERGENCY] No Scanner data — fetching NSE allIndices directly...','s');
+    ptEl('pt-st').textContent='[EMERGENCY] Fetching NSE...';
+    var emergencyPrices=await ptGapFillPrices();
+    var emergencyDailyMap=await ptGapFillCSV(Object.keys(emergencyPrices));
+
+    for(var eKey in emergencyPrices){
+      var ep=emergencyPrices[eKey];
+      if(!ep.price||ep.price<=0)continue;
+      var eCloses=emergencyDailyMap[eKey]||[];
+      if(ep.price>0)eCloses=eCloses.concat([ep.price]);
+      if(eCloses.length<20)continue;
+      var eRow=ptComputeRow(eCloses,ep.name||eKey,null);
+      if(!eRow)continue;
+      eRow.change=ep.changePct||0;
+      ptScanR.push(eRow);
+      count++;
+    }
+  }
+
+  // ── Step 4: Sort, render, process ──
+  ptScanR.sort(function(a,b){return b.score-a.score});
+  ptRender(ptScanR);
+  ptProcessScan(ptScanR);
+
+  var srcLabel=scannerLive?'[LIVE SCANNER]':(scannerCache?'[CACHED SCANNER]':'[EMERGENCY NSE]');
+  ptEl('pt-st').textContent=srcLabel+' '+count+' indices scanned';
+  ptEl('pt-ts').textContent=new Date().toLocaleString();
+  ptLog('Done: '+count+' of '+totalKnown+' indices processed ('+missing.length+' gap-filled)','b');
+
+  // Save PT-specific cache
+  try{localStorage.setItem('pt_v10_cache',JSON.stringify({ts:Date.now(),results:ptScanR}))}catch(e){}
+}
+
+function ptRender(results){
+  var top3=results.slice(0,3).map(function(r){return r.name});
+  ptEl('pt-tb').innerHTML=results.map(function(r,i){
+    var sc=r.score>=200?'#1a8a1a':r.score>=150?'#b8860b':'#cc0000';
+    var rc=r.regime==='A'?'#1a8a1a':r.regime==='B'?'#b8860b':'#cc0000';
+    var act=r.regime==='A'&&r.score>=150?(top3.indexOf(r.name)>=0?'BUY':'WATCH'):'HOLD';
+    var ac=act==='BUY'?'#1a8a1a':act==='WATCH'?'#b8860b':'#666';
+    var held=ptPf.pos[r.name];
+    return'<tr style="background:'+(held?'#f0fff0':'#fff')+';border-bottom:1px solid #eee">'+
+      '<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;font-weight:bold">'+r.name.replace('NIFTY ','N')+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+ptFmt(r.price)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+(r.change>=0?'#1a8a1a':'#cc0000')+'">'+(r.change>=0?'+':'')+r.change.toFixed(1)+'%</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+r.r4+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+r.r8+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+(r.macd>0?'#1a8a1a':'#cc0000')+'">'+(r.macd>0?'+':'')+r.macd+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+rc+'">'+r.regime+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px"><span style="background:'+sc+';color:#fff;padding:1px 5px;border-radius:3px;font-size:8px">'+r.score+'</span></td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+ac+';font-weight:bold">'+act+'</td></tr>';
+  }).join('');
+}
+
+function ptProcessScan(results){
+  var top3=results.filter(function(r){return r.regime==='A'&&r.score>=150}).slice(0,3);
+  var newNames={};top3.forEach(function(r){newNames[r.name]=true});
+  Object.keys(ptPf.pos).forEach(function(name){
+    if(!newNames[name]){
+      var p=ptPf.pos[name];ptPf.cash+=p.shares*p.cur;
+      ptPf.trades.push({t:'SELL',n:name,p:p.cur,s:p.shares,d:new Date().toISOString()});
+      ptLog('SELL '+name+' @ '+ptFmt(p.cur),'s');delete ptPf.pos[name];
+    }
+  });
+  top3.forEach(function(r){
+    if(!ptPf.pos[r.name]){
+      var alloc=ptPf.cash/Math.max(1,top3.length-Object.keys(ptPf.pos).length);
+      var shares=Math.floor(alloc/r.price);
+      if(shares>0){ptPf.cash-=shares*r.price;ptPf.pos[r.name]={shares:shares,avg:r.price,cur:r.price};
+        ptPf.trades.push({t:'BUY',n:r.name,p:r.price,s:shares,d:new Date().toISOString()});
+        ptLog('BUY '+r.name+' x'+shares+' @ '+ptFmt(r.price),'b');}
+    }else{ptPf.pos[r.name].cur=r.price;}
+  });
+  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
+  ptPf.eq.push({d:new Date().toISOString(),v:tv});if(ptPf.eq.length>365)ptPf.eq.shift();
+  ptSavePf();ptUpdateUI();
+}
+
+function ptSavePf(){try{localStorage.setItem('pt_v10_pf',JSON.stringify(ptPf))}catch(e){}}
+function ptLoadPf(){try{var s=localStorage.getItem('pt_v10_pf');if(s)ptPf=JSON.parse(s)}catch(e){}}
+
+function ptUpdateUI(){
+  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
+  var pnl=tv-1000000,pnlP=pnl/10000;
+  var c=pnl>=0?'#1a8a1a':'#cc0000';
+  ptEl('pt-pv').textContent=ptFmt(tv);ptEl('pt-pv').style.color=c;
+  ptEl('pt-tp').textContent=ptFmt(pnl);ptEl('pt-tp').style.color=c;
+  ptEl('pt-tr').textContent=ptFmtP(pnlP);ptEl('pt-tr').style.color=c;
+  ptEl('pt-cv').textContent=ptFmt(ptPf.cash);
+  var pl=ptEl('pt-pl'),ps=Object.entries(ptPf.pos);
+  if(!ps.length){pl.innerHTML='<div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div>';}
+  else{pl.innerHTML=ps.map(function(e){
+    var n=e[0],p=e[1],pn=(p.cur-p.avg)*p.shares,pp=(p.cur-p.avg)/p.avg*100;
+    return'<div style="background:#fff;border:1px solid #ddd;padding:6px;border-radius:4px;margin-bottom:4px;font-size:9px">'+
+      '<div style="font-weight:bold;color:#0055aa;margin-bottom:3px">'+n+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">'+
+      '<div><div style="font-size:7px;color:#888">Shares</div><div style="font-weight:bold">'+p.shares+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">Avg</div><div style="font-weight:bold">'+ptFmt(p.avg)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">Now</div><div style="font-weight:bold">'+ptFmt(p.cur)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">P&L</div><div style="font-weight:bold;color:'+(pn>=0?'#1a8a1a':'#cc0000')+'">'+ptFmt(pn)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">%</div><div style="font-weight:bold;color:'+(pp>=0?'#1a8a1a':'#cc0000')+'">'+ptFmtP(pp)+'</div></div>'+
+      '</div></div>';
+  }).join('')}
+  ptDrawChart();
+}
+
+function ptDrawChart(){
+  var c=ptEl('pt-ec'),ct=c.parentElement;
+  c.width=ct.clientWidth-12;c.height=ct.clientHeight-12;
+  var ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+  if(ptPf.eq.length<2){ctx.fillStyle='#666';ctx.font='9px Courier New';ctx.textAlign='center';ctx.fillText('After trades',w/2,h/2);return}
+  var vals=ptPf.eq.map(function(e){return e.v}),mn=Math.min.apply(null,vals)*0.99,mx=Math.max.apply(null,vals)*1.01,rng=mx-mn;
+  ctx.strokeStyle='#1a8a1a';ctx.lineWidth=1.5;ctx.beginPath();
+  ptPf.eq.forEach(function(e,i){var x=(i/(ptPf.eq.length-1))*w,y=h-((e.v-mn)/rng)*h;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();
+  ctx.strokeStyle='#b8860b';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  var by=h-((1000000-mn)/rng)*h;ctx.beginPath();ctx.moveTo(0,by);ctx.lineTo(w,by);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#666';ctx.font='7px Courier New';ctx.textAlign='left';ctx.fillText(ptFmt(mx),2,8);ctx.fillText(ptFmt(mn),2,h-2);
+}
+
+function ptReset(){
+  if(!confirm('Reset Paper Trade portfolio?'))return;
+  ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
+  ptSavePf();ptUpdateUI();ptLog('Portfolio reset','i');
+}
+
+// ── Tab activation ──
+win.onPTTabActivated=function(){
+  if(!win._ptInited){win._ptInited=true;ptLoadPf();ptUpdateUI();}
+  setTimeout(ptDrawChart,100);
+  // Restore cached PT scan results
+  try{
+    var raw=localStorage.getItem('pt_v10_cache');
+    if(raw){var snap=JSON.parse(raw);if(snap.results&&snap.results.length){
+      ptScanR=snap.results;ptRender(ptScanR);
+      ptEl('pt-st').textContent=snap.results.length+' from cache — tap SCAN to refresh with latest Scanner data';
+      ptEl('pt-ts').textContent=snap.ts?new Date(snap.ts).toLocaleString():'';
+    }}
+  }catch(e){}
+};
+
+// Expose globals
+win.ptRunScan=ptRunScan;
+win.ptReset=ptReset;
+
 })(window);
 </script>
 
