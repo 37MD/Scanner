@@ -4638,7 +4638,7 @@ win.rsToggleWL=rsToggleWL;
 <div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
   <h2 style="color:#cc5500;font-size:15px;margin:0 0 2px">📡 RSI Buy &amp; Sell Timing</h2>
-  <p style="color:#888;font-size:8px;margin:0 0 10px">MTF Daily+Weekly · RSI(50)/RSI(8) · fills progressively in batches of 5</p>
+  <p style="color:#888;font-size:8px;margin:0 0 10px">MTF Daily+Weekly · RSI(50)/RSI(8) · Close + Signal columns · click row for Cloud &amp; History</p>
 
   <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">—</div>
 
@@ -4651,6 +4651,8 @@ win.rsToggleWL=rsToggleWL;
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI50</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">W-RSI50</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Status</th>
+      <th style="padding:4px 6px;text-align:right;font-size:9px;color:#888">Close</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Signal</th>
     </tr></thead>
     <tbody id="rsi-tbody"></tbody>
   </table>
@@ -4687,7 +4689,7 @@ win.rsToggleWL=rsToggleWL;
       <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;max-height:120px;overflow-y:auto"></div>
     </div>
     <div style="text-align:center;padding:6px;background:#fff;border-top:1px solid #ddd">
-      <button onclick="document.getElementById('rsi-detail-section').style.display='none';document.getElementById('rsi-tbl').style.display=''" style="background:#888;color:#fff;border:none;padding:4px 14px;border-radius:4px;font-size:9px;cursor:pointer">← BACK</button>
+      <button onclick="document.getElementById('rsi-detail-section').style.display='none'" style="background:#888;color:#fff;border:none;padding:4px 14px;border-radius:4px;font-size:9px;cursor:pointer">← BACK</button>
     </div>
   </div>
   </div>
@@ -5793,17 +5795,20 @@ function rsiFillDaily(el,name){
     var sd=win._ldScannerData;
     if(!sd||!sd.dailyMap)return;
     var entries=sd.dailyMap[name.toLowerCase()];
-    if(!entries||entries.length<20){el.cells[2].textContent='—';el.cells[3].textContent='—';return;}
+    if(!entries||entries.length<20){el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';return;}
     var c=[];for(var i=0;i<entries.length;i++)c.push(+entries[i].split('|')[4]);
     var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
-    if(!r50d.length||!r8d.length){el.cells[2].textContent='—';el.cells[3].textContent='—';return;}
+    if(!r50d.length||!r8d.length){el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';return;}
     var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1];
     el._rsiDaily={c:c,r50d:r50d,r8d:r8d,r50:r50,r8:r8};
     el.cells[2].textContent=r8.toFixed(1);
     el.cells[2].style.color=r8>r50?'#1a8a1a':'#cc0000';
     el.cells[3].textContent=r50.toFixed(1);
     el.cells[3].style.color=r50>50?'#1a8a1a':'#cc0000';
-  }catch(e){el.cells[2].textContent='ERR';el.cells[3].textContent='ERR';}
+    var cp=+entries[entries.length-1].split('|')[4];
+    el.cells[6].textContent=cp.toLocaleString('en-IN',{maximumFractionDigits:1});
+    el.cells[6].style.color='#333';
+  }catch(e){el.cells[2].textContent='ERR';el.cells[3].textContent='ERR';el.cells[6].textContent='ERR';}
 }
 
 function rsiFillWeekly(el){
@@ -5826,8 +5831,16 @@ function rsiFillWeekly(el){
     var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':st==='ABOVE'?'#1a8a1a':'#888';
     el.cells[5].style.color=sc;
     el.cells[5].style.fontWeight='bold';
+    var sigs=[];
+    if(xov(rd.r8d,60)&&r50>50&&rw>50)sigs.push('BUY ▲');
+    else if(xov(rd.r8d,40)&&r50>50&&rw>50)sigs.push('BUY △');
+    else if(xun(rd.r8d,40)&&r50<50&&rw<50)sigs.push('SELL ▼');
+    else if(xun(rd.r8d,60)&&r50<50&&rw<50)sigs.push('SELL ▽');
+    el.cells[7].textContent=sigs.length?sigs[0]:'—';
+    el.cells[7].style.color=sigs.length?(sigs[0].indexOf('BUY')>=0?'#006600':'#cc0000'):'#999';
+    el.cells[7].style.fontWeight=sigs.length?'bold':'normal';
     el._rsi={r50:r50,r8:r8,rw:rw,st:st,r50d:rd.r50d,r8d:rd.r8d,closes:c};
-  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';}
+  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';el.cells[7].textContent='ERR';}
 }
 
 function rsiRunAll(){
@@ -5837,7 +5850,7 @@ function rsiRunAll(){
   if(!tb||!sd||!sd.indexList||!sd.indexList.length){if(st)st.textContent='⚠ Run Scanner tab first';return;}
   var all=sd.indexList||[];
   // Pre-fill Sl No + Index Name
-  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="padding:3px 6px;font-weight:bold;color:#0055aa;font-size:10px">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td></tr>';}).join('');
+  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="padding:3px 6px;font-weight:bold;color:#0055aa;font-size:10px">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td></tr>';}).join('');
   if(st)st.textContent='⏳ Filling D-RSI8/D-RSI50...';
   // Pass 1: fill daily columns for ALL rows immediately (fast, no batching needed)
   var i,el;
@@ -5921,7 +5934,6 @@ function rsiShowDetail(idx){
   var hel=document.getElementById('rsi-hist');
   var l20=hist.slice(-20).reverse();
   hel.innerHTML=l20.length?l20.map(function(s){return'<div style="display:flex;padding:2px 4px;border-bottom:1px solid #eee"><span style="color:'+s.c+';font-weight:bold;font-size:8px">'+s.t+'</span></div>';}).join(''):'<div style="color:#aaa;text-align:center;padding:4px;font-size:8px">No signals</div>';
-  document.getElementById('rsi-tbl').style.display='none';
   document.getElementById('rsi-detail-section').style.display='block';
 }
 
