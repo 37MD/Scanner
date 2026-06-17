@@ -1549,7 +1549,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
       window._ldScannerData = { priceMap, indexList, dailyMap: sharedDailyMap2, nseRaw: nseRawWith30d2 };
     }
 
-    if (typeof rsiBuildCache !== 'undefined') rsiBuildCache();
+    // RSI tab reads progressively from dailyMap on activation — no pre-cache needed
 
     setResults({ ...tempResults });
 
@@ -2328,8 +2328,8 @@ function runAllScans() {
                                   if (typeof window.rsiScanAll === 'function') {
                                     window.rsiScanAll();
                                     var rsiPoller = setInterval(function() {
-                                      var rsiSig = document.getElementById('rsi-allsig');
-                                      var rsiDone = rsiSig && rsiSig.innerHTML && rsiSig.innerHTML.length > 0;
+                                      var rsiTbody = document.getElementById('rsi-tbody');
+                                      var rsiDone = rsiTbody && rsiTbody.rows && rsiTbody.rows.length > 0 && rsiTbody.rows[0].cells[4].textContent !== '…';
                                       if (rsiDone) {
                                         clearInterval(rsiPoller);
                                         window._runAllActive = false;
@@ -4583,7 +4583,7 @@ win.rsToggleWL=rsToggleWL;
 
 <!-- ── Paper Trade Tab Panel ── -->
 <div id="tab-pt" class="tab-panel">
-<div id="pt-wrap" style="font-family:'Courier New',monospace;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
+<div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
 <h2 style="color:#cc5500;font-size:16px;margin-bottom:3px">Paper Trade v10</h2>
 <p style="color:#b8860b;font-size:8px;margin-bottom:8px">V9E_DEFAULT + ALL indicators + MONTHLY | Rs 10,00,000 | 139 NSE indices</p>
@@ -4633,21 +4633,33 @@ win.rsToggleWL=rsToggleWL;
 </div>
 </div><!-- #tab-pt -->
 
-<!-- ── RSI Buy/Sell Signal Tab (v2 — clean) ── -->
+<!-- ── RSI Buy/Sell Signal Tab (v3 — progressive) ── -->
 <div id="tab-rsi" class="tab-panel">
-<div id="rsi-wrap" style="font-family:'Courier New',monospace;padding:10px;background:#fff;color:#111;min-height:100vh">
+<div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
   <h2 style="color:#cc5500;font-size:15px;margin:0 0 2px">📡 RSI Buy &amp; Sell Timing</h2>
-  <p style="color:#888;font-size:8px;margin:0 0 10px">MTF Daily+Weekly · RSI(50)/RSI(8) · Scanner data</p>
+  <p style="color:#888;font-size:8px;margin:0 0 10px">MTF Daily+Weekly · RSI(50)/RSI(8) · fills progressively in batches of 5</p>
 
-  <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">Loading RSI data...</div>
+  <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">—</div>
 
-  <div id="rsi-allsig" style="border:1px solid #ddd;border-radius:4px;margin-bottom:10px;-webkit-overflow-scrolling:touch"></div>
+  <div style="max-height:70vh;overflow-y:auto;border:1px solid #ddd;border-radius:4px">
+  <table id="rsi-tbl" style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:#f5f5f5;position:sticky;top:0">
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">#</th>
+      <th style="padding:4px 6px;text-align:left;font-size:9px;color:#888">Index</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI8</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI50</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">W-RSI50</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Status</th>
+    </tr></thead>
+    <tbody id="rsi-tbody"></tbody>
+  </table>
+  </div>
 
-  <div id="rsi-detail-section" style="display:none">
-  <div id="rsi-card">
-    <div id="rsi-hdr" style="padding:6px 8px;border-radius:6px 6px 0 0;font-size:10px;font-weight:bold;text-align:center;border:1px solid #ddd"></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-top:none">
+  <div id="rsi-detail-section" style="display:none;margin-top:10px">
+  <div id="rsi-card" style="border:1px solid #ddd;border-radius:6px;overflow:hidden">
+    <div id="rsi-hdr" style="padding:6px 8px;border-radius:6px 6px 0 0;font-size:10px;font-weight:bold;text-align:center;border-bottom:1px solid #ddd"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd">
       <div style="background:#fff;padding:6px 4px;text-align:center">
         <div style="font-size:7px;color:#888;margin-bottom:2px">D-RSI50</div>
         <div id="rsi-r50" style="font-size:20px;font-weight:bold"></div>
@@ -4661,24 +4673,25 @@ win.rsToggleWL=rsToggleWL;
         <div id="rsi-rw" style="font-size:20px;font-weight:bold"></div>
       </div>
     </div>
-    <div id="rsi-pxrow" style="display:flex;justify-content:space-around;padding:4px;border:1px solid #ddd;border-top:none;font-size:9px;background:#fff"></div>
-    <div id="rsi-trend" style="padding:4px 8px;text-align:center;font-size:8px;font-weight:bold;border:1px solid #ddd;border-top:none"></div>
-    <div style="border:1px solid #ddd;border-top:none;padding:5px;background:#fff">
+    <div id="rsi-pxrow" style="display:flex;justify-content:space-around;padding:4px;font-size:9px;background:#fff;border-top:1px solid #ddd"></div>
+    <div id="rsi-trend" style="padding:4px 8px;text-align:center;font-size:8px;font-weight:bold;border-top:1px solid #ddd"></div>
+    <div style="padding:5px;background:#fff;border-top:1px solid #ddd">
       <div style="font-size:7px;color:#888;margin-bottom:2px">RSI Cloud (last 80 bars)</div>
       <canvas id="rsi-cloud" height="80" style="width:100%;display:block"></canvas>
     </div>
-    <div style="padding:6px;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;background:#fff;margin-bottom:8px">
+    <div style="padding:6px;background:#fff;border-top:1px solid #ddd">
       <div id="rsi-badges" style="display:flex;flex-wrap:wrap;gap:4px"></div>
     </div>
-    <div style="margin-bottom:8px">
+    <div style="margin-bottom:4px;background:#fff;border-top:1px solid #ddd;padding:6px">
       <div style="font-size:7px;color:#888;margin-bottom:3px;font-weight:bold">Last 20 Signals</div>
-      <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;border:1px solid #ddd;max-height:160px;overflow-y:auto"></div>
+      <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;max-height:120px;overflow-y:auto"></div>
     </div>
-    <div style="text-align:center;margin-bottom:8px">
-      <button onclick="rsiHideDetail()" style="background:#888;color:#fff;border:none;padding:5px 16px;border-radius:4px;font-size:9px;cursor:pointer">← BACK TO LIST</button>
+    <div style="text-align:center;padding:6px;background:#fff;border-top:1px solid #ddd">
+      <button onclick="document.getElementById('rsi-detail-section').style.display='none';document.getElementById('rsi-tbl').style.display=''" style="background:#888;color:#fff;border:none;padding:4px 14px;border-radius:4px;font-size:9px;cursor:pointer">← BACK</button>
     </div>
   </div>
-</div>
+  </div>
+
 </div>
 </div><!-- #tab-rsi -->
 
@@ -5759,245 +5772,180 @@ win.ptReset=ptReset;
 
 })(window);
 </script>
+<script>
+(function(win){
+'use strict';
 
-// ── RSI math ──
-function rsiCalc(closes,period){
-  var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
-  if(v.length<period+2)return[];
-  var g=0,l=0,ag,al,out=[];
-  for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
-  ag=g/period;al=l/period;
-  out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
-  for(i=period+1;i<v.length;i++){
-    d=v[i]-v[i-1];
-    ag=(ag*(period-1)+Math.max(d,0))/period;
-    al=(al*(period-1)+Math.abs(Math.min(d,0)))/period;
-    out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
-  }
-  return out;
+function rsiCalc(c,p){
+  var v=c.filter(function(x){return x!=null&&!isNaN(x)});
+  if(v.length<p+2)return[];
+  var g=0,l=0,i,d,ag,al,o=[];
+  for(i=1;i<=p;i++){d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
+  ag=g/p;al=l/p;o.push(al===0?100:+(100-100/(1+ag/al)).toFixed(2));
+  for(i=p+1;i<v.length;i++){d=v[i]-v[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?-d:0))/p;o.push(al===0?100:+(100-100/(1+ag/al)).toFixed(2));}
+  return o;
 }
-function rsiCrossover(arr,level){return arr.length>=2&&arr[arr.length-2]<level&&arr[arr.length-1]>=level}
-function rsiCrossunder(arr,level){return arr.length>=2&&arr[arr.length-2]>level&&arr[arr.length-1]<=level}
+function xov(a,l){return a.length>=2&&a[a.length-2]<l&&a[a.length-1]>=l}
+function xun(a,l){return a.length>=2&&a[a.length-2]>l&&a[a.length-1]<=l}
 
-// ── Get closes & dates from dailyMap (NO sort) ──
-function rsiGetCloses(name){
+function rsiFillDaily(el,name){
+  try{
+    var sd=win._ldScannerData;
+    if(!sd||!sd.dailyMap)return;
+    var entries=sd.dailyMap[name.toLowerCase()];
+    if(!entries||entries.length<20){el.cells[2].textContent='—';el.cells[3].textContent='—';return;}
+    var c=[];for(var i=0;i<entries.length;i++)c.push(+entries[i].split('|')[4]);
+    var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
+    if(!r50d.length||!r8d.length){el.cells[2].textContent='—';el.cells[3].textContent='—';return;}
+    var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1];
+    el._rsiDaily={c:c,r50d:r50d,r8d:r8d,r50:r50,r8:r8};
+    el.cells[2].textContent=r8.toFixed(1);
+    el.cells[2].style.color=r8>r50?'#1a8a1a':'#cc0000';
+    el.cells[3].textContent=r50.toFixed(1);
+    el.cells[3].style.color=r50>50?'#1a8a1a':'#cc0000';
+  }catch(e){el.cells[2].textContent='ERR';el.cells[3].textContent='ERR';}
+}
+
+function rsiFillWeekly(el){
+  try{
+    var rd=el._rsiDaily;
+    if(!rd||!rd.c||rd.c.length<20){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';return;}
+    var c=rd.c,i;
+    var wc=[];for(i=0;i<c.length;i+=5)wc.push(c[Math.min(i+4,c.length-1)]);
+    var r50w=rsiCalc(wc,14);
+    var rw=r50w.length?r50w[r50w.length-1]:null;
+    if(rw===null||isNaN(rw)){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';return;}
+    var r8=rd.r8,r50=rd.r50;
+    var st;
+    if(xov(rd.r8d,50))st='⚡CROSSOVER';else if(xun(rd.r8d,50))st='⛔CROSSUNDER';
+    else if(r8>=45&&r8<50)st='WATCH BUY';else if(r8>50&&r8<=55)st='WATCH SELL';
+    else if(rw>50)st='ABOVE';else st='BELOW';
+    el.cells[4].textContent=rw.toFixed(1);
+    el.cells[4].style.color=rw>50?'#1a8a1a':'#cc0000';
+    el.cells[5].textContent=st;
+    var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':st==='ABOVE'?'#1a8a1a':'#888';
+    el.cells[5].style.color=sc;
+    el.cells[5].style.fontWeight='bold';
+    el._rsi={r50:r50,r8:r8,rw:rw,st:st,r50d:rd.r50d,r8d:rd.r8d,closes:c};
+  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';}
+}
+
+function rsiRunAll(){
   var sd=win._ldScannerData;
-  if(!sd||!sd.dailyMap)return null;
-  var entries=sd.dailyMap[name.toLowerCase()];
-  if(!entries||entries.length<20)return null;
-  var closes=[],dates=[];
-  for(var i=0;i<entries.length;i++){
-    var p=entries[i].split('|');
-    closes.push(parseFloat(p[4]));
-    dates.push(p[0]);
-  }
-  return{closes:closes,dates:dates};
-}
-
-// ── Compute RSI for one index (lightweight, closes only) ──
-function rsiComputeOne(name){
-  var d=rsiGetCloses(name);
-  if(!d||d.closes.length<55)return null;
-  var c=d.closes;
-  var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
-  var wc=[];for(var i=0;i<c.length;i+=5)wc.push(c[Math.min(i+4,c.length-1)]);
-  var r50w=rsiCalc(wc,50);
-  var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1],rw=r50w[r50w.length-1];
-  var xov=rsiCrossover(r8d,50),xun=rsiCrossunder(r8d,50);
-  var st;
-  if(xov)st='⚡CROSSOVER';
-  else if(xun)st='⛔CROSSUNDER';
-  else if(r8>=45&&r8<50)st='WATCH BUY';
-  else if(r8>50&&r8<=55)st='WATCH SELL';
-  else if(rw>50)st='ABOVE';
-  else st='BELOW';
-  return{n:name,r50:r50,r8:r8,rw:rw,st:st,xov:xov,xun:xun,
-    r50d:r50d,r8d:r8d,closes:c,dates:d.dates,
-    uptrend:r50>50&&rw>50,downtrend:r50<50&&rw<50};
-}
-
-// ── Build RSI cache in background batches ──
-function rsiBuildCache(callback){
-  var sd=win._ldScannerData;
-  if(!sd||!sd.indexList){if(callback)callback();return;}
-  if(sd.rsiCached){if(callback)callback();return;}
-  var all=sd.indexList||[],cache={},idx=0,st=document.getElementById('rsi-st');
-  function next(){
-    var end=Math.min(idx+15,all.length);
-    for(;idx<end;idx++){
-      var r=rsiComputeOne(all[idx].name);
-      if(r)cache[all[idx].name]=r;
-    }
-    if(st)st.textContent='⏳ RSI: '+idx+'/'+all.length;
-    if(idx<all.length){setTimeout(next,1);return;}
-    sd.rsiCached=cache;if(callback)callback();
-  }
-  setTimeout(next,1);
-}
-
-// ── Render table from cache ──
-function rsiShowTable(){
-  var sd=win._ldScannerData,box=document.getElementById('rsi-allsig');
-  if(!box||!sd||!sd.rsiCached)return;
-  var ca=sd.rsiCached,abv=[],blw=[],wb=[],ws=[],no=0;
+  var st=document.getElementById('rsi-st');
+  var tb=document.getElementById('rsi-tbody');
+  if(!tb||!sd||!sd.indexList||!sd.indexList.length){if(st)st.textContent='⚠ Run Scanner tab first';return;}
   var all=sd.indexList||[];
-  for(var i=0;i<all.length;i++){
-    var r=ca[all[i].name];
-    if(!r){no++;continue;}
-    if(r.st==='WATCH BUY')wb.push(r);
-    else if(r.st==='WATCH SELL')ws.push(r);
-    else if(r.rw>50)abv.push(r);
-    else blw.push(r);
+  // Pre-fill Sl No + Index Name
+  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="padding:3px 6px;font-weight:bold;color:#0055aa;font-size:10px">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td></tr>';}).join('');
+  if(st)st.textContent='⏳ Filling D-RSI8/D-RSI50...';
+  // Pass 1: fill daily columns for ALL rows immediately (fast, no batching needed)
+  var i,el;
+  for(i=0;i<all.length;i++){
+    el=document.getElementById('rsi-r'+i);
+    if(!el)continue;
+    el.onclick=function(i2){return function(){rsiShowDetail(i2);};}(i);
+    rsiFillDaily(el,all[i].name);
   }
-  function row(r,i){
-    var col=r.st==='⚡CROSSOVER'?'#006600':r.st==='⛔CROSSUNDER'?'#cc0000':
-      r.st==='WATCH BUY'?'#cc8800':r.st==='WATCH SELL'?'#cc4400':
-      r.st==='ABOVE'?'#1a8a1a':'#888';
-    return'<tr onclick="rsiShowDetail(\''+r.n+'\')" style="cursor:pointer">'+
-      '<td style="padding:2px 4px;font-size:9px;color:#999;text-align:center">'+(i+1)+'</td>'+
-      '<td style="padding:2px 4px;font-size:9px;font-weight:bold;color:#0055aa">'+r.n+'</td>'+
-      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
-      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
-      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
-      '<td style="padding:2px 4px;font-size:9px;font-weight:bold;text-align:center;color:'+col+'">'+r.st+'</td></tr>';
+  // Pass 2: fill W-RSI50 + Status in batches of 5
+  if(st)st.textContent='⏳ Computing W-RSI50 ('+all.length+' indices, batches of 5)...';
+  var idx=0;
+  function nextBatch(){
+    var end=Math.min(idx+5,all.length);
+    for(;idx<end;idx++){
+      var el2=document.getElementById('rsi-r'+idx);
+      if(el2)rsiFillWeekly(el2);
+    }
+    if(st)st.textContent='⏳ '+(idx<all.length?idx+'/'+all.length:'✅ Sorting...')+' weekly RSI';
+    if(idx<all.length){setTimeout(nextBatch,5);return;}
+    rsiSortTable();
+    if(st)st.textContent='✅ '+all.length+' indices — sorted: Watch Buy ↑ Watch Sell ↑ Above ↑ Below';
   }
-  function sec(t,arr,c){
-    if(!arr.length)return'';
-    return'<div style="margin-bottom:8px;border:1px solid '+c+'66;border-radius:6px;overflow:hidden">'+
-      '<div style="font-size:9px;font-weight:bold;padding:4px 8px;background:'+c+';color:#fff;display:flex;justify-content:space-between">'+
-      '<span>'+t+'</span><span>'+arr.length+'</span></div>'+
-      '<div style="max-height:260px;overflow-y:auto">'+
-      '<table style="width:100%;border-collapse:collapse">'+
-      '<thead><tr style="background:#f5f5f5;position:sticky;top:0">'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">#</th>'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:left">Index</th>'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">D8</th>'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">D50</th>'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">W50</th>'+
-      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">Status</th></tr></thead>'+
-      '<tbody>'+arr.map(row).join('')+'</tbody></table></div></div>';
-  }
-  var html='';
-  if(wb.length)html+=sec('(3) WATCH BUY',wb,'#cc8800');
-  if(ws.length)html+=sec('(4) WATCH SELL',ws,'#cc4400');
-  if(abv.length)html+=sec('(1) ABOVE W-RSI50',abv,'#1a8a1a');
-  if(blw.length)html+=sec('(2) BELOW W-RSI50',blw,'#cc0000');
-  if(no)html+='<div style="color:#aaa;text-align:center;padding:4px;font-size:8px">'+no+' skipped</div>';
-  box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No data</div>';
-  document.getElementById('rsi-st').textContent='✅ '+(abv.length+blw.length+wb.length+ws.length)+' indices — click row for detail';
+  setTimeout(nextBatch,5);
 }
 
-// ── Show detail card for one index ──
-function rsiShowDetail(name){
-  document.getElementById('rsi-detail-section').style.display='block';
-  document.getElementById('rsi-st').textContent='⏳ Computing detail for '+name+'...';
-  setTimeout(function(){
-    var r=rsiComputeOne(name);
-    if(!r){document.getElementById('rsi-st').textContent='⚠ Insufficient data';return;}
-    rsiRenderDetail(r);
-  },5);
+function rsiSortTable(){
+  var tb=document.getElementById('rsi-tbody');
+  if(!tb)return;
+  var rows=[].slice.call(tb.rows);
+  var pri={'⚡CROSSOVER':0,'⛔CROSSUNDER':1,'WATCH BUY':2,'WATCH SELL':3,'ABOVE':4};
+  rows.sort(function(a,b){
+    var sa=a.cells[5].textContent.match(/WATCH BUY|WATCH SELL|ABOVE|⚡CROSSOVER|⛔CROSSUNDER/);
+    var sb=b.cells[5].textContent.match(/WATCH BUY|WATCH SELL|ABOVE|⚡CROSSOVER|⛔CROSSUNDER/);
+    var pa=sa?pri[sa[0]]:5,pb=sb?pri[sb[0]]:5;
+    return pa-pb;
+  });
+  rows.forEach(function(r,i){tb.appendChild(r);r.cells[0].textContent=i+1;});
 }
-function rsiHideDetail(){document.getElementById('rsi-detail-section').style.display='none';}
 
-// ── Render detail card ──
-function rsiRenderDetail(r){
+function rsiShowDetail(idx){
+  var sd=win._ldScannerData;
+  var el=document.getElementById('rsi-r'+idx);
+  if(!el||!el._rsi)return;
+  var r=el._rsi;
   var hdr=document.getElementById('rsi-hdr');
-  if(r.uptrend)hdr.textContent='✅ UPTREND  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
-  else if(r.downtrend)hdr.textContent='🔴 DOWNTREND  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
-  else hdr.textContent='⚠ MIXED  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
-  hdr.style.background=r.uptrend?'#e6ffe6':r.downtrend?'#ffe6e6':'#fff8e6';
-  hdr.style.color=r.uptrend?'#006600':r.downtrend?'#cc0000':'#996600';
+  var nm=sd.indexList[idx].name;
+  if(r.r50>50&&r.rw>50)hdr.textContent='✅ UPTREND  '+nm+'  R50:'+r.r50.toFixed(1)+'  W50:'+r.rw.toFixed(1);
+  else if(r.r50<50&&r.rw<50)hdr.textContent='🔴 DOWNTREND  '+nm+'  R50:'+r.r50.toFixed(1)+'  W50:'+r.rw.toFixed(1);
+  else hdr.textContent='⚠ MIXED  '+nm+'  R50:'+r.r50.toFixed(1)+'  W50:'+r.rw.toFixed(1);
+  hdr.style.background=r.r50>50&&r.rw>50?'#e6ffe6':r.r50<50&&r.rw<50?'#ffe6e6':'#fff8e6';
+  hdr.style.color=r.r50>50&&r.rw>50?'#006600':r.r50<50&&r.rw<50?'#cc0000':'#996600';
   ['rsi-r50','rsi-r8','rsi-rw'].forEach(function(id,j){
-    var el=document.getElementById(id),vs=[r.r50,r.r8,r.rw];
-    el.textContent=vs[j].toFixed(1);
-    el.style.color=j===1?(vs[j]>vs[0]?'#1a8a1a':'#cc0000'):(vs[j]>50?'#1a8a1a':'#cc0000');
+    var e=document.getElementById(id),vs=[r.r50,r.r8,r.rw];
+    e.textContent=vs[j].toFixed(1);e.style.color=j===1?(vs[j]>vs[0]?'#1a8a1a':'#cc0000'):(vs[j]>50?'#1a8a1a':'#cc0000');
   });
   var px=r.closes[r.closes.length-1];
-  document.getElementById('rsi-pxrow').innerHTML=
-    '<span>Close: <b>'+px.toLocaleString('en-IN',{maximumFractionDigits:1})+'</b></span>';
-  var tr=document.getElementById('rsi-trend');
-  var cloudBull=r.r8>r.r50;
-  tr.textContent='RSI8 '+(cloudBull?'ABOVE':'BELOW')+' RSI50 → '+(cloudBull?'BULLISH':'BEARISH');
-  tr.style.background=cloudBull?'rgba(100,245,109,0.2)':'rgba(250,99,99,0.2)';
-  tr.style.color=cloudBull?'#006600':'#cc0000';
+  document.getElementById('rsi-pxrow').innerHTML='<span>Close: <b>'+px.toLocaleString('en-IN',{maximumFractionDigits:1})+'</b>  <span style="color:#888;font-size:8px">Status: '+r.st+'</span></span>';
+  var cb=r.r8>r.r50;
+  var te=document.getElementById('rsi-trend');
+  te.textContent='RSI8 '+(cb?'ABOVE':'BELOW')+' RSI50 → '+(cb?'BULLISH':'BEARISH');
+  te.style.background=cb?'rgba(100,245,109,0.2)':'rgba(250,99,99,0.2)';te.style.color=cb?'#006600':'#cc0000';
   var sigs=[];
-  var bm=rsiCrossover(r.r8d,60)&&r.uptrend;
-  var bpull=rsiCrossover(r.r8d,40)&&r.uptrend;
-  var sm=rsiCrossunder(r.r8d,40)&&r.downtrend;
-  var spull=rsiCrossunder(r.r8d,60)&&r.downtrend;
-  if(bm)sigs.push({l:'BUY MOM ▲',bg:'#006600'});
-  if(bpull)sigs.push({l:'BUY PULL △',bg:'#1a8a1a'});
-  if(sm)sigs.push({l:'SELL MOM ▼',bg:'#cc0000'});
-  if(spull)sigs.push({l:'SELL PULL ▽',bg:'#ff4444'});
+  if(xov(r.r8d,60)&&r.r50>50&&r.rw>50)sigs.push({l:'BUY MOM ▲',bg:'#006600'});
+  if(xov(r.r8d,40)&&r.r50>50&&r.rw>50)sigs.push({l:'BUY PULL △',bg:'#1a8a1a'});
+  if(xun(r.r8d,40)&&r.r50<50&&r.rw<50)sigs.push({l:'SELL MOM ▼',bg:'#cc0000'});
+  if(xun(r.r8d,60)&&r.r50<50&&r.rw<50)sigs.push({l:'SELL PULL ▽',bg:'#ff4444'});
   if(!sigs.length)sigs.push({l:'NO SIGNAL',bg:'#888'});
-  document.getElementById('rsi-badges').innerHTML=sigs.map(function(s){
-    return'<span style="background:'+s.bg+';color:#fff;padding:4px 10px;border-radius:3px;font-size:9px;font-weight:bold">'+s.l+'</span>';
-  }).join('');
+  document.getElementById('rsi-badges').innerHTML=sigs.map(function(s){return'<span style="background:'+s.bg+';color:#fff;padding:3px 8px;border-radius:3px;font-size:8px;font-weight:bold">'+s.l+'</span>';}).join('');
   rsiDrawCloud(r.r50d,r.r8d);
-  // Build history
-  var hist=[],n=Math.min(r.r50d.length,r.r8d.length),start=Math.max(1,n-60);
-  for(var i=start;i<n;i++){
+  // History
+  var hist=[],n=Math.min(r.r50d.length,r.r8d.length),st2=Math.max(1,n-60);
+  for(var i=st2;i<n;i++){
     var s50=r.r50d.slice(0,i+1),s8=r.r8d.slice(0,i+1);
-    var up_i=s50[s50.length-1]>50;
-    var dn_i=s50[s50.length-1]<50;
-    if(rsiCrossover(s8,60)&&up_i)hist.push({d:r.dates[r.dates.length-n+i],t:'BUY MOM ▲',c:'#006600'});
-    if(rsiCrossover(s8,40)&&up_i)hist.push({d:r.dates[r.dates.length-n+i],t:'BUY PULL △',c:'#1a8a1a'});
-    if(rsiCrossunder(s8,40)&&dn_i)hist.push({d:r.dates[r.dates.length-n+i],t:'SELL MOM ▼',c:'#cc0000'});
-    if(rsiCrossunder(s8,60)&&dn_i)hist.push({d:r.dates[r.dates.length-n+i],t:'SELL PULL ▽',c:'#ff4444'});
+    var up=s50[s50.length-1]>50,dn=s50[s50.length-1]<50;
+    if(xov(s8,60)&&up)hist.push({t:'BUY MOM ▲',c:'#006600'});
+    if(xov(s8,40)&&up)hist.push({t:'BUY PULL △',c:'#1a8a1a'});
+    if(xun(s8,40)&&dn)hist.push({t:'SELL MOM ▼',c:'#cc0000'});
+    if(xun(s8,60)&&dn)hist.push({t:'SELL PULL ▽',c:'#ff4444'});
   }
   var hel=document.getElementById('rsi-hist');
-  var last20=hist.slice(-20).reverse();
-  hel.innerHTML=last20.length?last20.map(function(s){
-    return'<div style="display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee">'+
-      '<span style="color:'+s.c+';font-weight:bold;font-size:8px">'+s.t+'</span>'+
-      '<span style="color:#666;font-size:8px">'+s.d+'</span></div>';
-  }).join(''):'<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">No signals</div>';
-  document.getElementById('rsi-st').textContent='✅ '+r.n+' — click BACK to list';
+  var l20=hist.slice(-20).reverse();
+  hel.innerHTML=l20.length?l20.map(function(s){return'<div style="display:flex;padding:2px 4px;border-bottom:1px solid #eee"><span style="color:'+s.c+';font-weight:bold;font-size:8px">'+s.t+'</span></div>';}).join(''):'<div style="color:#aaa;text-align:center;padding:4px;font-size:8px">No signals</div>';
+  document.getElementById('rsi-tbl').style.display='none';
+  document.getElementById('rsi-detail-section').style.display='block';
 }
 
-// ── RSI Cloud canvas ──
 function rsiDrawCloud(r50d,r8d){
-  var c=document.getElementById('rsi-cloud');
-  if(!c)return;
+  var c=document.getElementById('rsi-cloud');if(!c)return;
   var w=c.parentElement.clientWidth-12;c.width=w;c.height=80;
   var ctx=c.getContext('2d');ctx.clearRect(0,0,w,80);
-  var n=Math.min(r50d.length,r8d.length,80);
-  var s50=r50d.slice(-n),s8=r8d.slice(-n);
+  var n=Math.min(r50d.length,r8d.length,80),s50=r50d.slice(-n),s8=r8d.slice(-n);
   if(n<2)return;
   var all=s50.concat(s8,[30,70]),mn=Math.min.apply(null,all)-2,mx=Math.max.apply(null,all)+2,rng=mx-mn;
   var toY=function(v){return 80-((v-mn)/rng)*76};
   var toX=function(i){return(i/(n-1))*(w-2)+1};
-  for(var i=0;i<n-1;i++){
-    var x1=toX(i),x2=toX(i+1);
-    ctx.beginPath();ctx.moveTo(x1,toY(s50[i]));ctx.lineTo(x2,toY(s50[i+1]));ctx.lineTo(x2,toY(s8[i+1]));ctx.lineTo(x1,toY(s8[i]));ctx.closePath();
-    ctx.fillStyle=s8[i]>s50[i]?'rgba(100,220,100,0.35)':'rgba(240,80,80,0.35)';ctx.fill();
-  }
-  [[40,'#aaa',true],[50,'#444',false],[60,'#aaa',true]].forEach(function(lv){
-    ctx.beginPath();ctx.setLineDash(lv[2]?[2,3]:[]);ctx.strokeStyle=lv[1];ctx.lineWidth=lv[2]?0.5:1;
-    var y=toY(lv[0]);ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle='#999';ctx.font='5px sans-serif';ctx.fillText(lv[0],2,y-1);
-  });
-  ctx.beginPath();ctx.strokeStyle='#e03030';ctx.lineWidth=1.2;
-  s50.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
-  ctx.beginPath();ctx.strokeStyle='#18b818';ctx.lineWidth=1.2;
-  s8.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
+  for(var i=0;i<n-1;i++){var g=s8[i]>s50[i];ctx.beginPath();ctx.moveTo(toX(i),toY(s50[i]));ctx.lineTo(toX(i+1),toY(s50[i+1]));ctx.lineTo(toX(i+1),toY(s8[i+1]));ctx.lineTo(toX(i),toY(s8[i]));ctx.closePath();ctx.fillStyle=g?'rgba(100,220,100,0.35)':'rgba(240,80,80,0.35)';ctx.fill();}
+  [[40,'#aaa',true],[50,'#444',false],[60,'#aaa',true]].forEach(function(lv){ctx.beginPath();ctx.setLineDash(lv[2]?[2,3]:[]);ctx.strokeStyle=lv[1];ctx.lineWidth=lv[2]?0.5:1;var y=toY(lv[0]);ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#999';ctx.font='5px sans-serif';ctx.fillText(lv[0],2,y-1);});
+  ctx.beginPath();ctx.strokeStyle='#e03030';ctx.lineWidth=1.2;s50.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
+  ctx.beginPath();ctx.strokeStyle='#18b818';ctx.lineWidth=1.2;s8.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
   ctx.fillStyle='#e03030';ctx.font='5px sans-serif';ctx.fillRect(4,3,10,2);ctx.fillStyle='#555';ctx.fillText('R50',15,6);
   ctx.fillStyle='#18b818';ctx.fillRect(40,3,10,2);ctx.fillStyle='#555';ctx.fillText('R8',51,6);
 }
 
-// ── Public API ──
-function rsiScanAll(){rsiShowTable();}
-win.rsiBuildCache=rsiBuildCache;
-win.rsiScanAll=rsiScanAll;
-win.onRSITabActivated=function(){
-  var sd=win._ldScannerData;
-  if(!sd||!sd.indexList||!sd.indexList.length){
-    document.getElementById('rsi-st').textContent='⚠ Run Scanner tab first';
-    return;
-  }
-  if(sd.rsiCached)rsiShowTable();
-  else rsiBuildCache(function(){rsiShowTable();});
-};
+win.onRSITabActivated=function(){rsiRunAll();};
+win.rsiScanAll=rsiRunAll;
+})(window);
+</script>
 
 </body>
 </html>
