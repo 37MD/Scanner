@@ -1549,6 +1549,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
       window._ldScannerData = { priceMap, indexList, dailyMap: sharedDailyMap2, nseRaw: nseRawWith30d2 };
     }
 
+    if (typeof rsiBuildCache !== 'undefined') rsiBuildCache();
+
     setResults({ ...tempResults });
 
     // BA Phase: Gemini breadth analysis for Regime A + Watchlist indices
@@ -4642,17 +4644,9 @@ win.rsToggleWL=rsToggleWL;
     ⚡ Uses NSE CSV data already downloaded by the <b>Scanner</b> tab. Run Scanner first if no data appears.
   </div>
 
-  <div style="display:flex;gap:5px;margin-bottom:6px">
-    <select id="rsi-sel" onchange="rsiRun()" style="flex:1;padding:7px 4px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:10px">
-      <option value="">— Run ⚡ Scanner first —</option>
-    </select>
-    <button onclick="rsiRun()" style="background:#cc5500;color:#fff;border:none;padding:7px 10px;border-radius:4px;font-weight:bold;font-size:10px;cursor:pointer">VIEW</button>
-  </div>
-  <button onclick="rsiScanAll()" style="width:100%;background:#0055aa;color:#fff;border:none;padding:9px;border-radius:4px;font-weight:bold;font-size:11px;cursor:pointer;margin-bottom:8px">🔍 SCAN ALL 139 — Show Today's Signals</button>
+  <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">Loading RSI data...</div>
 
-  <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">Run ⚡ Scanner tab first</div>
-
-  <div id="rsi-allsig" style="border:1px solid #ddd;border-radius:4px;margin-bottom:10px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+  <div id="rsi-allsig" style="border:1px solid #ddd;border-radius:4px;margin-bottom:10px;-webkit-overflow-scrolling:touch"></div>
 
   <div id="rsi-detail-section" style="display:none">
   <div id="rsi-card">
@@ -5298,15 +5292,28 @@ async function runBAsScan(){
     }
 
     if(baStop){resetBA();return;}
-    setBAProgress(62,'Fetching Gold ETF from Yahoo…');
+    setBAProgress(62,'Gold ETF data (cache or Yahoo)…');
 
-    // Gold: use Yahoo Finance (NSE CSV doesn't have ETF prices)
-    var goldSeries=await fetchYahooMonthly(goldSym);
-    var goldFallbacks={'GOLDBEES.NS':['HDFCGOLD.NS','SBIGETS.NS'],'HDFCGOLD.NS':['GOLDBEES.NS','SBIGETS.NS'],'SBIGETS.NS':['GOLDBEES.NS','HDFCGOLD.NS']};
+    // Gold: check 24h cache first, fall back to Yahoo Finance
+    var goldSeries=null;
+    var cacheKey='ba_gold_'+goldSym;
+    try{
+      var cached=JSON.parse(localStorage.getItem(cacheKey));
+      if(cached&&cached.date===new Date().toISOString().slice(0,10)&&cached.series){
+        goldSeries=cached.series;
+      }
+    }catch(e){}
     if(!goldSeries){
-      var fb=goldFallbacks[goldSym]||[];
-      for(var fi=0;fi<fb.length&&!goldSeries;fi++){
-        goldSeries=await fetchYahooMonthly(fb[fi]);
+      goldSeries=await fetchYahooMonthly(goldSym);
+      var goldFallbacks={'GOLDBEES.NS':['HDFCGOLD.NS','SBIGETS.NS'],'HDFCGOLD.NS':['GOLDBEES.NS','SBIGETS.NS'],'SBIGETS.NS':['GOLDBEES.NS','HDFCGOLD.NS']};
+      if(!goldSeries){
+        var fb=goldFallbacks[goldSym]||[];
+        for(var fi=0;fi<fb.length&&!goldSeries;fi++){
+          goldSeries=await fetchYahooMonthly(fb[fi]);
+        }
+      }
+      if(goldSeries){
+        try{localStorage.setItem(cacheKey,JSON.stringify({date:new Date().toISOString().slice(0,10),series:goldSeries}));}catch(e){}
       }
     }
 
@@ -5831,7 +5838,7 @@ function rsiGetOHLC(name){
 }
 
 // ── Compute RSI signals for one index ──
-function rsiComputeIndex(name){
+function rsiComputeIndex(name,skipHistory){
   var ohlc=rsiGetOHLC(name);
   if(!ohlc||ohlc.closes.length<55)return null;
 
@@ -5869,27 +5876,30 @@ function rsiComputeIndex(name){
   var r8xBelow50=rsiCrossunder(r8d,50);
 
   var history=[];
-  var n=Math.min(r50d.length,r8d.length);
-  var start=Math.max(1,n-60);
-  for(var i=start;i<n;i++){
-    var s50=r50d.slice(0,i+1);
-    var s8=r8d.slice(0,i+1);
-    var wIdx=Math.floor(i*wc.length/closes.length);
-    var sw=r50w.slice(0,Math.max(1,wIdx+1));
-    var r50i=s50[s50.length-1];
-    var rwi=sw[sw.length-1]||rw;
-    var up_i=r50i>50&&rwi>50;
-    var dn_i=r50i<50&&rwi<50;
-    var dateOffset=closes.length-n;
-    var dstr=dates[dateOffset+i]||('Bar '+(i+1));
-    if(dstr.length===8){
-      var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      dstr=dstr.substring(0,2)+' '+months[parseInt(dstr.substring(2,4))]+" '"+dstr.substring(6,8);
+  if(!skipHistory){
+    var n=Math.min(r50d.length,r8d.length);
+    var start=Math.max(1,n-60);
+    var r50dw=r50d.slice(0,n),r8dw=r8d.slice(0,n);
+    for(var i=start;i<n;i++){
+      var s50=r50dw.slice(0,i+1);
+      var s8=r8dw.slice(0,i+1);
+      var wIdx=Math.floor(i*wc.length/closes.length);
+      var sw=r50w.slice(0,Math.max(1,wIdx+1));
+      var r50i=s50[s50.length-1];
+      var rwi=sw[sw.length-1]||rw;
+      var up_i=r50i>50&&rwi>50;
+      var dn_i=r50i<50&&rwi<50;
+      var dateOffset=closes.length-n;
+      var dstr=dates[dateOffset+i]||('Bar '+(i+1));
+      if(dstr.length===8){
+        var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        dstr=dstr.substring(0,2)+' '+months[parseInt(dstr.substring(2,4))]+" '"+dstr.substring(6,8);
+      }
+      if(rsiCrossover(s8,60)&&up_i)history.push({d:dstr,t:'BUY MOM ▲',c:'#006600'});
+      if(rsiCrossover(s8,40)&&up_i)history.push({d:dstr,t:'BUY PULL △',c:'#1a8a1a'});
+      if(rsiCrossunder(s8,40)&&dn_i)history.push({d:dstr,t:'SELL MOM ▼',c:'#cc0000'});
+      if(rsiCrossunder(s8,60)&&dn_i)history.push({d:dstr,t:'SELL PULL ▽',c:'#ff4444'});
     }
-    if(rsiCrossover(s8,60)&&up_i)history.push({d:dstr,t:'BUY MOM ▲',c:'#006600'});
-    if(rsiCrossover(s8,40)&&up_i)history.push({d:dstr,t:'BUY PULL △',c:'#1a8a1a'});
-    if(rsiCrossunder(s8,40)&&dn_i)history.push({d:dstr,t:'SELL MOM ▼',c:'#cc0000'});
-    if(rsiCrossunder(s8,60)&&dn_i)history.push({d:dstr,t:'SELL PULL ▽',c:'#ff4444'});
   }
 
   return{name:name,price:price,chg:chg,r50:r50,r8:r8,rw:rw,
@@ -6035,11 +6045,9 @@ function rsiDot(ctx,x,y,color,up){
   ctx.closePath();ctx.fillStyle=color;ctx.fill();
 }
 
-function rsiRun(){
+function rsiRun(name){
   var sd=win._ldScannerData;
-  var selEl=document.getElementById('rsi-sel');
-  var name=selEl?selEl.value:'';
-  if(!name){document.getElementById('rsi-st').textContent='Select an index above';return;}
+  if(!name){document.getElementById('rsi-st').textContent='Select an index';return;}
   if(!sd||!sd.dailyMap||Object.keys(sd.dailyMap).length===0){
     document.getElementById('rsi-st').textContent='⚠ No data — run the ⚡ Scanner tab first to download NSE data';
     return;
@@ -6059,111 +6067,103 @@ function rsiRun(){
   },10);
 }
 
-function rsiPopulateDropdown(){
+function rsiBuildCache(){
   var sd=win._ldScannerData;
-  var selEl=document.getElementById('rsi-sel');
-  if(!selEl)return;
-  if(!sd||!sd.indexList||!sd.indexList.length){
-    selEl.innerHTML='<option value="">— Run ⚡ Scanner first —</option>';
-    return;
+  if(!sd||!sd.indexList||sd.rsiCached)return;
+  var all=sd.indexList||[];
+  var cache={};
+  for(var i=0;i<all.length;i++){
+    var item=all[i];
+    var res=rsiComputeIndex(item.name,true);
+    if(!res)continue;
+    var r8=res.r8, rw=res.rw;
+    var status;
+    if(res.r8xAbove50) status='⚡CROSSOVER';
+    else if(res.r8xBelow50) status='⛔CROSSUNDER';
+    else if(r8>=45&&r8<50) status='WATCH BUY';
+    else if(r8>50&&r8<=55) status='WATCH SELL';
+    else if(rw>50) status='ABOVE';
+    else status='BELOW';
+    res._status=status;
+    cache[item.name]=res;
   }
-  var current=selEl.value;
-  selEl.innerHTML=sd.indexList.map(function(idx){
-    return'<option value="'+idx.name+'">'+idx.name+'</option>';
-  }).join('');
-  if(current)selEl.value=current;
+  sd.rsiCached=cache;
 }
 
-function rsiScanAll(){
+function rsiDisplayCached(){
   var sd=win._ldScannerData;
-  if(!sd||!sd.dailyMap||Object.keys(sd.dailyMap).length===0){
-    document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first';return;
+  var box=document.getElementById('rsi-allsig');
+  if(!box||!sd||!sd.rsiCached)return;
+  var cache=sd.rsiCached;
+  var abv=[],blw=[],watchBuy=[],watchSell=[],noData=0;
+  var all=sd.indexList||[];
+  for(var i=0;i<all.length;i++){
+    var res=cache[all[i].name];
+    if(!res){noData++;continue;}
+    var st=res._status;
+    if(st==='WATCH BUY')watchBuy.push(res);
+    else if(st==='WATCH SELL')watchSell.push(res);
+    else if(res.rw>50)abv.push(res);
+    else blw.push(res);
   }
-  document.getElementById('rsi-st').textContent='⏳ Scanning all indices...';
-  document.getElementById('rsi-allsig').innerHTML='';
-  setTimeout(function(){
-    var all=sd.indexList||[];
-    var abv=[],blw=[],watchBuy=[],watchSell=[],noData=[];
-    all.forEach(function(idx){
-      var res=rsiComputeIndex(idx.name);
-      if(!res){noData.push(idx.name);return;}
-      var status;
-      var r8=res.r8, rw=res.rw;
-      if(res.r8xAbove50) status='⚡CROSSOVER';
-      else if(res.r8xBelow50) status='⛔CROSSUNDER';
-      else if(r8>=45&&r8<50) status='WATCH BUY';
-      else if(r8>50&&r8<=55) status='WATCH SELL';
-      else if(rw>50) status='ABOVE';
-      else status='BELOW';
-      res._status=status;
-      if(status==='WATCH BUY')watchBuy.push(res);
-      else if(status==='WATCH SELL')watchSell.push(res);
-      else if(rw>50)abv.push(res);
-      else blw.push(res);
-    });
-    function tableRows(arr,offset){
-      return arr.map(function(r,i){
-        var sn=offset+i+1;
-        var st=r._status;
-        var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':
-          st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':
-          st==='ABOVE'?'#1a8a1a':'#888';
-        return'<tr onclick="rsiSelectAndRun(\''+r.name+'\')" style="cursor:pointer">'+
-          '<td style="padding:3px 4px;font-size:9px;color:#999;text-align:center">'+sn+'</td>'+
-          '<td style="padding:3px 4px;font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</td>'+
-          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
-          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
-          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
-          '<td style="padding:3px 4px;font-size:9px;font-weight:bold;text-align:center;color:'+sc+'">'+st+'</td></tr>';
-      });
-    }
-    function section(title,arr,color){
-      if(!arr.length)return'';
-      var rows=tableRows(arr,0);
-      return'<div style="margin-bottom:10px;border:1px solid '+color+'66;border-radius:6px;overflow:hidden">'+
-        '<div style="font-size:9px;font-weight:bold;padding:5px 8px;background:'+color+';color:#fff;display:flex;justify-content:space-between">'+
-        '<span>'+title+'</span><span>'+arr.length+' index'+(arr.length>1?'ies':'')+'</span></div>'+
-        '<div style="max-height:250px;overflow-y:auto">'+
-        '<table style="width:100%;border-collapse:collapse">'+
-        '<thead><tr style="background:#f5f5f5">'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">#</th>'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:left">Index</th>'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">D-RSI8</th>'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">D-RSI50</th>'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">W-RSI50</th>'+
-        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">STATUS</th></tr></thead>'+
-        '<tbody>'+rows.join('')+'</tbody></table></div></div>';
-    }
-    var box=document.getElementById('rsi-allsig');
-    var total=(abv.length+blw.length+watchBuy.length+watchSell.length);
-    var html='';
-    html+=section('(3) 🟡 WATCH BUY — RSI8 within 5% of Crossover',watchBuy,'#cc8800');
-    html+=section('(4) 🟠 WATCH SELL — RSI8 within 5% of Crossunder',watchSell,'#cc4400');
-    html+=section('(1) 🟢 ABOVE W-RSI 50 (>50)',abv,'#1a8a1a');
-    html+=section('(2) 🔴 BELOW W-RSI 50 (<50)',blw,'#cc0000');
-    if(noData.length)html+='<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">'+noData.length+' indices skipped (insufficient data)</div>';
-    box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No index data available</div>';
-    document.getElementById('rsi-st').textContent='✅ '+total+' indices classified — click any row for detail card';
-  },10);
+  function tr(r,i){
+    var st=r._status;
+    var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':
+      st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':
+      st==='ABOVE'?'#1a8a1a':'#888';
+    return'<tr onclick="rsiSelectAndRun(\''+r.name+'\')" style="cursor:pointer">'+
+      '<td style="padding:3px 5px;font-size:9px;color:#999;text-align:center">'+(i+1)+'</td>'+
+      '<td style="padding:3px 5px;font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</td>'+
+      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
+      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
+      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
+      '<td style="padding:3px 5px;font-size:9px;font-weight:bold;text-align:center;color:'+sc+'">'+st+'</td></tr>';
+  }
+  function sec(title,arr,color){
+    if(!arr.length)return'';
+    return'<div style="margin-bottom:10px;border:1px solid '+color+'66;border-radius:6px;overflow:hidden">'+
+      '<div style="font-size:9px;font-weight:bold;padding:5px 8px;background:'+color+';color:#fff;display:flex;justify-content:space-between">'+
+      '<span>'+title+'</span><span>'+arr.length+' index'+(arr.length>1?'ies':'')+'</span></div>'+
+      '<div style="max-height:280px;overflow-y:auto">'+
+      '<table style="width:100%;border-collapse:collapse">'+
+      '<thead><tr style="background:#f5f5f5;position:sticky;top:0">'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">#</th>'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:left">Index</th>'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">D-RSI8</th>'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">D-RSI50</th>'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">W-RSI50</th>'+
+      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">STATUS</th></tr></thead>'+
+      '<tbody>'+arr.map(tr).join('')+'</tbody></table></div></div>';
+  }
+  var totalItems=(abv.length+blw.length+watchBuy.length+watchSell.length);
+  var html='';
+  if(watchBuy.length)html+=sec('(3) 🟡 WATCH BUY — RSI8 within 5% of Crossover',watchBuy,'#cc8800');
+  if(watchSell.length)html+=sec('(4) 🟠 WATCH SELL — RSI8 within 5% of Crossunder',watchSell,'#cc4400');
+  if(abv.length)html+=sec('(1) 🟢 ABOVE W-RSI 50 (>50)',abv,'#1a8a1a');
+  if(blw.length)html+=sec('(2) 🔴 BELOW W-RSI 50 (<50)',blw,'#cc0000');
+  if(noData)html+='<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">'+noData+' indices skipped (insufficient data)</div>';
+  box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No index data available</div>';
+  document.getElementById('rsi-st').textContent='✅ '+totalItems+' indices — click any row for detail card';
 }
 
 function rsiSelectAndRun(name){
-  document.getElementById('rsi-sel').value=name;
-  rsiRun();
+  rsiRun(name);
   document.getElementById('rsi-detail-section').style.display='block';
 }
 
+function rsiScanAll(){rsiDisplayCached();}
 win.rsiRun=rsiRun;
-win.rsiScanAll=rsiScanAll;
+win.rsiBuildCache=rsiBuildCache;
 win.rsiSelectAndRun=rsiSelectAndRun;
+win.rsiScanAll=rsiScanAll;
 win.onRSITabActivated=function(){
-  rsiPopulateDropdown();
   var sd=win._ldScannerData;
-  if(sd&&sd.indexList&&sd.indexList.length){
-    document.getElementById('rsi-st').textContent=sd.indexList.length+' indices ready — select one or tap SCAN ALL';
-  }else{
+  if(!sd||!sd.indexList||!sd.indexList.length){
     document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first to download NSE data';
+    return;
   }
+  if(!sd.rsiCached){rsiBuildCache();rsiDisplayCached();return;}
+  rsiDisplayCached();
   setTimeout(function(){rsiDrawCloud([],[],[])},100);
 };
 
