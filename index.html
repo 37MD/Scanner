@@ -1577,8 +1577,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
             row.wRsi4 = wA4.length ? wA4[wA4.length-1] : null;
             row.wRsi8 = wA8.length ? wA8[wA8.length-1] : null;
             row.wRsi14 = wA14.length ? wA14[wA14.length-1] : null;
-            row.wma20Price = calcWMA(weekly, 20);
-            row.wma20Rsi = calcWMA(wA4, 20);
+            row.wma20Price = calcWMA(weekly, Math.min(20, weekly.length));
+            row.wma20Rsi = calcWMA(wA4, Math.min(20, wA4.length));
             if (dA4.length > 2) {
               const p = dA4[dA4.length-2], c = dA4[dA4.length-1];
               if (p != null && c > p && row.wma20Price && row.price < row.wma20Price)
@@ -1593,8 +1593,37 @@ Reasoning: [One-line explanation tying data to the rule]`;
         setResults({ ...tempResults });
         done++;
       }
-      // Share with RS tab
-      window._ldScannerData = { priceMap, indexList, dailyMap: {}, nseRaw };
+      // Share with RS + TTF tabs — build dailyMap from embedded history for TTF
+      const sharedDailyMap = {};
+      if (typeof EMBEDDED_HISTORICAL !== 'undefined') {
+        const tDays = genTradingDays(100);
+        indexList.forEach(idx => {
+          const closes = EMBEDDED_HISTORICAL[idx.key];
+          if (!closes || closes.length < 5) return;
+          const lcName = idx.name.toLowerCase();
+          const entries = [];
+          const n = Math.min(closes.length, tDays.length);
+          for (let j = 0; j < n; j++) {
+            const td = tDays[tDays.length - 1 - j];
+            const c = closes[j];
+            entries.push(fmtDDMMYYYY(td) + '|' + c + '|' + c + '|' + c + '|' + c);
+          }
+          if (entries.length > 0) sharedDailyMap[lcName] = entries;
+        });
+      }
+      // Compute perChange30d from embedded history for RS scanner
+      const nseRawWith30d = nseRaw.map(idx => {
+        const key = normalize(idx.index || idx.indexSymbol);
+        const closes = typeof EMBEDDED_HISTORICAL !== 'undefined' ? EMBEDDED_HISTORICAL[key] : null;
+        let perChange30d = null;
+        if (closes && closes.length >= 30) {
+          const old = closes[closes.length - 30];
+          const cur = closes[closes.length - 1];
+          if (old && cur) perChange30d = parseFloat(((cur - old) / old * 100).toFixed(2));
+        }
+        return { ...idx, perChange30d: perChange30d != null ? String(perChange30d) : null };
+      });
+      window._ldScannerData = { priceMap, indexList, dailyMap: sharedDailyMap, nseRaw: nseRawWith30d };
     } else {
       // No historical data available — show results with price info only
       setDataSource('SNAPSHOT');
@@ -1610,7 +1639,34 @@ Reasoning: [One-line explanation tying data to the rule]`;
         tempResults[idx.key] = row;
         setResults({ ...tempResults });
       }
-      window._ldScannerData = { priceMap, indexList, dailyMap: {}, nseRaw };
+      const sharedDailyMap2 = {};
+      if (typeof EMBEDDED_HISTORICAL !== 'undefined') {
+        const tDays2 = genTradingDays(100);
+        indexList.forEach(idx => {
+          const closes = EMBEDDED_HISTORICAL[idx.key];
+          if (!closes || closes.length < 5) return;
+          const lcName = idx.name.toLowerCase();
+          const entries = [];
+          const n = Math.min(closes.length, tDays2.length);
+          for (let j = 0; j < n; j++) {
+            const td = tDays2[tDays2.length - 1 - j];
+            entries.push(fmtDDMMYYYY(td) + '|' + closes[j] + '|' + closes[j] + '|' + closes[j] + '|' + closes[j]);
+          }
+          if (entries.length > 0) sharedDailyMap2[lcName] = entries;
+        });
+      }
+      const nseRawWith30d2 = nseRaw.map(idx => {
+        const key = normalize(idx.index || idx.indexSymbol);
+        const closes = typeof EMBEDDED_HISTORICAL !== 'undefined' ? EMBEDDED_HISTORICAL[key] : null;
+        let perChange30d = null;
+        if (closes && closes.length >= 30) {
+          const old = closes[closes.length - 30];
+          const cur = closes[closes.length - 1];
+          if (old && cur) perChange30d = parseFloat(((cur - old) / old * 100).toFixed(2));
+        }
+        return { ...idx, perChange30d: perChange30d != null ? String(perChange30d) : null };
+      });
+      window._ldScannerData = { priceMap, indexList, dailyMap: sharedDailyMap2, nseRaw: nseRawWith30d2 };
     }
 
     setResults({ ...tempResults });
@@ -4849,8 +4905,33 @@ async function fetchNSEcsv(date){
   }catch(e){return null;}
 }
 
-// ── Fetch NSE allIndices for current prices (Equity + Gold ETF via Yahoo) ──
+// ── Fetch NSE allIndices for current prices (reuse Scanner data if available) ──
 async function fetchNSEallIndices(){
+  // Reuse data from main Scanner tab
+  var cached = window._ldScannerData && window._ldScannerData.nseRaw;
+  if(cached && cached.length > 10) {
+    // Convert nseRaw format back to NSE API-like format for compatibility
+    return cached.map(function(idx){
+      return {
+        index: idx.index,
+        last: idx.last,
+        percentChange: idx.percentChange,
+        open: idx.open,
+        high: idx.high,
+        low: idx.low,
+        previousClose: idx.previousClose || null,
+        yearHigh: idx.yearHigh || null,
+        yearLow: idx.yearLow || null,
+        perChange30d: idx.perChange30d || null,
+        perChange365d: null,
+        pe: idx.pe,
+        pb: idx.pb,
+        dy: idx.dy,
+        key: idx.key,
+        indexSymbol: idx.indexSymbol
+      };
+    });
+  }
   try{
     var res=await fetchProxyBA(NSE_ALL,{signal:AbortSignal.timeout(20000)});
     if(!res||!res.ok) return null;
