@@ -4633,16 +4633,12 @@ win.rsToggleWL=rsToggleWL;
 </div>
 </div><!-- #tab-pt -->
 
-<!-- ── RSI Buy/Sell Signal Tab ── -->
+<!-- ── RSI Buy/Sell Signal Tab (v2 — clean) ── -->
 <div id="tab-rsi" class="tab-panel">
 <div id="rsi-wrap" style="font-family:'Courier New',monospace;padding:10px;background:#fff;color:#111;min-height:100vh">
 
   <h2 style="color:#cc5500;font-size:15px;margin:0 0 2px">📡 RSI Buy &amp; Sell Timing</h2>
-  <p style="color:#888;font-size:8px;margin:0 0 10px">Dual RSI(50/8) · MTF Daily+Weekly · Price Breakout · NSE data from Scanner tab</p>
-
-  <div style="background:#fff8e6;border:1px solid #e6c96a;border-radius:4px;padding:6px 8px;font-size:8px;color:#7a5c00;margin-bottom:8px">
-    ⚡ Uses NSE CSV data already downloaded by the <b>Scanner</b> tab. Run Scanner first if no data appears.
-  </div>
+  <p style="color:#888;font-size:8px;margin:0 0 10px">MTF Daily+Weekly · RSI(50)/RSI(8) · Scanner data</p>
 
   <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">Loading RSI data...</div>
 
@@ -4650,65 +4646,39 @@ win.rsToggleWL=rsToggleWL;
 
   <div id="rsi-detail-section" style="display:none">
   <div id="rsi-card">
-
-    <div id="rsi-hdr" style="padding:8px 10px;border-radius:6px 6px 0 0;font-size:11px;font-weight:bold;text-align:center;border:1px solid #ddd"></div>
-
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-top:none">
-      <div style="background:#fff;padding:8px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">RSI(50) Trend</div>
-        <div id="rsi-r50" style="font-size:22px;font-weight:bold"></div>
-        <div style="font-size:7px;color:#888;margin-top:2px">Slow · Daily</div>
-      </div>
-      <div style="background:#fff;padding:8px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">RSI(8) Trigger</div>
-        <div id="rsi-r8" style="font-size:22px;font-weight:bold"></div>
-        <div style="font-size:7px;color:#888;margin-top:2px">Fast · Daily</div>
-      </div>
-      <div style="background:#fff;padding:8px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">W.RSI(50)</div>
-        <div id="rsi-rw" style="font-size:22px;font-weight:bold"></div>
-        <div style="font-size:7px;color:#888;margin-top:2px">Slow · Weekly</div>
-      </div>
-    </div>
-
+    <div id="rsi-hdr" style="padding:6px 8px;border-radius:6px 6px 0 0;font-size:10px;font-weight:bold;text-align:center;border:1px solid #ddd"></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-top:none">
       <div style="background:#fff;padding:6px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;margin-bottom:2px">PRICE</div>
-        <div id="rsi-px" style="font-size:12px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-bottom:2px">D-RSI50</div>
+        <div id="rsi-r50" style="font-size:20px;font-weight:bold"></div>
       </div>
       <div style="background:#fff;padding:6px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;margin-bottom:2px">CHG%</div>
-        <div id="rsi-chg" style="font-size:12px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-bottom:2px">D-RSI8</div>
+        <div id="rsi-r8" style="font-size:20px;font-weight:bold"></div>
       </div>
       <div style="background:#fff;padding:6px 4px;text-align:center">
-        <div style="font-size:7px;color:#888;margin-bottom:2px">8-BAR BRK</div>
-        <div id="rsi-brk" style="font-size:10px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-bottom:2px">W-RSI50</div>
+        <div id="rsi-rw" style="font-size:20px;font-weight:bold"></div>
       </div>
     </div>
-
-    <div id="rsi-trend" style="padding:5px 10px;text-align:center;font-size:9px;font-weight:bold;border:1px solid #ddd;border-top:none"></div>
-
-    <div style="border:1px solid #ddd;border-top:none;padding:6px;background:#fff">
-      <div style="font-size:7px;color:#888;margin-bottom:3px;text-transform:uppercase">RSI Cloud (last 80 bars) — Green: RSI8&gt;RSI50 · Red: RSI8&lt;RSI50</div>
-      <canvas id="rsi-cloud" height="90" style="width:100%;display:block"></canvas>
+    <div id="rsi-pxrow" style="display:flex;justify-content:space-around;padding:4px;border:1px solid #ddd;border-top:none;font-size:9px;background:#fff"></div>
+    <div id="rsi-trend" style="padding:4px 8px;text-align:center;font-size:8px;font-weight:bold;border:1px solid #ddd;border-top:none"></div>
+    <div style="border:1px solid #ddd;border-top:none;padding:5px;background:#fff">
+      <div style="font-size:7px;color:#888;margin-bottom:2px">RSI Cloud (last 80 bars)</div>
+      <canvas id="rsi-cloud" height="80" style="width:100%;display:block"></canvas>
     </div>
-
-    <div style="padding:8px;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;background:#fff;margin-bottom:10px">
-      <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:6px">Current Bar Signal</div>
-      <div id="rsi-badges" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    <div style="padding:6px;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;background:#fff;margin-bottom:8px">
+      <div id="rsi-badges" style="display:flex;flex-wrap:wrap;gap:4px"></div>
     </div>
-
-    <div style="margin-bottom:10px">
-      <div style="font-size:8px;color:#888;margin-bottom:4px;text-transform:uppercase;font-weight:bold">Last 20 Historical Signals</div>
-      <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;border:1px solid #ddd;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch">
-        <div style="color:#aaa;text-align:center;padding:8px;font-size:9px">Select an index above</div>
-      </div>
+    <div style="margin-bottom:8px">
+      <div style="font-size:7px;color:#888;margin-bottom:3px;font-weight:bold">Last 20 Signals</div>
+      <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;border:1px solid #ddd;max-height:160px;overflow-y:auto"></div>
     </div>
-
-  </div><!-- #rsi-card -->
-</div><!-- /rsi-detail-section -->
-
-  <div id="rsi-ts" style="font-size:7px;color:#aaa;text-align:right;margin-top:4px"></div>
+    <div style="text-align:center;margin-bottom:8px">
+      <button onclick="rsiHideDetail()" style="background:#888;color:#fff;border:none;padding:5px 16px;border-radius:4px;font-size:9px;cursor:pointer">← BACK TO LIST</button>
+    </div>
+  </div>
+</div>
 </div>
 </div><!-- #tab-rsi -->
 
@@ -5790,21 +5760,16 @@ win.ptReset=ptReset;
 })(window);
 </script>
 
-<!-- ── RSI Buy/Sell Signal Tab JS ── -->
-<script>
-(function(win){
-'use strict';
-
-// ── RSI calculation (same as Scanner tab) ──
+// ── RSI math ──
 function rsiCalc(closes,period){
   var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
   if(v.length<period+2)return[];
-  var g=0,l=0;
+  var g=0,l=0,ag,al,out=[];
   for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
-  var ag=g/period,al=l/period,out=[];
+  ag=g/period;al=l/period;
   out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
-  for(var i=period+1;i<v.length;i++){
-    var d=v[i]-v[i-1];
+  for(i=period+1;i<v.length;i++){
+    d=v[i]-v[i-1];
     ag=(ag*(period-1)+Math.max(d,0))/period;
     al=(al*(period-1)+Math.abs(Math.min(d,0)))/period;
     out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
@@ -5814,371 +5779,225 @@ function rsiCalc(closes,period){
 function rsiCrossover(arr,level){return arr.length>=2&&arr[arr.length-2]<level&&arr[arr.length-1]>=level}
 function rsiCrossunder(arr,level){return arr.length>=2&&arr[arr.length-2]>level&&arr[arr.length-1]<=level}
 
-// ── Parse dailyMap entry for one index ──
-function rsiGetOHLC(name){
+// ── Get closes & dates from dailyMap (NO sort) ──
+function rsiGetCloses(name){
   var sd=win._ldScannerData;
   if(!sd||!sd.dailyMap)return null;
-  var key=name.toLowerCase();
-  var entries=sd.dailyMap[key];
+  var entries=sd.dailyMap[name.toLowerCase()];
   if(!entries||entries.length<20)return null;
-  var sorted=entries.slice().sort(function(a,b){
-    var da=a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
-    var db=b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
-    return da<db?-1:da>db?1:0;
-  });
-  var closes=[],highs=[],lows=[],dates=[];
-  sorted.forEach(function(e){
-    var p=e.split('|');
+  var closes=[],dates=[];
+  for(var i=0;i<entries.length;i++){
+    var p=entries[i].split('|');
     closes.push(parseFloat(p[4]));
-    highs.push(parseFloat(p[2]));
-    lows.push(parseFloat(p[3]));
     dates.push(p[0]);
-  });
-  return{closes:closes,highs:highs,lows:lows,dates:dates};
+  }
+  return{closes:closes,dates:dates};
 }
 
-// ── Compute RSI signals for one index ──
-function rsiComputeIndex(name,skipHistory){
-  var ohlc=rsiGetOHLC(name);
-  if(!ohlc||ohlc.closes.length<55)return null;
-
-  var closes=ohlc.closes,highs=ohlc.highs,lows=ohlc.lows,dates=ohlc.dates;
-
-  var r50d=rsiCalc(closes,50);
-  var r8d=rsiCalc(closes,8);
-
-  var wc=[];
-  for(var i=0;i<closes.length;i+=5)wc.push(closes[Math.min(i+4,closes.length-1)]);
+// ── Compute RSI for one index (lightweight, closes only) ──
+function rsiComputeOne(name){
+  var d=rsiGetCloses(name);
+  if(!d||d.closes.length<55)return null;
+  var c=d.closes;
+  var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
+  var wc=[];for(var i=0;i<c.length;i+=5)wc.push(c[Math.min(i+4,c.length-1)]);
   var r50w=rsiCalc(wc,50);
-
-  var r50=r50d[r50d.length-1];
-  var r8=r8d[r8d.length-1];
-  var rw=r50w[r50w.length-1];
-
-  var sd=win._ldScannerData;
-  var pm=sd&&sd.priceMap&&sd.priceMap[name.toLowerCase()];
-  var price=pm&&pm.price?pm.price:closes[closes.length-1];
-  var chg=pm&&pm.change?pm.change:0;
-
-  var hi8=highs.length>=9?Math.max.apply(null,highs.slice(-9,-1)):Math.max.apply(null,highs.slice(0,-1));
-  var lo8=lows.length>=9?Math.min.apply(null,lows.slice(-9,-1)):Math.min.apply(null,lows.slice(0,-1));
-  var bullBreakout=price>hi8;
-  var bearBreakout=price<lo8;
-
-  var uptrend=r50>50&&rw>50;
-  var downtrend=r50<50&&rw<50;
-
-  var buyMom=rsiCrossover(r8d,60)&&uptrend&&bullBreakout;
-  var buyPull=rsiCrossover(r8d,40)&&uptrend&&bullBreakout;
-  var sellMom=rsiCrossunder(r8d,40)&&downtrend&&bearBreakout;
-  var sellPull=rsiCrossunder(r8d,60)&&downtrend&&bearBreakout;
-  var r8xAbove50=rsiCrossover(r8d,50);
-  var r8xBelow50=rsiCrossunder(r8d,50);
-
-  var history=[];
-  if(!skipHistory){
-    var n=Math.min(r50d.length,r8d.length);
-    var start=Math.max(1,n-60);
-    var r50dw=r50d.slice(0,n),r8dw=r8d.slice(0,n);
-    for(var i=start;i<n;i++){
-      var s50=r50dw.slice(0,i+1);
-      var s8=r8dw.slice(0,i+1);
-      var wIdx=Math.floor(i*wc.length/closes.length);
-      var sw=r50w.slice(0,Math.max(1,wIdx+1));
-      var r50i=s50[s50.length-1];
-      var rwi=sw[sw.length-1]||rw;
-      var up_i=r50i>50&&rwi>50;
-      var dn_i=r50i<50&&rwi<50;
-      var dateOffset=closes.length-n;
-      var dstr=dates[dateOffset+i]||('Bar '+(i+1));
-      if(dstr.length===8){
-        var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        dstr=dstr.substring(0,2)+' '+months[parseInt(dstr.substring(2,4))]+" '"+dstr.substring(6,8);
-      }
-      if(rsiCrossover(s8,60)&&up_i)history.push({d:dstr,t:'BUY MOM ▲',c:'#006600'});
-      if(rsiCrossover(s8,40)&&up_i)history.push({d:dstr,t:'BUY PULL △',c:'#1a8a1a'});
-      if(rsiCrossunder(s8,40)&&dn_i)history.push({d:dstr,t:'SELL MOM ▼',c:'#cc0000'});
-      if(rsiCrossunder(s8,60)&&dn_i)history.push({d:dstr,t:'SELL PULL ▽',c:'#ff4444'});
-    }
-  }
-
-  return{name:name,price:price,chg:chg,r50:r50,r8:r8,rw:rw,
-    uptrend:uptrend,downtrend:downtrend,
-    bullBreakout:bullBreakout,bearBreakout:bearBreakout,
-    buyMom:buyMom,buyPull:buyPull,sellMom:sellMom,sellPull:sellPull,
-    r8xAbove50:r8xAbove50,r8xBelow50:r8xBelow50,
-    history:history,closes:closes,r50d:r50d,r8d:r8d};
+  var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1],rw=r50w[r50w.length-1];
+  var xov=rsiCrossover(r8d,50),xun=rsiCrossunder(r8d,50);
+  var st;
+  if(xov)st='⚡CROSSOVER';
+  else if(xun)st='⛔CROSSUNDER';
+  else if(r8>=45&&r8<50)st='WATCH BUY';
+  else if(r8>50&&r8<=55)st='WATCH SELL';
+  else if(rw>50)st='ABOVE';
+  else st='BELOW';
+  return{n:name,r50:r50,r8:r8,rw:rw,st:st,xov:xov,xun:xun,
+    r50d:r50d,r8d:r8d,closes:c,dates:d.dates,
+    uptrend:r50>50&&rw>50,downtrend:r50<50&&rw<50};
 }
 
-// ── Render signal card ──
-function rsiRender(res){
-  var card=document.getElementById('rsi-card');
-  card.style.display='block';
-
-  var hdr=document.getElementById('rsi-hdr');
-  if(res.uptrend){
-    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#e6ffe6;color:#006600;border:1px solid #99cc99';
-    hdr.textContent='✅ UPTREND — D-RSI50 '+res.r50.toFixed(1)+' > 50  ·  W-RSI50 '+res.rw.toFixed(1)+' > 50';
-  }else if(res.downtrend){
-    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#ffe6e6;color:#cc0000;border:1px solid #cc9999';
-    hdr.textContent='🔴 DOWNTREND — D-RSI50 '+res.r50.toFixed(1)+' < 50  ·  W-RSI50 '+res.rw.toFixed(1)+' < 50';
-  }else{
-    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#fff8e6;color:#996600;border:1px solid #ccaa66';
-    hdr.textContent='⚠ MIXED — RSI50 '+res.r50.toFixed(1)+'  W-RSI '+res.rw.toFixed(1);
-  }
-
-  var r50el=document.getElementById('rsi-r50');
-  r50el.textContent=res.r50.toFixed(1);
-  r50el.style.color=res.r50>50?'#1a8a1a':'#cc0000';
-  var r8el=document.getElementById('rsi-r8');
-  r8el.textContent=res.r8.toFixed(1);
-  r8el.style.color=res.r8>res.r50?'#1a8a1a':'#cc0000';
-  var rwel=document.getElementById('rsi-rw');
-  rwel.textContent=res.rw.toFixed(1);
-  rwel.style.color=res.rw>50?'#1a8a1a':'#cc0000';
-
-  document.getElementById('rsi-px').textContent=res.price.toLocaleString('en-IN',{maximumFractionDigits:1});
-  var chgEl=document.getElementById('rsi-chg');
-  chgEl.textContent=(res.chg>=0?'+':'')+res.chg.toFixed(2)+'%';
-  chgEl.style.color=res.chg>=0?'#1a8a1a':'#cc0000';
-
-  var brkEl=document.getElementById('rsi-brk');
-  if(res.bullBreakout){brkEl.textContent='🟢 BULL BRK';brkEl.style.color='#1a8a1a';}
-  else if(res.bearBreakout){brkEl.textContent='🔴 BEAR BRK';brkEl.style.color='#cc0000';}
-  else{brkEl.textContent='— None';brkEl.style.color='#888';}
-
-  var trendEl=document.getElementById('rsi-trend');
-  var cloudBull=res.r8>res.r50;
-  trendEl.textContent='Cloud: RSI8 '+(cloudBull?'ABOVE':'BELOW')+' RSI50 → '+(cloudBull?'🟢 Bullish Cloud':'🔴 Bearish Cloud');
-  trendEl.style.background=cloudBull?'rgba(100,245,109,0.2)':'rgba(250,99,99,0.2)';
-  trendEl.style.color=cloudBull?'#006600':'#cc0000';
-
-  var sigs=[];
-  if(res.buyMom) sigs.push({l:'BUY MOMENTUM ▲',bg:'#006600'});
-  if(res.buyPull) sigs.push({l:'BUY PULLBACK △',bg:'#1a8a1a'});
-  if(res.sellMom) sigs.push({l:'SELL MOMENTUM ▼',bg:'#cc0000'});
-  if(res.sellPull) sigs.push({l:'SELL PULLBACK ▽',bg:'#ff4444'});
-  if(!sigs.length) sigs.push({l:'NO SIGNAL on current bar',bg:'#888'});
-  document.getElementById('rsi-badges').innerHTML=sigs.map(function(s){
-    return'<span style="background:'+s.bg+';color:#fff;padding:6px 12px;border-radius:4px;font-size:11px;font-weight:bold">'+s.l+'</span>';
-  }).join('');
-
-  rsiDrawCloud(res.closes,res.r50d,res.r8d);
-
-  var hist=document.getElementById('rsi-hist');
-  var last20=res.history.slice(-20).reverse();
-  if(last20.length){
-    hist.innerHTML=last20.map(function(s){
-      return'<div style="display:flex;justify-content:space-between;padding:3px 4px;border-bottom:1px solid #eee">'+
-        '<span style="color:'+s.c+';font-weight:bold;font-size:9px">'+s.t+'</span>'+
-        '<span style="color:#666;font-size:9px">'+s.d+'</span></div>';
-    }).join('');
-  }else{
-    hist.innerHTML='<div style="color:#aaa;text-align:center;padding:8px;font-size:9px">No signals in last 60 bars</div>';
-  }
-}
-
-function rsiDrawCloud(closes,r50d,r8d){
-  var c=document.getElementById('rsi-cloud');
-  if(!c)return;
-  var w=c.parentElement.clientWidth-16;
-  c.width=w;c.height=90;
-  var ctx=c.getContext('2d');
-  ctx.clearRect(0,0,w,90);
-
-  var n=Math.min(r50d.length,r8d.length,80);
-  var s50=r50d.slice(-n),s8=r8d.slice(-n);
-  if(n<2)return;
-
-  var allV=s50.concat(s8,[35,65]);
-  var mn=Math.min.apply(null,allV)-2,mx=Math.max.apply(null,allV)+2,rng=mx-mn;
-  var toY=function(v){return 90-((v-mn)/rng)*86};
-  var toX=function(i){return(i/(n-1))*(w-2)+1};
-
-  for(var i=0;i<n-1;i++){
-    var x1=toX(i),x2=toX(i+1);
-    var y50a=toY(s50[i]),y50b=toY(s50[i+1]);
-    var y8a=toY(s8[i]),y8b=toY(s8[i+1]);
-    var green=s8[i]>s50[i];
-    ctx.beginPath();
-    ctx.moveTo(x1,y50a);ctx.lineTo(x2,y50b);ctx.lineTo(x2,y8b);ctx.lineTo(x1,y8a);ctx.closePath();
-    ctx.fillStyle=green?'rgba(100,220,100,0.4)':'rgba(240,80,80,0.4)';
-    ctx.fill();
-  }
-
-  [[40,'#aaa',true],[50,'#333',false],[60,'#aaa',true]].forEach(function(lv){
-    ctx.beginPath();ctx.setLineDash(lv[2]?[3,3]:[]);
-    ctx.strokeStyle=lv[1];ctx.lineWidth=lv[2]?0.7:1;
-    var y=toY(lv[0]);ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle='#999';ctx.font='6px sans-serif';ctx.textAlign='left';
-    ctx.fillText(lv[0],2,y-1);
-  });
-
-  ctx.beginPath();ctx.strokeStyle='#e03030';ctx.lineWidth=1.5;
-  s50.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});
-  ctx.stroke();
-
-  ctx.beginPath();ctx.strokeStyle='#18b818';ctx.lineWidth=1.5;
-  s8.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});
-  ctx.stroke();
-
-  var sd=win._ldScannerData;
-  var pm=sd&&sd.priceMap;
-  for(var i=1;i<n;i++){
-    var up=s50[i]>50;var dn=s50[i]<50;
-    if(rsiCrossover(s8.slice(0,i+1),60)&&up){rsiDot(ctx,toX(i),toY(60),'#006600',true);}
-    if(rsiCrossover(s8.slice(0,i+1),40)&&up){rsiDot(ctx,toX(i),toY(40),'#1a8a1a',true);}
-    if(rsiCrossunder(s8.slice(0,i+1),40)&&dn){rsiDot(ctx,toX(i),toY(40),'#cc0000',false);}
-    if(rsiCrossunder(s8.slice(0,i+1),60)&&dn){rsiDot(ctx,toX(i),toY(60),'#ff4444',false);}
-  }
-
-  ctx.setLineDash([]);ctx.font='7px sans-serif';ctx.textAlign='left';
-  ctx.fillStyle='#e03030';ctx.fillRect(4,5,14,3);ctx.fillStyle='#555';ctx.fillText('RSI50',20,9);
-  ctx.fillStyle='#18b818';ctx.fillRect(52,5,14,3);ctx.fillStyle='#555';ctx.fillText('RSI8',68,9);
-}
-
-function rsiDot(ctx,x,y,color,up){
-  ctx.beginPath();
-  if(up){ctx.moveTo(x,y-5);ctx.lineTo(x-3.5,y+1);ctx.lineTo(x+3.5,y+1);}
-  else{ctx.moveTo(x,y+5);ctx.lineTo(x-3.5,y-1);ctx.lineTo(x+3.5,y-1);}
-  ctx.closePath();ctx.fillStyle=color;ctx.fill();
-}
-
-function rsiRun(name){
-  var sd=win._ldScannerData;
-  if(!name){document.getElementById('rsi-st').textContent='Select an index';return;}
-  if(!sd||!sd.dailyMap||Object.keys(sd.dailyMap).length===0){
-    document.getElementById('rsi-st').textContent='⚠ No data — run the ⚡ Scanner tab first to download NSE data';
-    return;
-  }
-  document.getElementById('rsi-st').textContent='⏳ Computing RSI for '+name+'...';
-  document.getElementById('rsi-card').style.display='none';
-  setTimeout(function(){
-    var res=rsiComputeIndex(name);
-    if(!res){
-      document.getElementById('rsi-st').textContent='⚠ Insufficient data for '+name+' (need 55+ daily bars)';
-      return;
-    }
-    rsiRender(res);
-    document.getElementById('rsi-detail-section').style.display='block';
-    document.getElementById('rsi-st').textContent='✅ '+name+' — '+win._ldScannerData.dailyMap[name.toLowerCase()].length+' daily bars from NSE';
-    document.getElementById('rsi-ts').textContent='Updated: '+new Date().toLocaleString();
-  },10);
-}
-
+// ── Build RSI cache in background batches ──
 function rsiBuildCache(callback){
   var sd=win._ldScannerData;
   if(!sd||!sd.indexList){if(callback)callback();return;}
   if(sd.rsiCached){if(callback)callback();return;}
-  var all=sd.indexList||[];
-  var cache={};
-  var idx=0;
-  var st=document.getElementById('rsi-st');
-  function processBatch(){
-    var batch=Math.min(idx+12,all.length);
-    for(;idx<batch;idx++){
-      var item=all[idx];
-      var res=rsiComputeIndex(item.name,true);
-      if(!res)continue;
-      var r8=res.r8, rw=res.rw;
-      var status;
-      if(res.r8xAbove50) status='⚡CROSSOVER';
-      else if(res.r8xBelow50) status='⛔CROSSUNDER';
-      else if(r8>=45&&r8<50) status='WATCH BUY';
-      else if(r8>50&&r8<=55) status='WATCH SELL';
-      else if(rw>50) status='ABOVE';
-      else status='BELOW';
-      res._status=status;
-      cache[item.name]=res;
+  var all=sd.indexList||[],cache={},idx=0,st=document.getElementById('rsi-st');
+  function next(){
+    var end=Math.min(idx+15,all.length);
+    for(;idx<end;idx++){
+      var r=rsiComputeOne(all[idx].name);
+      if(r)cache[all[idx].name]=r;
     }
-    if(st)st.textContent='⏳ RSI cache: '+idx+'/'+all.length+'...';
-    if(idx<all.length){setTimeout(processBatch,1);return;}
-    sd.rsiCached=cache;
-    if(callback)callback();
+    if(st)st.textContent='⏳ RSI: '+idx+'/'+all.length;
+    if(idx<all.length){setTimeout(next,1);return;}
+    sd.rsiCached=cache;if(callback)callback();
   }
-  setTimeout(processBatch,1);
+  setTimeout(next,1);
 }
 
-function rsiDisplayCached(){
-  var sd=win._ldScannerData;
-  var box=document.getElementById('rsi-allsig');
+// ── Render table from cache ──
+function rsiShowTable(){
+  var sd=win._ldScannerData,box=document.getElementById('rsi-allsig');
   if(!box||!sd||!sd.rsiCached)return;
-  var cache=sd.rsiCached;
-  var abv=[],blw=[],watchBuy=[],watchSell=[],noData=0;
+  var ca=sd.rsiCached,abv=[],blw=[],wb=[],ws=[],no=0;
   var all=sd.indexList||[];
   for(var i=0;i<all.length;i++){
-    var res=cache[all[i].name];
-    if(!res){noData++;continue;}
-    var st=res._status;
-    if(st==='WATCH BUY')watchBuy.push(res);
-    else if(st==='WATCH SELL')watchSell.push(res);
-    else if(res.rw>50)abv.push(res);
-    else blw.push(res);
+    var r=ca[all[i].name];
+    if(!r){no++;continue;}
+    if(r.st==='WATCH BUY')wb.push(r);
+    else if(r.st==='WATCH SELL')ws.push(r);
+    else if(r.rw>50)abv.push(r);
+    else blw.push(r);
   }
-  function tr(r,i){
-    var st=r._status;
-    var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':
-      st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':
-      st==='ABOVE'?'#1a8a1a':'#888';
-    return'<tr onclick="rsiSelectAndRun(\''+r.name+'\')" style="cursor:pointer">'+
-      '<td style="padding:3px 5px;font-size:9px;color:#999;text-align:center">'+(i+1)+'</td>'+
-      '<td style="padding:3px 5px;font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</td>'+
-      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
-      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
-      '<td style="padding:3px 5px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
-      '<td style="padding:3px 5px;font-size:9px;font-weight:bold;text-align:center;color:'+sc+'">'+st+'</td></tr>';
+  function row(r,i){
+    var col=r.st==='⚡CROSSOVER'?'#006600':r.st==='⛔CROSSUNDER'?'#cc0000':
+      r.st==='WATCH BUY'?'#cc8800':r.st==='WATCH SELL'?'#cc4400':
+      r.st==='ABOVE'?'#1a8a1a':'#888';
+    return'<tr onclick="rsiShowDetail(\''+r.n+'\')" style="cursor:pointer">'+
+      '<td style="padding:2px 4px;font-size:9px;color:#999;text-align:center">'+(i+1)+'</td>'+
+      '<td style="padding:2px 4px;font-size:9px;font-weight:bold;color:#0055aa">'+r.n+'</td>'+
+      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
+      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
+      '<td style="padding:2px 4px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
+      '<td style="padding:2px 4px;font-size:9px;font-weight:bold;text-align:center;color:'+col+'">'+r.st+'</td></tr>';
   }
-  function sec(title,arr,color){
+  function sec(t,arr,c){
     if(!arr.length)return'';
-    return'<div style="margin-bottom:10px;border:1px solid '+color+'66;border-radius:6px;overflow:hidden">'+
-      '<div style="font-size:9px;font-weight:bold;padding:5px 8px;background:'+color+';color:#fff;display:flex;justify-content:space-between">'+
-      '<span>'+title+'</span><span>'+arr.length+' index'+(arr.length>1?'ies':'')+'</span></div>'+
-      '<div style="max-height:280px;overflow-y:auto">'+
+    return'<div style="margin-bottom:8px;border:1px solid '+c+'66;border-radius:6px;overflow:hidden">'+
+      '<div style="font-size:9px;font-weight:bold;padding:4px 8px;background:'+c+';color:#fff;display:flex;justify-content:space-between">'+
+      '<span>'+t+'</span><span>'+arr.length+'</span></div>'+
+      '<div style="max-height:260px;overflow-y:auto">'+
       '<table style="width:100%;border-collapse:collapse">'+
       '<thead><tr style="background:#f5f5f5;position:sticky;top:0">'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">#</th>'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:left">Index</th>'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">D-RSI8</th>'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">D-RSI50</th>'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">W-RSI50</th>'+
-      '<th style="padding:3px 5px;font-size:8px;color:#888;text-align:center">STATUS</th></tr></thead>'+
-      '<tbody>'+arr.map(tr).join('')+'</tbody></table></div></div>';
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">#</th>'+
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:left">Index</th>'+
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">D8</th>'+
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">D50</th>'+
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">W50</th>'+
+      '<th style="padding:2px 4px;font-size:7px;color:#888;text-align:center">Status</th></tr></thead>'+
+      '<tbody>'+arr.map(row).join('')+'</tbody></table></div></div>';
   }
-  var totalItems=(abv.length+blw.length+watchBuy.length+watchSell.length);
   var html='';
-  if(watchBuy.length)html+=sec('(3) 🟡 WATCH BUY — RSI8 within 5% of Crossover',watchBuy,'#cc8800');
-  if(watchSell.length)html+=sec('(4) 🟠 WATCH SELL — RSI8 within 5% of Crossunder',watchSell,'#cc4400');
-  if(abv.length)html+=sec('(1) 🟢 ABOVE W-RSI 50 (>50)',abv,'#1a8a1a');
-  if(blw.length)html+=sec('(2) 🔴 BELOW W-RSI 50 (<50)',blw,'#cc0000');
-  if(noData)html+='<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">'+noData+' indices skipped (insufficient data)</div>';
-  box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No index data available</div>';
-  document.getElementById('rsi-st').textContent='✅ '+totalItems+' indices — click any row for detail card';
+  if(wb.length)html+=sec('(3) WATCH BUY',wb,'#cc8800');
+  if(ws.length)html+=sec('(4) WATCH SELL',ws,'#cc4400');
+  if(abv.length)html+=sec('(1) ABOVE W-RSI50',abv,'#1a8a1a');
+  if(blw.length)html+=sec('(2) BELOW W-RSI50',blw,'#cc0000');
+  if(no)html+='<div style="color:#aaa;text-align:center;padding:4px;font-size:8px">'+no+' skipped</div>';
+  box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No data</div>';
+  document.getElementById('rsi-st').textContent='✅ '+(abv.length+blw.length+wb.length+ws.length)+' indices — click row for detail';
 }
 
-function rsiSelectAndRun(name){
-  rsiRun(name);
+// ── Show detail card for one index ──
+function rsiShowDetail(name){
   document.getElementById('rsi-detail-section').style.display='block';
+  document.getElementById('rsi-st').textContent='⏳ Computing detail for '+name+'...';
+  setTimeout(function(){
+    var r=rsiComputeOne(name);
+    if(!r){document.getElementById('rsi-st').textContent='⚠ Insufficient data';return;}
+    rsiRenderDetail(r);
+  },5);
+}
+function rsiHideDetail(){document.getElementById('rsi-detail-section').style.display='none';}
+
+// ── Render detail card ──
+function rsiRenderDetail(r){
+  var hdr=document.getElementById('rsi-hdr');
+  if(r.uptrend)hdr.textContent='✅ UPTREND  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
+  else if(r.downtrend)hdr.textContent='🔴 DOWNTREND  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
+  else hdr.textContent='⚠ MIXED  R50: '+r.r50.toFixed(1)+'  W50: '+r.rw.toFixed(1);
+  hdr.style.background=r.uptrend?'#e6ffe6':r.downtrend?'#ffe6e6':'#fff8e6';
+  hdr.style.color=r.uptrend?'#006600':r.downtrend?'#cc0000':'#996600';
+  ['rsi-r50','rsi-r8','rsi-rw'].forEach(function(id,j){
+    var el=document.getElementById(id),vs=[r.r50,r.r8,r.rw];
+    el.textContent=vs[j].toFixed(1);
+    el.style.color=j===1?(vs[j]>vs[0]?'#1a8a1a':'#cc0000'):(vs[j]>50?'#1a8a1a':'#cc0000');
+  });
+  var px=r.closes[r.closes.length-1];
+  document.getElementById('rsi-pxrow').innerHTML=
+    '<span>Close: <b>'+px.toLocaleString('en-IN',{maximumFractionDigits:1})+'</b></span>';
+  var tr=document.getElementById('rsi-trend');
+  var cloudBull=r.r8>r.r50;
+  tr.textContent='RSI8 '+(cloudBull?'ABOVE':'BELOW')+' RSI50 → '+(cloudBull?'BULLISH':'BEARISH');
+  tr.style.background=cloudBull?'rgba(100,245,109,0.2)':'rgba(250,99,99,0.2)';
+  tr.style.color=cloudBull?'#006600':'#cc0000';
+  var sigs=[];
+  var bm=rsiCrossover(r.r8d,60)&&r.uptrend;
+  var bpull=rsiCrossover(r.r8d,40)&&r.uptrend;
+  var sm=rsiCrossunder(r.r8d,40)&&r.downtrend;
+  var spull=rsiCrossunder(r.r8d,60)&&r.downtrend;
+  if(bm)sigs.push({l:'BUY MOM ▲',bg:'#006600'});
+  if(bpull)sigs.push({l:'BUY PULL △',bg:'#1a8a1a'});
+  if(sm)sigs.push({l:'SELL MOM ▼',bg:'#cc0000'});
+  if(spull)sigs.push({l:'SELL PULL ▽',bg:'#ff4444'});
+  if(!sigs.length)sigs.push({l:'NO SIGNAL',bg:'#888'});
+  document.getElementById('rsi-badges').innerHTML=sigs.map(function(s){
+    return'<span style="background:'+s.bg+';color:#fff;padding:4px 10px;border-radius:3px;font-size:9px;font-weight:bold">'+s.l+'</span>';
+  }).join('');
+  rsiDrawCloud(r.r50d,r.r8d);
+  // Build history
+  var hist=[],n=Math.min(r.r50d.length,r.r8d.length),start=Math.max(1,n-60);
+  for(var i=start;i<n;i++){
+    var s50=r.r50d.slice(0,i+1),s8=r.r8d.slice(0,i+1);
+    var up_i=s50[s50.length-1]>50;
+    var dn_i=s50[s50.length-1]<50;
+    if(rsiCrossover(s8,60)&&up_i)hist.push({d:r.dates[r.dates.length-n+i],t:'BUY MOM ▲',c:'#006600'});
+    if(rsiCrossover(s8,40)&&up_i)hist.push({d:r.dates[r.dates.length-n+i],t:'BUY PULL △',c:'#1a8a1a'});
+    if(rsiCrossunder(s8,40)&&dn_i)hist.push({d:r.dates[r.dates.length-n+i],t:'SELL MOM ▼',c:'#cc0000'});
+    if(rsiCrossunder(s8,60)&&dn_i)hist.push({d:r.dates[r.dates.length-n+i],t:'SELL PULL ▽',c:'#ff4444'});
+  }
+  var hel=document.getElementById('rsi-hist');
+  var last20=hist.slice(-20).reverse();
+  hel.innerHTML=last20.length?last20.map(function(s){
+    return'<div style="display:flex;justify-content:space-between;padding:2px 4px;border-bottom:1px solid #eee">'+
+      '<span style="color:'+s.c+';font-weight:bold;font-size:8px">'+s.t+'</span>'+
+      '<span style="color:#666;font-size:8px">'+s.d+'</span></div>';
+  }).join(''):'<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">No signals</div>';
+  document.getElementById('rsi-st').textContent='✅ '+r.n+' — click BACK to list';
 }
 
-function rsiScanAll(){rsiDisplayCached();}
-win.rsiRun=rsiRun;
+// ── RSI Cloud canvas ──
+function rsiDrawCloud(r50d,r8d){
+  var c=document.getElementById('rsi-cloud');
+  if(!c)return;
+  var w=c.parentElement.clientWidth-12;c.width=w;c.height=80;
+  var ctx=c.getContext('2d');ctx.clearRect(0,0,w,80);
+  var n=Math.min(r50d.length,r8d.length,80);
+  var s50=r50d.slice(-n),s8=r8d.slice(-n);
+  if(n<2)return;
+  var all=s50.concat(s8,[30,70]),mn=Math.min.apply(null,all)-2,mx=Math.max.apply(null,all)+2,rng=mx-mn;
+  var toY=function(v){return 80-((v-mn)/rng)*76};
+  var toX=function(i){return(i/(n-1))*(w-2)+1};
+  for(var i=0;i<n-1;i++){
+    var x1=toX(i),x2=toX(i+1);
+    ctx.beginPath();ctx.moveTo(x1,toY(s50[i]));ctx.lineTo(x2,toY(s50[i+1]));ctx.lineTo(x2,toY(s8[i+1]));ctx.lineTo(x1,toY(s8[i]));ctx.closePath();
+    ctx.fillStyle=s8[i]>s50[i]?'rgba(100,220,100,0.35)':'rgba(240,80,80,0.35)';ctx.fill();
+  }
+  [[40,'#aaa',true],[50,'#444',false],[60,'#aaa',true]].forEach(function(lv){
+    ctx.beginPath();ctx.setLineDash(lv[2]?[2,3]:[]);ctx.strokeStyle=lv[1];ctx.lineWidth=lv[2]?0.5:1;
+    var y=toY(lv[0]);ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#999';ctx.font='5px sans-serif';ctx.fillText(lv[0],2,y-1);
+  });
+  ctx.beginPath();ctx.strokeStyle='#e03030';ctx.lineWidth=1.2;
+  s50.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
+  ctx.beginPath();ctx.strokeStyle='#18b818';ctx.lineWidth=1.2;
+  s8.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});ctx.stroke();
+  ctx.fillStyle='#e03030';ctx.font='5px sans-serif';ctx.fillRect(4,3,10,2);ctx.fillStyle='#555';ctx.fillText('R50',15,6);
+  ctx.fillStyle='#18b818';ctx.fillRect(40,3,10,2);ctx.fillStyle='#555';ctx.fillText('R8',51,6);
+}
+
+// ── Public API ──
+function rsiScanAll(){rsiShowTable();}
 win.rsiBuildCache=rsiBuildCache;
-win.rsiSelectAndRun=rsiSelectAndRun;
 win.rsiScanAll=rsiScanAll;
 win.onRSITabActivated=function(){
   var sd=win._ldScannerData;
   if(!sd||!sd.indexList||!sd.indexList.length){
-    document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first to download NSE data';
+    document.getElementById('rsi-st').textContent='⚠ Run Scanner tab first';
     return;
   }
-  if(sd.rsiCached){rsiDisplayCached();}
-  else{rsiBuildCache(function(){rsiDisplayCached();});}
-  setTimeout(function(){rsiDrawCloud([],[],[])},100);
+  if(sd.rsiCached)rsiShowTable();
+  else rsiBuildCache(function(){rsiShowTable();});
 };
-
-})(window);
-</script>
 
 </body>
 </html>
