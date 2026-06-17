@@ -5831,14 +5831,14 @@ function rsiFillWeekly(el){
     var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':st==='ABOVE'?'#1a8a1a':'#888';
     el.cells[5].style.color=sc;
     el.cells[5].style.fontWeight='bold';
-    var sigs=[];
+    var sigs=[],tr=r8>r50?'BULL':'BEAR';
     if(xov(rd.r8d,60)&&r50>50&&rw>50)sigs.push('BUY ▲');
     else if(xov(rd.r8d,40)&&r50>50&&rw>50)sigs.push('BUY △');
     else if(xun(rd.r8d,40)&&r50<50&&rw<50)sigs.push('SELL ▼');
     else if(xun(rd.r8d,60)&&r50<50&&rw<50)sigs.push('SELL ▽');
-    el.cells[7].textContent=sigs.length?sigs[0]:'—';
-    el.cells[7].style.color=sigs.length?(sigs[0].indexOf('BUY')>=0?'#006600':'#cc0000'):'#999';
-    el.cells[7].style.fontWeight=sigs.length?'bold':'normal';
+    el.cells[7].textContent=sigs.length?sigs[0]+' '+tr:tr;
+    el.cells[7].style.color=sigs.length?(sigs[0].indexOf('BUY')>=0?'#006600':'#cc0000'):(tr==='BULL'?'#1a8a1a':'#cc0000');
+    el.cells[7].style.fontWeight='bold';
     el._rsi={r50:r50,r8:r8,rw:rw,st:st,r50d:rd.r50d,r8d:rd.r8d,closes:c};
   }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';el.cells[7].textContent='ERR';}
 }
