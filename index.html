@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner v9E</title>
+<title>Scanner_vB2</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -6067,27 +6067,37 @@ function rsiRun(name){
   },10);
 }
 
-function rsiBuildCache(){
+function rsiBuildCache(callback){
   var sd=win._ldScannerData;
-  if(!sd||!sd.indexList||sd.rsiCached)return;
+  if(!sd||!sd.indexList){if(callback)callback();return;}
+  if(sd.rsiCached){if(callback)callback();return;}
   var all=sd.indexList||[];
   var cache={};
-  for(var i=0;i<all.length;i++){
-    var item=all[i];
-    var res=rsiComputeIndex(item.name,true);
-    if(!res)continue;
-    var r8=res.r8, rw=res.rw;
-    var status;
-    if(res.r8xAbove50) status='⚡CROSSOVER';
-    else if(res.r8xBelow50) status='⛔CROSSUNDER';
-    else if(r8>=45&&r8<50) status='WATCH BUY';
-    else if(r8>50&&r8<=55) status='WATCH SELL';
-    else if(rw>50) status='ABOVE';
-    else status='BELOW';
-    res._status=status;
-    cache[item.name]=res;
+  var idx=0;
+  var st=document.getElementById('rsi-st');
+  function processBatch(){
+    var batch=Math.min(idx+12,all.length);
+    for(;idx<batch;idx++){
+      var item=all[idx];
+      var res=rsiComputeIndex(item.name,true);
+      if(!res)continue;
+      var r8=res.r8, rw=res.rw;
+      var status;
+      if(res.r8xAbove50) status='⚡CROSSOVER';
+      else if(res.r8xBelow50) status='⛔CROSSUNDER';
+      else if(r8>=45&&r8<50) status='WATCH BUY';
+      else if(r8>50&&r8<=55) status='WATCH SELL';
+      else if(rw>50) status='ABOVE';
+      else status='BELOW';
+      res._status=status;
+      cache[item.name]=res;
+    }
+    if(st)st.textContent='⏳ RSI cache: '+idx+'/'+all.length+'...';
+    if(idx<all.length){setTimeout(processBatch,1);return;}
+    sd.rsiCached=cache;
+    if(callback)callback();
   }
-  sd.rsiCached=cache;
+  setTimeout(processBatch,1);
 }
 
 function rsiDisplayCached(){
@@ -6162,8 +6172,8 @@ win.onRSITabActivated=function(){
     document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first to download NSE data';
     return;
   }
-  if(!sd.rsiCached){rsiBuildCache();rsiDisplayCached();return;}
-  rsiDisplayCached();
+  if(sd.rsiCached){rsiDisplayCached();}
+  else{rsiBuildCache(function(){rsiDisplayCached();});}
   setTimeout(function(){rsiDrawCloud([],[],[])},100);
 };
 
