@@ -5865,6 +5865,8 @@ function rsiComputeIndex(name){
   var buyPull=rsiCrossover(r8d,40)&&uptrend&&bullBreakout;
   var sellMom=rsiCrossunder(r8d,40)&&downtrend&&bearBreakout;
   var sellPull=rsiCrossunder(r8d,60)&&downtrend&&bearBreakout;
+  var r8xAbove50=rsiCrossover(r8d,50);
+  var r8xBelow50=rsiCrossunder(r8d,50);
 
   var history=[];
   var n=Math.min(r50d.length,r8d.length);
@@ -5894,6 +5896,7 @@ function rsiComputeIndex(name){
     uptrend:uptrend,downtrend:downtrend,
     bullBreakout:bullBreakout,bearBreakout:bearBreakout,
     buyMom:buyMom,buyPull:buyPull,sellMom:sellMom,sellPull:sellPull,
+    r8xAbove50:r8xAbove50,r8xBelow50:r8xBelow50,
     history:history,closes:closes,r50d:r50d,r8d:r8d};
 }
 
@@ -6080,34 +6083,67 @@ function rsiScanAll(){
   document.getElementById('rsi-allsig').innerHTML='';
   setTimeout(function(){
     var all=sd.indexList||[];
-    var signals=[];
+    var abv=[],blw=[],watchBuy=[],watchSell=[],noData=[];
     all.forEach(function(idx){
       var res=rsiComputeIndex(idx.name);
-      if(!res)return;
-      var hasSig=res.buyMom||res.buyPull||res.sellMom||res.sellPull;
-      if(hasSig)signals.push(res);
+      if(!res){noData.push(idx.name);return;}
+      var status;
+      var r8=res.r8, rw=res.rw;
+      if(res.r8xAbove50) status='⚡CROSSOVER';
+      else if(res.r8xBelow50) status='⛔CROSSUNDER';
+      else if(r8>=45&&r8<50) status='WATCH BUY';
+      else if(r8>50&&r8<=55) status='WATCH SELL';
+      else if(rw>50) status='ABOVE';
+      else status='BELOW';
+      res._status=status;
+      if(status==='WATCH BUY')watchBuy.push(res);
+      else if(status==='WATCH SELL')watchSell.push(res);
+      else if(rw>50)abv.push(res);
+      else blw.push(res);
     });
-    signals.sort(function(a,b){
-      var sa=(a.buyMom?4:a.buyPull?3:a.sellMom?2:1);
-      var sb=(b.buyMom?4:b.buyPull?3:b.sellMom?2:1);
-      return sb-sa;
-    });
-    var box=document.getElementById('rsi-allsig');
-    if(!signals.length){
-      box.innerHTML='<div style="color:#888;text-align:center;padding:12px;font-size:9px">No signals on current bar across all 139 indices</div>';
-    }else{
-      box.innerHTML=signals.map(function(r){
-        var sig=r.buyMom?'BUY MOM ▲':r.buyPull?'BUY PULL △':r.sellMom?'SELL MOM ▼':'SELL PULL ▽';
-        var sc=r.buyMom||r.buyPull?'#1a8a1a':'#cc0000';
-        return'<div onclick="rsiSelectAndRun(\''+r.name+'\')" style="display:flex;justify-content:space-between;align-items:center;'+
-          'padding:6px 8px;border-bottom:1px solid #eee;cursor:pointer;background:#fff">'+
-          '<div><div style="font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</div>'+
-          '<div style="font-size:8px;color:#888">RSI50: '+r.r50.toFixed(1)+' · RSI8: '+r.r8.toFixed(1)+' · W.RSI: '+r.rw.toFixed(1)+'</div></div>'+
-          '<span style="background:'+sc+';color:#fff;padding:3px 7px;border-radius:3px;font-size:8px;font-weight:bold;white-space:nowrap">'+sig+'</span>'+
-          '</div>';
-      }).join('');
+    function tableRows(arr,offset){
+      return arr.map(function(r,i){
+        var sn=offset+i+1;
+        var st=r._status;
+        var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':
+          st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':
+          st==='ABOVE'?'#1a8a1a':'#888';
+        return'<tr onclick="rsiSelectAndRun(\''+r.name+'\')" style="cursor:pointer">'+
+          '<td style="padding:3px 4px;font-size:9px;color:#999;text-align:center">'+sn+'</td>'+
+          '<td style="padding:3px 4px;font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</td>'+
+          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.r8>r.r50?'#1a8a1a':'#cc0000')+'">'+r.r8.toFixed(1)+'</td>'+
+          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.r50>50?'#1a8a1a':'#cc0000')+'">'+r.r50.toFixed(1)+'</td>'+
+          '<td style="padding:3px 4px;font-size:9px;text-align:center;color:'+(r.rw>50?'#1a8a1a':'#cc0000')+'">'+r.rw.toFixed(1)+'</td>'+
+          '<td style="padding:3px 4px;font-size:9px;font-weight:bold;text-align:center;color:'+sc+'">'+st+'</td></tr>';
+      });
     }
-    document.getElementById('rsi-st').textContent='✅ '+signals.length+' signal(s) found across '+all.length+' indices';
+    function section(title,arr,color){
+      if(!arr.length)return'';
+      var rows=tableRows(arr,0);
+      return'<div style="margin-bottom:10px;border:1px solid '+color+'66;border-radius:6px;overflow:hidden">'+
+        '<div style="font-size:9px;font-weight:bold;padding:5px 8px;background:'+color+';color:#fff;display:flex;justify-content:space-between">'+
+        '<span>'+title+'</span><span>'+arr.length+' index'+(arr.length>1?'ies':'')+'</span></div>'+
+        '<div style="max-height:250px;overflow-y:auto">'+
+        '<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="background:#f5f5f5">'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">#</th>'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:left">Index</th>'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">D-RSI8</th>'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">D-RSI50</th>'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">W-RSI50</th>'+
+        '<th style="padding:3px 4px;font-size:8px;color:#888;text-align:center">STATUS</th></tr></thead>'+
+        '<tbody>'+rows.join('')+'</tbody></table></div></div>';
+    }
+    var box=document.getElementById('rsi-allsig');
+    var total=(abv.length+blw.length+watchBuy.length+watchSell.length);
+    var html='';
+    html+=section('(3) 🟡 WATCH BUY — RSI8 within 5% of Crossover',watchBuy,'#cc8800');
+    html+=section('(4) 🟠 WATCH SELL — RSI8 within 5% of Crossunder',watchSell,'#cc4400');
+    html+=section('(1) 🟢 ABOVE W-RSI 50 (>50)',abv,'#1a8a1a');
+    html+=section('(2) 🔴 BELOW W-RSI 50 (<50)',blw,'#cc0000');
+    if(noData.length)html+='<div style="color:#aaa;text-align:center;padding:6px;font-size:8px">'+noData.length+' indices skipped (insufficient data)</div>';
+    box.innerHTML=html||'<div style="color:#888;text-align:center;padding:12px;font-size:9px">No index data available</div>';
+    document.getElementById('rsi-st').textContent='✅ '+total+' indices classified — click any row for detail card';
   },10);
 }
 
