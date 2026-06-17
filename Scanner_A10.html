@@ -516,12 +516,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
+    <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
+    <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Signal</button>
   </div>
   <div style="display:flex;align-items:center;gap:10px;padding-right:12px;flex-shrink:0">
     <span id="runAllStatus" style="font-family:var(--mono);font-size:10px;color:var(--orange);white-space:nowrap"></span>
     <button id="runAllBtn" onclick="runAllScans()"
       style="background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)"
-      title="Scan All: Scanner → TTF RSI → RS Scanner → Balanced Allocation sequentially">
+      title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Signal">
       ⚡ SCAN ALL
     </button>
   </div>
@@ -2259,6 +2261,8 @@ function switchTab(name) {
   if (name === 'ttf' && window.TTFScanner && !window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); }
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
+  if (name === 'pt' && typeof window.onPTTabActivated === 'function') { window.onPTTabActivated(); }
+  if (name === 'rsi' && typeof window.onRSITabActivated === 'function') { window.onRSITabActivated(); }
 }
 
 // ── Scan All: Sequential auto-scan across Scanner → TTF → RS → BA ──
@@ -2274,54 +2278,129 @@ function runAllScans() {
     if (btn) btn.disabled = !done;
   }
 
-  setStatus('1/4 Scanner…');
+  setStatus('1/6 Scanner…');
   switchTab('scanner');
 
   // Step 1: Scanner completes → run TTF
   window.onScannerComplete = function() {
     window.onScannerComplete = null;
-    setStatus('2/4 TTF RSI…');
+    setStatus('2/6 TTF RSI…');
     switchTab('ttf');
     // Small delay to let tab render before triggering scan
     setTimeout(function() {
       if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
         window.TTFScanner.onComplete = function() {
           window.TTFScanner.onComplete = null;
-          setStatus('3/4 RS Scanner…');
+          setStatus('3/6 RS Scanner…');
           switchTab('rs');
           setTimeout(function() {
             if (window.RSScanner && typeof window.RSScanner.run === 'function') {
               window.RSScanner.onComplete = function() {
                 window.RSScanner.onComplete = null;
-                setStatus('4/4 Balanced Allocation…');
+                setStatus('4/6 Balanced Allocation…');
                 switchTab('ba');
                 setTimeout(function() {
                   if (typeof window.runBAsScan === 'function') {
                     var origBA = window.onBAsScanComplete;
                     window._baRunAllWaiting = true;
-                    // BA has no onComplete callback — poll for scan end
                     var baPoller = setInterval(function() {
                       var baStopBtn = document.getElementById('baStopBtn');
                       if (baStopBtn && baStopBtn.style.display === 'none') {
                         clearInterval(baPoller);
                         window._baRunAllWaiting = false;
-                        window._runAllActive = false;
-                        switchTab('scanner');
-                        setStatus('✓ All 4 scans complete', true);
+                        // Step 5: Paper Trade
+                        setStatus('5/6 Paper Trade…');
+                        switchTab('pt');
+                        setTimeout(function() {
+                          if (typeof window.ptRunScan === 'function') {
+                            window.ptRunScan();
+                            var ptPoller = setInterval(function() {
+                              var ptBody = document.getElementById('pt-tb');
+                              var ptDone = ptBody && ptBody.children.length > 0 && ptBody.children[0].textContent !== 'Tap SCAN';
+                              if (ptDone) {
+                                clearInterval(ptPoller);
+                                // Step 6: RSI Signal
+                                setStatus('6/6 RSI Signal…');
+                                switchTab('rsi');
+                                setTimeout(function() {
+                                  if (typeof window.rsiScanAll === 'function') {
+                                    window.rsiScanAll();
+                                    var rsiPoller = setInterval(function() {
+                                      var rsiSig = document.getElementById('rsi-allsig');
+                                      var rsiDone = rsiSig && rsiSig.innerHTML && rsiSig.innerHTML.length > 0;
+                                      if (rsiDone) {
+                                        clearInterval(rsiPoller);
+                                        window._runAllActive = false;
+                                        switchTab('scanner');
+                                        setStatus('✓ All 6 scans complete', true);
+                                      }
+                                    }, 500);
+                                    setTimeout(function() {
+                                      if (window._runAllActive) {
+                                        window._runAllActive = false;
+                                        switchTab('scanner');
+                                        setStatus('✓ 5/6 done (RSI timeout)', true);
+                                      }
+                                    }, 15000);
+                                  } else {
+                                    window._runAllActive = false;
+                                    switchTab('scanner');
+                                    setStatus('✓ 5/6 done (RSI not ready)', true);
+                                  }
+                                }, 300);
+                              }
+                            }, 500);
+                            setTimeout(function() {
+                              if (window._runAllActive) {
+                                window._runAllActive = false;
+                                switchTab('scanner');
+                                setStatus('✓ 4/6 done (PT timeout)', true);
+                              }
+                            }, 20000);
+                          } else {
+                            setStatus('6/6 RSI Signal…');
+                            switchTab('rsi');
+                            setTimeout(function() {
+                              if (typeof window.rsiScanAll === 'function') {
+                                window.rsiScanAll();
+                                var rsiPoller2 = setInterval(function() {
+                                  var rsiSig2 = document.getElementById('rsi-allsig');
+                                  if (rsiSig2 && rsiSig2.innerHTML && rsiSig2.innerHTML.length > 0) {
+                                    clearInterval(rsiPoller2);
+                                    window._runAllActive = false;
+                                    switchTab('scanner');
+                                    setStatus('✓ All 6 scans complete', true);
+                                  }
+                                }, 500);
+                                setTimeout(function() {
+                                  if (window._runAllActive) {
+                                    window._runAllActive = false;
+                                    switchTab('scanner');
+                                    setStatus('✓ 5/6 done (RSI timeout)', true);
+                                  }
+                                }, 15000);
+                              } else {
+                                window._runAllActive = false;
+                                switchTab('scanner');
+                                setStatus('✓ 4/6 done (RSI not ready)', true);
+                              }
+                            }, 300);
+                          }
+                        }, 300);
                       }
                     }, 800);
                     window.runBAsScan();
                   } else {
                     window._runAllActive = false;
                     switchTab('scanner');
-                    setStatus('✓ 3/4 done (BA not ready)', true);
+                    setStatus('✓ 3/6 done (BA not ready)', true);
                   }
                 }, 300);
               };
               window.RSScanner.run();
             } else {
               // RS not ready — skip to BA
-              setStatus('4/4 Balanced Allocation…');
+              setStatus('4/6 Balanced Allocation…');
               switchTab('ba');
               setTimeout(function() {
                 if (typeof window.runBAsScan === 'function') window.runBAsScan();
@@ -2335,7 +2414,7 @@ function runAllScans() {
         window.TTFScanner.run();
       } else {
         // TTF not ready — skip to RS
-        setStatus('3/4 RS Scanner…');
+        setStatus('3/6 RS Scanner…');
         switchTab('rs');
         setTimeout(function() {
           if (window.RSScanner) window.RSScanner.run();
@@ -4500,6 +4579,145 @@ win.rsToggleWL=rsToggleWL;
 </div><!-- .ba-wrap -->
 </div><!-- #tab-ba -->
 
+<!-- ── Paper Trade Tab Panel ── -->
+<div id="tab-pt" class="tab-panel">
+<div id="pt-wrap" style="font-family:'Courier New',monospace;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
+
+<h2 style="color:#cc5500;font-size:16px;margin-bottom:3px">Paper Trade v10</h2>
+<p style="color:#b8860b;font-size:8px;margin-bottom:8px">V9E_DEFAULT + ALL indicators + MONTHLY | Rs 10,00,000 | 139 NSE indices</p>
+
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0">
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Portfolio</div><div id="pt-pv" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 10,00,000</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">P&amp;L</div><div id="pt-tp" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 0</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Return</div><div id="pt-tr" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">+0.00%</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Cash</div><div id="pt-cv" style="font-size:15px;font-weight:bold;margin-top:2px">Rs 10,00,000</div></div>
+</div>
+
+<div style="background:#f5f5f5;border:1px solid #ddd;padding:8px;margin:6px 0;font-size:9px;border-radius:4px">
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Entry:</span><span>V9E_DEFAULT (D-RSI 40-50)</span></div>
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Rebal:</span><span>MONTHLY</span></div>
+  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Universe:</span><span>139 NSE indices</span></div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 3px">
+  <span id="pt-st" style="font-size:8px;color:#666">Tap SCAN</span>
+  <span id="pt-ts" style="font-size:8px;color:#666"></span>
+</div>
+<div style="display:flex;gap:5px;margin:6px 0">
+  <button onclick="ptRunScan()" style="background:#1a8a1a;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">SCAN</button>
+  <button onclick="ptReset()" style="background:#666;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">RESET</button>
+</div>
+
+<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
+<table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
+  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Regime</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
+  <tbody id="pt-tb"><tr><td colspan="10" style="text-align:center;color:#666;padding:8px">Tap SCAN</td></tr></tbody>
+</table>
+</div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Positions</h3>
+<div style="background:#f5f5f5;border:1px solid #1a8a1a;padding:8px;margin:6px 0;border-radius:4px">
+  <div id="pt-pl"><div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div></div>
+</div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Trade Log</h3>
+<div id="pt-tl" style="background:#f5f5f5;padding:6px;max-height:150px;overflow-y:auto;font-size:8px;border-radius:4px;-webkit-overflow-scrolling:touch"><div style="color:#b8860b">Ready</div></div>
+
+<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Equity Curve</h3>
+<div style="background:#f5f5f5;padding:6px;border-radius:4px;height:120px;position:relative">
+  <canvas id="pt-ec"></canvas>
+</div>
+
+</div>
+</div><!-- #tab-pt -->
+
+<!-- ── RSI Buy/Sell Signal Tab ── -->
+<div id="tab-rsi" class="tab-panel">
+<div id="rsi-wrap" style="font-family:'Courier New',monospace;padding:10px;background:#fff;color:#111;min-height:100vh">
+
+  <h2 style="color:#cc5500;font-size:15px;margin:0 0 2px">📡 RSI Buy &amp; Sell Timing</h2>
+  <p style="color:#888;font-size:8px;margin:0 0 10px">Dual RSI(50/8) · MTF Daily+Weekly · Price Breakout · NSE data from Scanner tab</p>
+
+  <div style="background:#fff8e6;border:1px solid #e6c96a;border-radius:4px;padding:6px 8px;font-size:8px;color:#7a5c00;margin-bottom:8px">
+    ⚡ Uses NSE CSV data already downloaded by the <b>Scanner</b> tab. Run Scanner first if no data appears.
+  </div>
+
+  <div style="display:flex;gap:5px;margin-bottom:6px">
+    <select id="rsi-sel" onchange="rsiRun()" style="flex:1;padding:7px 4px;border:1px solid #ccc;border-radius:4px;font-family:inherit;font-size:10px">
+      <option value="">— Run ⚡ Scanner first —</option>
+    </select>
+    <button onclick="rsiRun()" style="background:#cc5500;color:#fff;border:none;padding:7px 10px;border-radius:4px;font-weight:bold;font-size:10px;cursor:pointer">VIEW</button>
+  </div>
+  <button onclick="rsiScanAll()" style="width:100%;background:#0055aa;color:#fff;border:none;padding:9px;border-radius:4px;font-weight:bold;font-size:11px;cursor:pointer;margin-bottom:8px">🔍 SCAN ALL 139 — Show Today's Signals</button>
+
+  <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">Run ⚡ Scanner tab first</div>
+
+  <div id="rsi-allsig" style="border:1px solid #ddd;border-radius:4px;margin-bottom:10px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
+
+  <div id="rsi-detail-section" style="display:none">
+  <div id="rsi-card">
+
+    <div id="rsi-hdr" style="padding:8px 10px;border-radius:6px 6px 0 0;font-size:11px;font-weight:bold;text-align:center;border:1px solid #ddd"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-top:none">
+      <div style="background:#fff;padding:8px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">RSI(50) Trend</div>
+        <div id="rsi-r50" style="font-size:22px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-top:2px">Slow · Daily</div>
+      </div>
+      <div style="background:#fff;padding:8px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">RSI(8) Trigger</div>
+        <div id="rsi-r8" style="font-size:22px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-top:2px">Fast · Daily</div>
+      </div>
+      <div style="background:#fff;padding:8px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:3px">W.RSI(50)</div>
+        <div id="rsi-rw" style="font-size:22px;font-weight:bold"></div>
+        <div style="font-size:7px;color:#888;margin-top:2px">Slow · Weekly</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#ddd;border:1px solid #ddd;border-top:none">
+      <div style="background:#fff;padding:6px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;margin-bottom:2px">PRICE</div>
+        <div id="rsi-px" style="font-size:12px;font-weight:bold"></div>
+      </div>
+      <div style="background:#fff;padding:6px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;margin-bottom:2px">CHG%</div>
+        <div id="rsi-chg" style="font-size:12px;font-weight:bold"></div>
+      </div>
+      <div style="background:#fff;padding:6px 4px;text-align:center">
+        <div style="font-size:7px;color:#888;margin-bottom:2px">8-BAR BRK</div>
+        <div id="rsi-brk" style="font-size:10px;font-weight:bold"></div>
+      </div>
+    </div>
+
+    <div id="rsi-trend" style="padding:5px 10px;text-align:center;font-size:9px;font-weight:bold;border:1px solid #ddd;border-top:none"></div>
+
+    <div style="border:1px solid #ddd;border-top:none;padding:6px;background:#fff">
+      <div style="font-size:7px;color:#888;margin-bottom:3px;text-transform:uppercase">RSI Cloud (last 80 bars) — Green: RSI8&gt;RSI50 · Red: RSI8&lt;RSI50</div>
+      <canvas id="rsi-cloud" height="90" style="width:100%;display:block"></canvas>
+    </div>
+
+    <div style="padding:8px;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;background:#fff;margin-bottom:10px">
+      <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:6px">Current Bar Signal</div>
+      <div id="rsi-badges" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+
+    <div style="margin-bottom:10px">
+      <div style="font-size:8px;color:#888;margin-bottom:4px;text-transform:uppercase;font-weight:bold">Last 20 Historical Signals</div>
+      <div id="rsi-hist" style="background:#f5f5f5;border-radius:4px;border:1px solid #ddd;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+        <div style="color:#aaa;text-align:center;padding:8px;font-size:9px">Select an index above</div>
+      </div>
+    </div>
+
+  </div><!-- #rsi-card -->
+</div><!-- /rsi-detail-section -->
+
+  <div id="rsi-ts" style="font-size:7px;color:#aaa;text-align:right;margin-top:4px"></div>
+</div>
+</div><!-- #tab-rsi -->
+
 <!-- 9.2 BA CSS -->
 <style>
 .ba-wrap{max-width:1400px;margin:0 auto;padding:20px;font-family:var(--sans);}
@@ -5211,6 +5429,707 @@ win.onBATabActivated = function() {
 
 // Expose runBAsScan globally so runAllScans can call it
 win.runBAsScan = runBAsScan;
+
+})(window);
+</script>
+
+<!-- ── Paper Trade Tab JS (scoped under window.PT) ── -->
+<script>
+(function(win){
+'use strict';
+
+// ── Config ──
+var PT_CORS=[
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
+var PT_NSE_API='https://www.nseindia.com/api/allIndices';
+var PT_CSV_URL='https://archives.nseindia.com/content/indices/ind_close_all_';
+var PT_BATCH=5,PT_DELAY=400,PT_FETCH_DAYS=100;
+
+// ── Portfolio state ──
+var ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
+var ptScanR=[];
+
+// ── Helpers ──
+function ptEl(id){return document.getElementById(id)}
+function ptSleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function ptNrm(s){return(s||'').replace(/[^a-z0-9]/gi,'').toLowerCase()}
+function ptPad(v){return String(v).padStart(2,'0')}
+function ptFmtDDMMYYYY(d){return ptPad(d.getDate())+ptPad(d.getMonth()+1)+d.getFullYear()}
+function ptGenDays(n){var a=[],d=new Date();while(a.length<n){if(d.getDay()!==0&&d.getDay()!==6)a.push(new Date(d));d.setDate(d.getDate()-1)}return a}
+function ptFmt(n){return'Rs '+Math.round(n).toLocaleString('en-IN')}
+function ptFmtP(n){return(n>=0?'+':'')+n.toFixed(2)+'%'}
+function ptLog(m,t){
+  var l=ptEl('pt-tl'),e=document.createElement('div');
+  e.style.cssText='padding:2px 0;border-bottom:1px solid #eee;color:'+(t==='b'?'#1a8a1a':t==='s'?'#cc0000':'#b8860b');
+  e.textContent=new Date().toLocaleTimeString()+' - '+m;
+  l.insertBefore(e,l.firstChild);
+  if(l.children.length>60)l.removeChild(l.lastChild);
+}
+
+// ── XHR fetch (Brave PWA compatible) ──
+function ptFetchXHR(url,ms){
+  return new Promise(function(resolve,reject){
+    var xhr=new XMLHttpRequest(),done=false;
+    var timer=setTimeout(function(){if(done)return;done=true;xhr.abort();reject(new Error('Timeout'))},ms||15000);
+    xhr.open('GET',url,true);
+    xhr.onload=function(){
+      if(done)return;done=true;clearTimeout(timer);
+      if(xhr.status>=200&&xhr.status<300){
+        var txt=xhr.responseText;
+        resolve({ok:true,status:xhr.status,
+          text:function(){return Promise.resolve(txt)},
+          json:function(){return Promise.resolve(JSON.parse(txt))}});
+      }else{reject(new Error('HTTP '+xhr.status));}
+    };
+    xhr.onerror=function(){if(done)return;done=true;clearTimeout(timer);reject(new Error('Network error'))};
+    xhr.send();
+  });
+}
+
+async function ptFetchProxy(url,ms){
+  var lastErr=new Error('All proxies failed');
+  for(var i=0;i<PT_CORS.length;i++){
+    try{
+      var r=await ptFetchXHR(PT_CORS[i]+encodeURIComponent(url),ms||15000);
+      if(r.ok)return r;
+      lastErr=new Error('HTTP '+r.status);
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr;
+}
+
+// ── RSI / WMA ──
+function ptCalcRSI(closes,period){
+  var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
+  if(v.length<period+1)return[];
+  var rsis=[],gains=0,losses=0;
+  for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)gains+=d;else losses-=d}
+  var ag=gains/period,al=losses/period;
+  rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  for(var i=period+1;i<v.length;i++){
+    var d=v[i]-v[i-1];
+    ag=(ag*(period-1)+Math.max(d,0))/period;
+    al=(al*(period-1)+Math.abs(Math.min(d,0)))/period;
+    rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  }
+  return rsis;
+}
+function ptCalcWMA(d,p){if(!d||d.length<p)return null;var s=0,w=0;for(var i=0;i<p;i++){s+=d[d.length-p+i]*(i+1);w+=i+1}return w?s/w:null}
+
+function ptComputeRow(closes,name){
+  if(!closes||closes.length<20)return null;
+  var r4=ptCalcRSI(closes,4),r8=ptCalcRSI(closes,8),r14=ptCalcRSI(closes,14);
+  var w=[];
+  for(var i=0;i<closes.length;i+=5)w.push(closes[Math.min(i+4,closes.length-1)]);
+  var wr4=ptCalcRSI(w,4),wr8=ptCalcRSI(w,8);
+  var wma20=ptCalcWMA(w,20);
+  var macdH=0;
+  if(closes.length>=26){
+    var e12=closes.reduce(function(s,c,i){return i===0?c:s+(2/13)*(c-s)},0);
+    var e26=closes.reduce(function(s,c,i){return i===0?c:s+(2/27)*(c-s)},0);
+    macdH=e12-e26;
+  }
+  var dR=r4.length?r4[r4.length-1]:50;
+  var wR=wr4.length?wr4[wr4.length-1]:50;
+  var price=closes[closes.length-1];
+  var regime='C';
+  if(wR>=50&&(!wma20||price>wma20))regime='A';
+  else if(wR>=40)regime='B';
+  var score=0;
+  if(dR>=40&&dR<=60)score+=50;else if(dR>=30&&dR<=70)score+=30;
+  var r8v=r8.length?r8[r8.length-1]:50;
+  if(r8v>=40&&r8v<=60)score+=40;else if(r8v>=30&&r8v<=70)score+=20;
+  var r14v=r14.length?r14[r14.length-1]:50;
+  if(r14v>=40&&r14v<=60)score+=30;else if(r14v>=30&&r14v<=70)score+=10;
+  if(macdH>0)score+=30;if(wR>=50)score+=20;if(regime==='A')score+=30;
+  return{name:name,price:Math.round(price*100)/100,r4:Math.round(dR*10)/10,
+    r8:Math.round(r8v*10)/10,r14:Math.round(r14v*10)/10,
+    macd:Math.round(macdH*100)/100,regime:regime,score:Math.round(score),wRsi:Math.round(wR*10)/10};
+}
+
+// ── Main Scan ──
+async function ptRunScan(){
+  ptEl('pt-st').innerHTML='<span style="display:inline-block;width:10px;height:10px;border:2px solid #b8860b;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span> Loading Scanner data...';
+  ptLog('Starting scan...','i');
+  ptScanR=[];
+
+  // Step 1: Get data from Scanner tab first
+  var sd=win._ldScannerData;
+  var priceMap={},dailyMap={},useScanner=false;
+  if(sd&&sd.priceMap&&Object.keys(sd.priceMap).length>10){
+    priceMap=sd.priceMap;
+    ptLog('Prices from Scanner tab: '+Object.keys(priceMap).length+' indices','b');
+    ptEl('pt-st').textContent='[Scanner] '+Object.keys(priceMap).length+' indices';
+    useScanner=true;
+  }
+  if(sd&&sd.dailyMap&&Object.keys(sd.dailyMap).length>10){
+    // Convert pipe-delimited dailyMap entries to close arrays
+    Object.keys(sd.dailyMap).forEach(function(key){
+      var entries=sd.dailyMap[key];
+      if(!entries||entries.length<5)return;
+      var closes=[];
+      entries.forEach(function(e){
+        var p=e.split('|');
+        var c=parseFloat(p[4]);
+        if(!isNaN(c))closes.push(c);
+      });
+      if(closes.length>=5)dailyMap[key]=closes;
+    });
+    ptLog('History from Scanner tab: '+Object.keys(dailyMap).length+' indices','b');
+    ptEl('pt-st').textContent='[Scanner] '+Object.keys(dailyMap).length+' indices';
+    useScanner=true;
+  }
+
+  // Step 2: If Scanner data missing or incomplete, fetch NSE API for live prices
+  var nseOk=false;
+  if(!useScanner||Object.keys(priceMap).length<10){
+    ptLog('[NSE] Fetching live prices...','i');
+    ptEl('pt-st').innerHTML='<span style="display:inline-block;width:10px;height:10px;border:2px solid #b8860b;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span> [NSE] Live prices...';
+    for(var ci=0;ci<Math.min(PT_CORS.length,2);ci++){
+      try{await ptFetchXHR(PT_CORS[ci]+encodeURIComponent('https://www.nseindia.com'),8000)}catch(e){}
+    }
+    await ptSleep(1000);
+    for(var ci=0;ci<PT_CORS.length;ci++){
+      try{
+        ptLog('[NSE] Proxy '+ci+'...','i');
+        var rn=await ptFetchXHR(PT_CORS[ci]+encodeURIComponent(PT_NSE_API),20000);
+        if(!rn.ok)throw new Error('HTTP '+rn.status);
+        var json=await rn.json();
+        var allIdx=json.data||[];
+        if(allIdx.length===0)throw new Error('Empty data');
+        for(var i=0;i<allIdx.length;i++){
+          var idx=allIdx[i];
+          var nm=ptNrm(idx.index||'');
+          priceMap[nm]={price:idx.last||0,change:idx.percentChange||idx.pChange||0,name:idx.index||''};
+        }
+        nseOk=true;
+        ptLog('[NSE] '+allIdx.length+' indices via proxy '+ci,'b');
+        ptEl('pt-st').textContent='[NSE] '+allIdx.length+' indices';
+        break;
+      }catch(e){ptLog('[NSE] Proxy '+ci+' failed: '+e.message,'s');}
+    }
+  }
+
+  // Step 3: If historical data missing, fetch NSE CSV
+  var csvOk=false;
+  if(Object.keys(dailyMap).length<10){
+    ptEl('pt-st').textContent='[NSE CSV] Fetching...';
+    var days=ptGenDays(PT_FETCH_DAYS);
+    for(var i=0;i<days.length;i+=PT_BATCH){
+      var batch=days.slice(i,i+PT_BATCH);
+      var promises=batch.map(function(td){
+        var ds=ptFmtDDMMYYYY(td);
+        return ptFetchProxy(PT_CSV_URL+ds+'.csv',8000)
+          .then(function(r){return r.text()})
+          .then(function(text){
+            if(!text||text.indexOf('Symbol')<0)return;
+            csvOk=true;
+            var lines=text.trim().split('\n');
+            for(var j=1;j<lines.length;j++){
+              var v=lines[j].split(',');
+              var nm=ptNrm(v[0]||''),close=parseFloat(v[5]);
+              if(nm&&!isNaN(close)){if(!dailyMap[nm])dailyMap[nm]=[];dailyMap[nm].push(close);}
+            }
+          }).catch(function(){});
+      });
+      await Promise.all(promises);
+      ptEl('pt-st').textContent='[NSE CSV] '+Math.min(i+PT_BATCH,days.length)+'/'+days.length;
+      await ptSleep(PT_DELAY);
+    }
+  }
+
+  // No Yahoo fallback — only NSE data sources
+
+  // Step 4: Compute
+  var count=0;
+  for(var key in priceMap){
+    var pm=priceMap[key];
+    if(!pm.price||pm.price<=0)continue;
+    var closes=dailyMap[key]||[];
+    if(closes.length<5){
+      for(var hk in dailyMap){
+        if(ptNrm(hk)===key||key.indexOf(ptNrm(hk))>=0||ptNrm(hk).indexOf(key)>=0){closes=dailyMap[hk];break;}
+      }
+    }
+    if(pm.price>0)closes=closes.concat([pm.price]);
+    if(closes.length<20)continue;
+    var row=ptComputeRow(closes,pm.name||key);
+    if(!row)continue;
+    row.change=pm.change||0;
+    ptScanR.push(row);count++;
+  }
+  ptScanR.sort(function(a,b){return b.score-a.score});
+  ptRender(ptScanR);
+  ptProcessScan(ptScanR);
+  ptEl('pt-st').textContent=(useScanner?'[Scanner]':'[NSE]')+' '+count+' indices scanned';
+  ptEl('pt-ts').textContent=new Date().toLocaleString();
+  ptLog('Done: '+count+' indices','b');
+}
+
+function ptRender(results){
+  var top3=results.slice(0,3).map(function(r){return r.name});
+  ptEl('pt-tb').innerHTML=results.map(function(r,i){
+    var sc=r.score>=200?'#1a8a1a':r.score>=150?'#b8860b':'#cc0000';
+    var rc=r.regime==='A'?'#1a8a1a':r.regime==='B'?'#b8860b':'#cc0000';
+    var act=r.regime==='A'&&r.score>=150?(top3.indexOf(r.name)>=0?'BUY':'WATCH'):'HOLD';
+    var ac=act==='BUY'?'#1a8a1a':act==='WATCH'?'#b8860b':'#666';
+    var held=ptPf.pos[r.name];
+    return'<tr style="background:'+(held?'#f0fff0':'#fff')+';border-bottom:1px solid #eee">'+
+      '<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;font-weight:bold">'+r.name.replace('NIFTY ','N')+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+ptFmt(r.price)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+(r.change>=0?'#1a8a1a':'#cc0000')+'">'+(r.change>=0?'+':'')+r.change.toFixed(1)+'%</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+r.r4+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+r.r8+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+(r.macd>0?'#1a8a1a':'#cc0000')+'">'+(r.macd>0?'+':'')+r.macd+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+rc+'">'+r.regime+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px"><span style="background:'+sc+';color:#fff;padding:1px 5px;border-radius:3px;font-size:8px">'+r.score+'</span></td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+ac+';font-weight:bold">'+act+'</td></tr>';
+  }).join('');
+}
+
+function ptProcessScan(results){
+  var top3=results.filter(function(r){return r.regime==='A'&&r.score>=150}).slice(0,3);
+  var newNames={};top3.forEach(function(r){newNames[r.name]=true});
+  Object.keys(ptPf.pos).forEach(function(name){
+    if(!newNames[name]){
+      var p=ptPf.pos[name];ptPf.cash+=p.shares*p.cur;
+      ptPf.trades.push({t:'SELL',n:name,p:p.cur,s:p.shares,d:new Date().toISOString()});
+      ptLog('SELL '+name+' @ '+ptFmt(p.cur),'s');delete ptPf.pos[name];
+    }
+  });
+  top3.forEach(function(r){
+    if(!ptPf.pos[r.name]){
+      var alloc=ptPf.cash/Math.max(1,top3.length-Object.keys(ptPf.pos).length);
+      var shares=Math.floor(alloc/r.price);
+      if(shares>0){ptPf.cash-=shares*r.price;ptPf.pos[r.name]={shares:shares,avg:r.price,cur:r.price};
+        ptPf.trades.push({t:'BUY',n:r.name,p:r.price,s:shares,d:new Date().toISOString()});
+        ptLog('BUY '+r.name+' x'+shares+' @ '+ptFmt(r.price),'b');}
+    }else{ptPf.pos[r.name].cur=r.price;}
+  });
+  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
+  ptPf.eq.push({d:new Date().toISOString(),v:tv});if(ptPf.eq.length>365)ptPf.eq.shift();
+  ptSavePf();ptUpdateUI();
+}
+
+function ptSavePf(){try{localStorage.setItem('pt_v10_pf',JSON.stringify(ptPf))}catch(e){}}
+function ptLoadPf(){try{var s=localStorage.getItem('pt_v10_pf');if(s)ptPf=JSON.parse(s)}catch(e){}}
+
+function ptUpdateUI(){
+  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
+  var pnl=tv-1000000,pnlP=pnl/10000;
+  var c=pnl>=0?'#1a8a1a':'#cc0000';
+  ptEl('pt-pv').textContent=ptFmt(tv);ptEl('pt-pv').style.color=c;
+  ptEl('pt-tp').textContent=ptFmt(pnl);ptEl('pt-tp').style.color=c;
+  ptEl('pt-tr').textContent=ptFmtP(pnlP);ptEl('pt-tr').style.color=c;
+  ptEl('pt-cv').textContent=ptFmt(ptPf.cash);
+  var pl=ptEl('pt-pl'),ps=Object.entries(ptPf.pos);
+  if(!ps.length){pl.innerHTML='<div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div>';}
+  else{pl.innerHTML=ps.map(function(e){
+    var n=e[0],p=e[1],pn=(p.cur-p.avg)*p.shares,pp=(p.cur-p.avg)/p.avg*100;
+    return'<div style="background:#fff;border:1px solid #ddd;padding:6px;border-radius:4px;margin-bottom:4px;font-size:9px">'+
+      '<div style="font-weight:bold;color:#0055aa;margin-bottom:3px">'+n+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">'+
+      '<div><div style="font-size:7px;color:#888">Shares</div><div style="font-weight:bold">'+p.shares+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">Avg</div><div style="font-weight:bold">'+ptFmt(p.avg)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">Now</div><div style="font-weight:bold">'+ptFmt(p.cur)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">P&L</div><div style="font-weight:bold;color:'+(pn>=0?'#1a8a1a':'#cc0000')+'">'+ptFmt(pn)+'</div></div>'+
+      '<div><div style="font-size:7px;color:#888">%</div><div style="font-weight:bold;color:'+(pp>=0?'#1a8a1a':'#cc0000')+'">'+ptFmtP(pp)+'</div></div>'+
+      '</div></div>';
+  }).join('')}
+  ptDrawChart();
+}
+
+function ptDrawChart(){
+  var c=ptEl('pt-ec'),ct=c.parentElement;
+  c.width=ct.clientWidth-12;c.height=ct.clientHeight-12;
+  var ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+  if(ptPf.eq.length<2){ctx.fillStyle='#666';ctx.font='9px Courier New';ctx.textAlign='center';ctx.fillText('After trades',w/2,h/2);return}
+  var vals=ptPf.eq.map(function(e){return e.v}),mn=Math.min.apply(null,vals)*0.99,mx=Math.max.apply(null,vals)*1.01,rng=mx-mn;
+  ctx.strokeStyle='#1a8a1a';ctx.lineWidth=1.5;ctx.beginPath();
+  ptPf.eq.forEach(function(e,i){var x=(i/(ptPf.eq.length-1))*w,y=h-((e.v-mn)/rng)*h;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();
+  ctx.strokeStyle='#b8860b';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  var by=h-((1000000-mn)/rng)*h;ctx.beginPath();ctx.moveTo(0,by);ctx.lineTo(w,by);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#666';ctx.font='7px Courier New';ctx.textAlign='left';ctx.fillText(ptFmt(mx),2,8);ctx.fillText(ptFmt(mn),2,h-2);
+}
+
+function ptReset(){
+  if(!confirm('Reset Paper Trade portfolio?'))return;
+  ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
+  ptSavePf();ptUpdateUI();ptLog('Portfolio reset','i');
+}
+
+// ── Tab activation ──
+win.onPTTabActivated=function(){
+  if(!win._ptInited){win._ptInited=true;ptLoadPf();ptUpdateUI();}
+  setTimeout(ptDrawChart,100);
+  var sd=win._ldScannerData;
+  if(sd&&sd.indexList&&sd.indexList.length){
+    ptEl('pt-st').textContent=sd.indexList.length+' indices from Scanner tab. Tap SCAN to refresh.';
+  }else{
+    ptEl('pt-st').textContent='Tap SCAN — no Scanner data found';
+  }
+};
+
+// Expose globals
+win.ptRunScan=ptRunScan;
+win.ptReset=ptReset;
+
+})(window);
+</script>
+
+<!-- ── RSI Buy/Sell Signal Tab JS ── -->
+<script>
+(function(win){
+'use strict';
+
+// ── RSI calculation (same as Scanner tab) ──
+function rsiCalc(closes,period){
+  var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
+  if(v.length<period+2)return[];
+  var g=0,l=0;
+  for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
+  var ag=g/period,al=l/period,out=[];
+  out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  for(var i=period+1;i<v.length;i++){
+    var d=v[i]-v[i-1];
+    ag=(ag*(period-1)+Math.max(d,0))/period;
+    al=(al*(period-1)+Math.abs(Math.min(d,0)))/period;
+    out.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  }
+  return out;
+}
+function rsiCrossover(arr,level){return arr.length>=2&&arr[arr.length-2]<level&&arr[arr.length-1]>=level}
+function rsiCrossunder(arr,level){return arr.length>=2&&arr[arr.length-2]>level&&arr[arr.length-1]<=level}
+
+// ── Parse dailyMap entry for one index ──
+function rsiGetOHLC(name){
+  var sd=win._ldScannerData;
+  if(!sd||!sd.dailyMap)return null;
+  var key=name.toLowerCase();
+  var entries=sd.dailyMap[key];
+  if(!entries||entries.length<20)return null;
+  var sorted=entries.slice().sort(function(a,b){
+    var da=a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
+    var db=b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
+    return da<db?-1:da>db?1:0;
+  });
+  var closes=[],highs=[],lows=[],dates=[];
+  sorted.forEach(function(e){
+    var p=e.split('|');
+    closes.push(parseFloat(p[4]));
+    highs.push(parseFloat(p[2]));
+    lows.push(parseFloat(p[3]));
+    dates.push(p[0]);
+  });
+  return{closes:closes,highs:highs,lows:lows,dates:dates};
+}
+
+// ── Compute RSI signals for one index ──
+function rsiComputeIndex(name){
+  var ohlc=rsiGetOHLC(name);
+  if(!ohlc||ohlc.closes.length<55)return null;
+
+  var closes=ohlc.closes,highs=ohlc.highs,lows=ohlc.lows,dates=ohlc.dates;
+
+  var r50d=rsiCalc(closes,50);
+  var r8d=rsiCalc(closes,8);
+
+  var wc=[];
+  for(var i=0;i<closes.length;i+=5)wc.push(closes[Math.min(i+4,closes.length-1)]);
+  var r50w=rsiCalc(wc,50);
+
+  var r50=r50d[r50d.length-1];
+  var r8=r8d[r8d.length-1];
+  var rw=r50w[r50w.length-1];
+
+  var sd=win._ldScannerData;
+  var pm=sd&&sd.priceMap&&sd.priceMap[name.toLowerCase()];
+  var price=pm&&pm.price?pm.price:closes[closes.length-1];
+  var chg=pm&&pm.change?pm.change:0;
+
+  var hi8=highs.length>=9?Math.max.apply(null,highs.slice(-9,-1)):Math.max.apply(null,highs.slice(0,-1));
+  var lo8=lows.length>=9?Math.min.apply(null,lows.slice(-9,-1)):Math.min.apply(null,lows.slice(0,-1));
+  var bullBreakout=price>hi8;
+  var bearBreakout=price<lo8;
+
+  var uptrend=r50>50&&rw>50;
+  var downtrend=r50<50&&rw<50;
+
+  var buyMom=rsiCrossover(r8d,60)&&uptrend&&bullBreakout;
+  var buyPull=rsiCrossover(r8d,40)&&uptrend&&bullBreakout;
+  var sellMom=rsiCrossunder(r8d,40)&&downtrend&&bearBreakout;
+  var sellPull=rsiCrossunder(r8d,60)&&downtrend&&bearBreakout;
+
+  var history=[];
+  var n=Math.min(r50d.length,r8d.length);
+  var start=Math.max(1,n-60);
+  for(var i=start;i<n;i++){
+    var s50=r50d.slice(0,i+1);
+    var s8=r8d.slice(0,i+1);
+    var wIdx=Math.floor(i*wc.length/closes.length);
+    var sw=r50w.slice(0,Math.max(1,wIdx+1));
+    var r50i=s50[s50.length-1];
+    var rwi=sw[sw.length-1]||rw;
+    var up_i=r50i>50&&rwi>50;
+    var dn_i=r50i<50&&rwi<50;
+    var dateOffset=closes.length-n;
+    var dstr=dates[dateOffset+i]||('Bar '+(i+1));
+    if(dstr.length===8){
+      var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dstr=dstr.substring(0,2)+' '+months[parseInt(dstr.substring(2,4))]+" '"+dstr.substring(6,8);
+    }
+    if(rsiCrossover(s8,60)&&up_i)history.push({d:dstr,t:'BUY MOM ▲',c:'#006600'});
+    if(rsiCrossover(s8,40)&&up_i)history.push({d:dstr,t:'BUY PULL △',c:'#1a8a1a'});
+    if(rsiCrossunder(s8,40)&&dn_i)history.push({d:dstr,t:'SELL MOM ▼',c:'#cc0000'});
+    if(rsiCrossunder(s8,60)&&dn_i)history.push({d:dstr,t:'SELL PULL ▽',c:'#ff4444'});
+  }
+
+  return{name:name,price:price,chg:chg,r50:r50,r8:r8,rw:rw,
+    uptrend:uptrend,downtrend:downtrend,
+    bullBreakout:bullBreakout,bearBreakout:bearBreakout,
+    buyMom:buyMom,buyPull:buyPull,sellMom:sellMom,sellPull:sellPull,
+    history:history,closes:closes,r50d:r50d,r8d:r8d};
+}
+
+// ── Render signal card ──
+function rsiRender(res){
+  var card=document.getElementById('rsi-card');
+  card.style.display='block';
+
+  var hdr=document.getElementById('rsi-hdr');
+  if(res.uptrend){
+    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#e6ffe6;color:#006600;border:1px solid #99cc99';
+    hdr.textContent='✅ UPTREND — D-RSI50 '+res.r50.toFixed(1)+' > 50  ·  W-RSI50 '+res.rw.toFixed(1)+' > 50';
+  }else if(res.downtrend){
+    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#ffe6e6;color:#cc0000;border:1px solid #cc9999';
+    hdr.textContent='🔴 DOWNTREND — D-RSI50 '+res.r50.toFixed(1)+' < 50  ·  W-RSI50 '+res.rw.toFixed(1)+' < 50';
+  }else{
+    hdr.style.cssText='padding:8px 10px;border-radius:6px 6px 0 0;font-size:12px;font-weight:bold;text-align:center;background:#fff8e6;color:#996600;border:1px solid #ccaa66';
+    hdr.textContent='⚠ MIXED — RSI50 '+res.r50.toFixed(1)+'  W-RSI '+res.rw.toFixed(1);
+  }
+
+  var r50el=document.getElementById('rsi-r50');
+  r50el.textContent=res.r50.toFixed(1);
+  r50el.style.color=res.r50>50?'#1a8a1a':'#cc0000';
+  var r8el=document.getElementById('rsi-r8');
+  r8el.textContent=res.r8.toFixed(1);
+  r8el.style.color=res.r8>res.r50?'#1a8a1a':'#cc0000';
+  var rwel=document.getElementById('rsi-rw');
+  rwel.textContent=res.rw.toFixed(1);
+  rwel.style.color=res.rw>50?'#1a8a1a':'#cc0000';
+
+  document.getElementById('rsi-px').textContent=res.price.toLocaleString('en-IN',{maximumFractionDigits:1});
+  var chgEl=document.getElementById('rsi-chg');
+  chgEl.textContent=(res.chg>=0?'+':'')+res.chg.toFixed(2)+'%';
+  chgEl.style.color=res.chg>=0?'#1a8a1a':'#cc0000';
+
+  var brkEl=document.getElementById('rsi-brk');
+  if(res.bullBreakout){brkEl.textContent='🟢 BULL BRK';brkEl.style.color='#1a8a1a';}
+  else if(res.bearBreakout){brkEl.textContent='🔴 BEAR BRK';brkEl.style.color='#cc0000';}
+  else{brkEl.textContent='— None';brkEl.style.color='#888';}
+
+  var trendEl=document.getElementById('rsi-trend');
+  var cloudBull=res.r8>res.r50;
+  trendEl.textContent='Cloud: RSI8 '+(cloudBull?'ABOVE':'BELOW')+' RSI50 → '+(cloudBull?'🟢 Bullish Cloud':'🔴 Bearish Cloud');
+  trendEl.style.background=cloudBull?'rgba(100,245,109,0.2)':'rgba(250,99,99,0.2)';
+  trendEl.style.color=cloudBull?'#006600':'#cc0000';
+
+  var sigs=[];
+  if(res.buyMom) sigs.push({l:'BUY MOMENTUM ▲',bg:'#006600'});
+  if(res.buyPull) sigs.push({l:'BUY PULLBACK △',bg:'#1a8a1a'});
+  if(res.sellMom) sigs.push({l:'SELL MOMENTUM ▼',bg:'#cc0000'});
+  if(res.sellPull) sigs.push({l:'SELL PULLBACK ▽',bg:'#ff4444'});
+  if(!sigs.length) sigs.push({l:'NO SIGNAL on current bar',bg:'#888'});
+  document.getElementById('rsi-badges').innerHTML=sigs.map(function(s){
+    return'<span style="background:'+s.bg+';color:#fff;padding:6px 12px;border-radius:4px;font-size:11px;font-weight:bold">'+s.l+'</span>';
+  }).join('');
+
+  rsiDrawCloud(res.closes,res.r50d,res.r8d);
+
+  var hist=document.getElementById('rsi-hist');
+  var last20=res.history.slice(-20).reverse();
+  if(last20.length){
+    hist.innerHTML=last20.map(function(s){
+      return'<div style="display:flex;justify-content:space-between;padding:3px 4px;border-bottom:1px solid #eee">'+
+        '<span style="color:'+s.c+';font-weight:bold;font-size:9px">'+s.t+'</span>'+
+        '<span style="color:#666;font-size:9px">'+s.d+'</span></div>';
+    }).join('');
+  }else{
+    hist.innerHTML='<div style="color:#aaa;text-align:center;padding:8px;font-size:9px">No signals in last 60 bars</div>';
+  }
+}
+
+function rsiDrawCloud(closes,r50d,r8d){
+  var c=document.getElementById('rsi-cloud');
+  if(!c)return;
+  var w=c.parentElement.clientWidth-16;
+  c.width=w;c.height=90;
+  var ctx=c.getContext('2d');
+  ctx.clearRect(0,0,w,90);
+
+  var n=Math.min(r50d.length,r8d.length,80);
+  var s50=r50d.slice(-n),s8=r8d.slice(-n);
+  if(n<2)return;
+
+  var allV=s50.concat(s8,[35,65]);
+  var mn=Math.min.apply(null,allV)-2,mx=Math.max.apply(null,allV)+2,rng=mx-mn;
+  var toY=function(v){return 90-((v-mn)/rng)*86};
+  var toX=function(i){return(i/(n-1))*(w-2)+1};
+
+  for(var i=0;i<n-1;i++){
+    var x1=toX(i),x2=toX(i+1);
+    var y50a=toY(s50[i]),y50b=toY(s50[i+1]);
+    var y8a=toY(s8[i]),y8b=toY(s8[i+1]);
+    var green=s8[i]>s50[i];
+    ctx.beginPath();
+    ctx.moveTo(x1,y50a);ctx.lineTo(x2,y50b);ctx.lineTo(x2,y8b);ctx.lineTo(x1,y8a);ctx.closePath();
+    ctx.fillStyle=green?'rgba(100,220,100,0.4)':'rgba(240,80,80,0.4)';
+    ctx.fill();
+  }
+
+  [[40,'#aaa',true],[50,'#333',false],[60,'#aaa',true]].forEach(function(lv){
+    ctx.beginPath();ctx.setLineDash(lv[2]?[3,3]:[]);
+    ctx.strokeStyle=lv[1];ctx.lineWidth=lv[2]?0.7:1;
+    var y=toY(lv[0]);ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#999';ctx.font='6px sans-serif';ctx.textAlign='left';
+    ctx.fillText(lv[0],2,y-1);
+  });
+
+  ctx.beginPath();ctx.strokeStyle='#e03030';ctx.lineWidth=1.5;
+  s50.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});
+  ctx.stroke();
+
+  ctx.beginPath();ctx.strokeStyle='#18b818';ctx.lineWidth=1.5;
+  s8.forEach(function(v,i){i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v))});
+  ctx.stroke();
+
+  var sd=win._ldScannerData;
+  var pm=sd&&sd.priceMap;
+  for(var i=1;i<n;i++){
+    var up=s50[i]>50;var dn=s50[i]<50;
+    if(rsiCrossover(s8.slice(0,i+1),60)&&up){rsiDot(ctx,toX(i),toY(60),'#006600',true);}
+    if(rsiCrossover(s8.slice(0,i+1),40)&&up){rsiDot(ctx,toX(i),toY(40),'#1a8a1a',true);}
+    if(rsiCrossunder(s8.slice(0,i+1),40)&&dn){rsiDot(ctx,toX(i),toY(40),'#cc0000',false);}
+    if(rsiCrossunder(s8.slice(0,i+1),60)&&dn){rsiDot(ctx,toX(i),toY(60),'#ff4444',false);}
+  }
+
+  ctx.setLineDash([]);ctx.font='7px sans-serif';ctx.textAlign='left';
+  ctx.fillStyle='#e03030';ctx.fillRect(4,5,14,3);ctx.fillStyle='#555';ctx.fillText('RSI50',20,9);
+  ctx.fillStyle='#18b818';ctx.fillRect(52,5,14,3);ctx.fillStyle='#555';ctx.fillText('RSI8',68,9);
+}
+
+function rsiDot(ctx,x,y,color,up){
+  ctx.beginPath();
+  if(up){ctx.moveTo(x,y-5);ctx.lineTo(x-3.5,y+1);ctx.lineTo(x+3.5,y+1);}
+  else{ctx.moveTo(x,y+5);ctx.lineTo(x-3.5,y-1);ctx.lineTo(x+3.5,y-1);}
+  ctx.closePath();ctx.fillStyle=color;ctx.fill();
+}
+
+function rsiRun(){
+  var sd=win._ldScannerData;
+  var selEl=document.getElementById('rsi-sel');
+  var name=selEl?selEl.value:'';
+  if(!name){document.getElementById('rsi-st').textContent='Select an index above';return;}
+  if(!sd||!sd.dailyMap||Object.keys(sd.dailyMap).length===0){
+    document.getElementById('rsi-st').textContent='⚠ No data — run the ⚡ Scanner tab first to download NSE data';
+    return;
+  }
+  document.getElementById('rsi-st').textContent='⏳ Computing RSI for '+name+'...';
+  document.getElementById('rsi-card').style.display='none';
+  setTimeout(function(){
+    var res=rsiComputeIndex(name);
+    if(!res){
+      document.getElementById('rsi-st').textContent='⚠ Insufficient data for '+name+' (need 55+ daily bars)';
+      return;
+    }
+    rsiRender(res);
+    document.getElementById('rsi-detail-section').style.display='block';
+    document.getElementById('rsi-st').textContent='✅ '+name+' — '+win._ldScannerData.dailyMap[name.toLowerCase()].length+' daily bars from NSE';
+    document.getElementById('rsi-ts').textContent='Updated: '+new Date().toLocaleString();
+  },10);
+}
+
+function rsiPopulateDropdown(){
+  var sd=win._ldScannerData;
+  var selEl=document.getElementById('rsi-sel');
+  if(!selEl)return;
+  if(!sd||!sd.indexList||!sd.indexList.length){
+    selEl.innerHTML='<option value="">— Run ⚡ Scanner first —</option>';
+    return;
+  }
+  var current=selEl.value;
+  selEl.innerHTML=sd.indexList.map(function(idx){
+    return'<option value="'+idx.name+'">'+idx.name+'</option>';
+  }).join('');
+  if(current)selEl.value=current;
+}
+
+function rsiScanAll(){
+  var sd=win._ldScannerData;
+  if(!sd||!sd.dailyMap||Object.keys(sd.dailyMap).length===0){
+    document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first';return;
+  }
+  document.getElementById('rsi-st').textContent='⏳ Scanning all indices...';
+  document.getElementById('rsi-allsig').innerHTML='';
+  setTimeout(function(){
+    var all=sd.indexList||[];
+    var signals=[];
+    all.forEach(function(idx){
+      var res=rsiComputeIndex(idx.name);
+      if(!res)return;
+      var hasSig=res.buyMom||res.buyPull||res.sellMom||res.sellPull;
+      if(hasSig)signals.push(res);
+    });
+    signals.sort(function(a,b){
+      var sa=(a.buyMom?4:a.buyPull?3:a.sellMom?2:1);
+      var sb=(b.buyMom?4:b.buyPull?3:b.sellMom?2:1);
+      return sb-sa;
+    });
+    var box=document.getElementById('rsi-allsig');
+    if(!signals.length){
+      box.innerHTML='<div style="color:#888;text-align:center;padding:12px;font-size:9px">No signals on current bar across all 139 indices</div>';
+    }else{
+      box.innerHTML=signals.map(function(r){
+        var sig=r.buyMom?'BUY MOM ▲':r.buyPull?'BUY PULL △':r.sellMom?'SELL MOM ▼':'SELL PULL ▽';
+        var sc=r.buyMom||r.buyPull?'#1a8a1a':'#cc0000';
+        return'<div onclick="rsiSelectAndRun(\''+r.name+'\')" style="display:flex;justify-content:space-between;align-items:center;'+
+          'padding:6px 8px;border-bottom:1px solid #eee;cursor:pointer;background:#fff">'+
+          '<div><div style="font-size:9px;font-weight:bold;color:#0055aa">'+r.name+'</div>'+
+          '<div style="font-size:8px;color:#888">RSI50: '+r.r50.toFixed(1)+' · RSI8: '+r.r8.toFixed(1)+' · W.RSI: '+r.rw.toFixed(1)+'</div></div>'+
+          '<span style="background:'+sc+';color:#fff;padding:3px 7px;border-radius:3px;font-size:8px;font-weight:bold;white-space:nowrap">'+sig+'</span>'+
+          '</div>';
+      }).join('');
+    }
+    document.getElementById('rsi-st').textContent='✅ '+signals.length+' signal(s) found across '+all.length+' indices';
+  },10);
+}
+
+function rsiSelectAndRun(name){
+  document.getElementById('rsi-sel').value=name;
+  rsiRun();
+  document.getElementById('rsi-detail-section').style.display='block';
+}
+
+win.rsiRun=rsiRun;
+win.rsiScanAll=rsiScanAll;
+win.rsiSelectAndRun=rsiSelectAndRun;
+win.onRSITabActivated=function(){
+  rsiPopulateDropdown();
+  var sd=win._ldScannerData;
+  if(sd&&sd.indexList&&sd.indexList.length){
+    document.getElementById('rsi-st').textContent=sd.indexList.length+' indices ready — select one or tap SCAN ALL';
+  }else{
+    document.getElementById('rsi-st').textContent='⚠ Run ⚡ Scanner tab first to download NSE data';
+  }
+  setTimeout(function(){rsiDrawCloud([],[],[])},100);
+};
 
 })(window);
 </script>
