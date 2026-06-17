@@ -674,9 +674,154 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <script src="nse_history/nse_historical.js"></script>
 <script src="nse_history/nse_ba_data.js"></script>
 
-<!-- Embedded NSE index data snapshot (generated offline from NSE archives CSV) -->
-<script src="nse_history/embedded_indices.js"></script>
-
+<!-- Embedded NSE index data snapshot (generated from NSE archives CSV) -->
+<script>const EMBEDDED_NSE_DATA = {
+  validTill: "16062026",
+  indices: [
+    { n:"Nifty 50", k:"nifty50", c:"Broad Market", p:23989.15, cp:0.57, o:23923.9, h:24002.6, l:23888.2, pe:20.69, pb:3.16, dy:1.2 },
+    { n:"Nifty Bank", k:"niftybank", c:"Sectoral", p:57297.15, cp:0.17, o:57320.1, h:57399.7, l:57076.25, pe:14.41, pb:1.86, dy:0.8 },
+    { n:"Nifty IT", k:"niftyit", c:"Sectoral", p:28568.1, cp:1.78, o:28237.05, h:28663.85, l:28124.3, pe:19.33, pb:5.24, dy:3.16 },
+    { n:"Nifty Auto", k:"niftyauto", c:"Sectoral", p:26891.55, cp:-0.32, o:27133.55, h:27133.55, l:26850.95, pe:31.02, pb:4.61, dy:1.23 },
+    { n:"Nifty Pharma", k:"niftypharma", c:"Sectoral", p:24157.85, cp:-0.26, o:24272.2, h:24306.85, l:24020.55, pe:36.92, pb:5.07, dy:0.75 },
+    { n:"Nifty FMCG", k:"niftyfmcg", c:"Sectoral", p:49642.4, cp:1.22, o:49158.6, h:49685.55, l:49142.85, pe:34.16, pb:8.58, dy:0.94 },
+    { n:"Nifty Energy", k:"niftyenergy", c:"Sectoral", p:39915.4, cp:1.07, o:39669.45, h:39980.95, l:39520.2, pe:14.86, pb:2.43, dy:1.86 },
+    { n:"Nifty Realty", k:"niftyrealty", c:"Sectoral", p:818.1, cp:2.26, o:805.5, h:819.5, l:801, pe:35.88, pb:3.87, dy:0.36 },
+    { n:"Nifty Media", k:"niftymedia", c:"Sectoral", p:1506.3, cp:1.4, o:1499.05, h:1515.2, l:1489.8, pe:35.75, pb:1.59, dy:1.16 },
+    { n:"Nifty Metal", k:"niftymetal", c:"Sectoral", p:12881.5, cp:-1.55, o:12984.5, h:12984.5, l:12783.7, pe:19.14, pb:3.17, dy:1.64 },
+    { n:"Nifty PSU Bank", k:"niftypsubank", c:"Sectoral", p:8563.2, cp:-0.21, o:8617.15, h:8635.15, l:8494.75, pe:8.2, pb:1.21, dy:1.4 },
+    { n:"Nifty PSE", k:"niftypse", c:"Thematic", p:10017.35, cp:0.64, o:9989.6, h:10024, l:9962.05, pe:10.19, pb:2, dy:2.8 },
+    { n:"Nifty Oil & Gas", k:"niftyoilgas", c:"Sectoral", p:11294.6, cp:1.02, o:11234.5, h:11311.55, l:11180.35, pe:8.86, pb:1.53, dy:2.48 },
+    { n:"Nifty CPSE", k:"niftycpse", c:"Thematic", p:6728.6, cp:0.82, o:6687.9, h:6733.65, l:6665.7, pe:12.83, pb:2.17, dy:2.75 },
+    { n:"Nifty Private Bank", k:"niftyprivatebank", c:"Sectoral", p:27916.9, cp:0.38, o:27841.2, h:27939.1, l:27740.85, pe:18.34, pb:2.22, dy:0.58 },
+    { n:"Nifty Financial Services", k:"niftyfinancialservices", c:"Sectoral", p:26442.3, cp:0.64, o:26325.65, h:26460.1, l:26306.75, pe:17.02, pb:2.76, dy:0.82 },
+    { n:"Nifty Financial Services 25/50", k:"niftyfinancialservices2550", c:"Sectoral", p:28677.05, cp:0.68, o:28549.6, h:28697.5, l:28533.7, pe:16.65, pb:2.85, dy:0.93 },
+    { n:"Nifty Financial Services Ex-Bank", k:"niftyfinancialservicesexbank", c:"Sectoral", p:31565.1, cp:0.9, o:31363.9, h:31587.55, l:31338.15, pe:22.53, pb:4.33, dy:0.57 },
+    { n:"Nifty Consumption", k:"niftyconsumption", c:"Thematic", p:11485.85, cp:0.55, o:11462.95, h:11490.95, l:11434.7, pe:38.26, pb:7.62, dy:0.78 },
+    { n:"Nifty Consumer Durables", k:"niftyconsumerdurables", c:"Thematic", p:36455.05, cp:1.28, o:36109.7, h:36484.2, l:36029.35, pe:65.56, pb:11.69, dy:0.41 },
+    { n:"Nifty Next 50", k:"niftynext50", c:"Broad Market", p:71798.65, cp:0.16, o:71840.65, h:71868.6, l:71387.75, pe:19.42, pb:3.62, dy:1.27 },
+    { n:"Nifty 100", k:"nifty100", c:"Broad Market", p:25029.9, cp:0.49, o:24977.35, h:25044.95, l:24932.7, pe:20.44, pb:3.24, dy:1.21 },
+    { n:"Nifty 200", k:"nifty200", c:"Broad Market", p:13854.3, cp:0.47, o:13830.1, h:13861.85, l:13795.1, pe:21.78, pb:3.46, dy:1.1 },
+    { n:"Nifty 500", k:"nifty500", c:"Broad Market", p:22997.25, cp:0.46, o:22962.45, h:23009.4, l:22902.35, pe:22.8, pb:3.51, dy:1.04 },
+    { n:"Nifty Midcap 50", k:"niftymidcap50", c:"Broad Market", p:17607.15, cp:0.6, o:17570.75, h:17615.95, l:17483.7, pe:32.86, pb:4.78, dy:0.59 },
+    { n:"NIFTY Midcap 100", k:"niftymidcap100", c:"Broad Market", p:61802.05, cp:0.41, o:61783, h:61838, l:61408.15, pe:29.65, pb:4.82, dy:0.63 },
+    { n:"NIFTY Smallcap 100", k:"niftysmallcap100", c:"Broad Market", p:18477.75, cp:0.42, o:18468.7, h:18520.2, l:18384.85, pe:31.27, pb:3.6, dy:0.63 },
+    { n:"Nifty Smallcap 50", k:"niftysmallcap50", c:"Broad Market", p:9114.6, cp:0.45, o:9106.7, h:9138.55, l:9073.9, pe:30.85, pb:3.45, dy:0.64 },
+    { n:"Nifty Smallcap 250", k:"niftysmallcap250", c:"Broad Market", p:17369.25, cp:0.44, o:17368.65, h:17409.45, l:17294.75, pe:34.39, pb:3.68, dy:0.66 },
+    { n:"Nifty Midcap 150", k:"niftymidcap150", c:"Broad Market", p:22671.4, cp:0.38, o:22664.65, h:22687.6, l:22541.75, pe:29.01, pb:4.77, dy:0.67 },
+    { n:"Nifty Midcap Select", k:"niftymidcapselect", c:"Broad Market", p:14503.9, cp:0.54, o:14492.75, h:14518.9, l:14395.7, pe:30.23, pb:4.87, dy:0.55 },
+    { n:"NIFTY LargeMidcap 250", k:"niftylargemidcap250", c:"Broad Market", p:16476.35, cp:0.43, o:16457.1, h:16484.85, l:16399.05, pe:24.12, pb:3.88, dy:0.93 },
+    { n:"Nifty Microcap 250", k:"niftymicrocap250", c:"Broad Market", p:24513.95, cp:0.56, o:24459.7, h:24538.35, l:24375.4, pe:27.7, pb:3.5, dy:0.63 },
+    { n:"Nifty Total Market", k:"niftytotalmarket", c:"Broad Market", p:12965.3, cp:0.47, o:12945.35, h:12972.2, l:12911.15, pe:22.97, pb:3.51, dy:1.03 },
+    { n:"NIFTY SME EMERGE", k:"niftysmeemerge", c:"Broad Market", p:13885.3, cp:1, o:13813, h:13911.5, l:13809.2, pe:21.76, pb:3.37, dy:0.23 },
+    { n:"Nifty Midcap Liquid 15", k:"niftymidcapliquid15", c:"Broad Market", p:16769.35, cp:0.79, o:16716.75, h:16786.9, l:16589.7, pe:40.15, pb:5.52, dy:0.47 },
+    { n:"Nifty Services Sector", k:"niftyservicessector", c:"Thematic", p:30568.45, cp:0.68, o:30445.55, h:30585.3, l:30419.35, pe:19.62, pb:3.17, dy:1.24 },
+    { n:"Nifty Infrastructure", k:"niftyinfrastructure", c:"Thematic", p:9426.7, cp:0.6, o:9410.4, h:9438.35, l:9387.05, pe:21.41, pb:3, dy:1.07 },
+    { n:"Nifty MNC", k:"niftymnc", c:"Thematic", p:32442.3, cp:0.14, o:32394.65, h:32538.45, l:32346.2, pe:39.77, pb:8.67, dy:1.43 },
+    { n:"Nifty Commodities", k:"niftycommodities", c:"Thematic", p:10008.95, cp:-0.13, o:10019, h:10023.15, l:9953.3, pe:15.1, pb:2.32, dy:1.7 },
+    { n:"Nifty Dividend Opportunities 50", k:"niftydividendopportunities50", c:"Thematic", p:5874.8, cp:0.52, o:5855.95, h:5878.3, l:5835.85, pe:13.45, pb:2.65, dy:2.53 },
+    { n:"Nifty50 Shariah", k:"nifty50shariah", c:"Thematic", p:4251.5, cp:0.61, o:4232.95, h:4260.8, l:4221.75, pe:23.61, pb:4.03, dy:1.85 },
+    { n:"Nifty500 Shariah", k:"nifty500shariah", c:"Thematic", p:6898.6, cp:0.55, o:6881.9, h:6903.8, l:6862.05, pe:28.45, pb:4.69, dy:1.23 },
+    { n:"Nifty Transportation & Logistics", k:"niftytransportationlogistics", c:"Thematic", p:24488.3, cp:-0.06, o:24640.2, h:24644.15, l:24415.25, pe:41.93, pb:5.28, dy:0.91 },
+    { n:"Nifty Housing", k:"niftyhousing", c:"Thematic", p:12030.7, cp:0.32, o:12036.15, h:12041.75, l:11966.3, pe:22.31, pb:2.96, dy:0.87 },
+    { n:"Nifty Consumer Durables", k:"niftyconsumerdurables", c:"Thematic", p:36455.05, cp:1.28, o:36109.7, h:36484.2, l:36029.35, pe:65.56, pb:11.69, dy:0.41 },
+    { n:"Nifty Rural", k:"niftyrural", c:"Thematic", p:15279.75, cp:0.39, o:15267.8, h:15293.95, l:15214.55, pe:23.95, pb:3.91, dy:0.96 },
+    { n:"Nifty India Manufacturing", k:"niftyindiamanufacturing", c:"Thematic", p:15877.6, cp:-0.21, o:15940.3, h:15940.4, l:15812.95, pe:27.25, pb:4.43, dy:1.09 },
+    { n:"Nifty India New Age Consumption", k:"niftyindianewageconsumption", c:"Thematic", p:11225.65, cp:0.33, o:11238.9, h:11249.95, l:11165.95, pe:44.93, pb:6.83, dy:0.63 },
+    { n:"Nifty India Railways PSU", k:"niftyindiarailwayspsu", c:"Thematic", p:2945.7, cp:0.77, o:2939.2, h:2949.5, l:2924.1, pe:21.14, pb:3.09, dy:1.82 },
+    { n:"Nifty India Digital", k:"niftyindiadigital", c:"Thematic", p:7849.35, cp:0.99, o:7812, h:7855.1, l:7786.6, pe:28.7, pb:7.06, dy:1.55 },
+    { n:"Nifty India Defence", k:"niftyindiadefence", c:"Thematic", p:9130.75, cp:0.01, o:9165.45, h:9175.15, l:9093.8, pe:56.73, pb:12.15, dy:0.52 },
+    { n:"Nifty Mobility", k:"niftymobility", c:"Thematic", p:22121.55, cp:0.03, o:22236.05, h:22238.8, l:22049.35, pe:33.27, pb:4.51, dy:1.1 },
+    { n:"Nifty EV & New Age Automotive", k:"niftyevnewageautomotive", c:"Thematic", p:3119.8, cp:-0.13, o:3138.7, h:3139.25, l:3111.85, pe:42.27, pb:5.02, dy:0.86 },
+    { n:"Nifty India Select 5 Corporate Groups (MAATR)", k:"niftyindiaselect5corporategroupsmaatr", c:"Thematic", p:38531.55, cp:0.18, o:38575.35, h:38591.45, l:38339.5, pe:24.92, pb:3.32, dy:0.95 },
+    { n:"Nifty India Tourism", k:"niftyindiatourism", c:"Thematic", p:7648.1, cp:0.2, o:7679.25, h:7721.75, l:7632.05, pe:76.83, pb:9.29, dy:0.35 },
+    { n:"Nifty India Internet", k:"niftyindiainternet", c:"Thematic", p:1231.25, cp:0.36, o:1232.05, h:1235, l:1222.7, pe:147.19, pb:6.36, dy:0.32 },
+    { n:"Nifty India FPI 150", k:"niftyindiafpi150", c:"Thematic", p:1544.8, cp:0.53, o:1541, h:1545.7, l:1538.1, pe:22.33, pb:3.62, dy:1.13 },
+    { n:"Nifty India Infrastructure & Logistics", k:"niftyindiainfrastructurelogistics", c:"Thematic", p:12166, cp:0.47, o:12162.95, h:12176.5, l:12100.3, pe:30.17, pb:4.41, dy:0.77 },
+    { n:"Nifty India Corporate Group Index - Tata Group", k:"niftyindiacorporategroupindextatagroup", c:"Thematic", p:14285.72, cp:0.66, o:null, h:null, l:null, pe:30.6, pb:5.06, dy:1.99 },
+    { n:"Nifty India Corporate Group Index - Tata Group 25% Cap", k:"niftyindiacorporategroupindextatagroup25cap", c:"Thematic", p:14231.9, cp:0.61, o:14199.95, h:14245, l:14134.35, pe:33.52, pb:4.56, dy:1.64 },
+    { n:"Nifty India Corporate Group Index - Aditya Birla Group", k:"niftyindiacorporategroupindexadityabirlagroup", c:"Thematic", p:9701.75, cp:-1.14, o:null, h:null, l:null, pe:15.8, pb:3.34, dy:0.44 },
+    { n:"Nifty India Corporate Group Index - Mahindra Group", k:"niftyindiacorporategroupindexmahindragroup", c:"Thematic", p:34026.05, cp:0.43, o:null, h:null, l:null, pe:22.18, pb:4.27, dy:1.45 },
+    { n:"Nifty Healthcare Index", k:"niftyhealthcareindex", c:"Sectoral", p:15433, cp:-0.36, o:15520.7, h:15538.25, l:15348.6, pe:39.99, pb:5.6, dy:0.63 },
+    { n:"Nifty500 Healthcare", k:"nifty500healthcare", c:"Sectoral", p:19958.45, cp:-0.31, o:20061.75, h:20102.45, l:19859.6, pe:41.88, pb:5.91, dy:0.56 },
+    { n:"Nifty100 ESG Sector Leaders", k:"nifty100esgsectorleaders", c:"Thematic", p:4012.55, cp:0.66, o:3998.1, h:4015.25, l:3991.3, pe:21.11, pb:3.37, dy:1.24 },
+    { n:"NIFTY100 ESG", k:"nifty100esg", c:"Thematic", p:4886.45, cp:0.57, o:4874.5, h:4888.6, l:4862.45, pe:22.18, pb:3.94, dy:1.33 },
+    { n:"NIFTY100 Enhanced ESG", k:"nifty100enhancedesg", c:"Thematic", p:4918.35, cp:0.58, o:4906.2, h:4920.5, l:4894.15, pe:22.13, pb:3.94, dy:1.33 },
+    { n:"Nifty Chemicals", k:"niftychemicals", c:"Sectoral", p:29636.5, cp:0.36, o:29637.6, h:29753.05, l:29522.65, pe:47.47, pb:4.38, dy:0.59 },
+    { n:"Nifty Cement", k:"niftycement", c:"Sectoral", p:14844.85, cp:-0.24, o:14918.85, h:14929, l:14764.5, pe:27.98, pb:2.24, dy:0.44 },
+    { n:"Nifty Construction", k:"niftyconstruction", c:"Sectoral", p:12875.91, cp:1.16, o:null, h:null, l:null, pe:21.18, pb:2.97, dy:0.85 },
+    { n:"Nifty Capital Goods", k:"niftycapitalgoods", c:"Sectoral", p:17080.08, cp:0.47, o:null, h:null, l:null, pe:48.59, pb:10.65, dy:0.52 },
+    { n:"Nifty Power", k:"niftypower", c:"Sectoral", p:9190.52, cp:0.43, o:null, h:null, l:null, pe:22.51, pb:2.87, dy:1.33 },
+    { n:"Nifty Telecommunications", k:"niftytelecommunications", c:"Sectoral", p:3701.61, cp:0.13, o:null, h:null, l:null, pe:15.51, pb:39.83, dy:0.38 },
+    { n:"Nifty Consumer Services", k:"niftyconsumerservices", c:"Sectoral", p:3313.43, cp:0.53, o:null, h:null, l:null, pe:107.86, pb:7.54, dy:0.18 },
+    { n:"Nifty Retail", k:"niftyretail", c:"Sectoral", p:2851.35, cp:0.58, o:null, h:null, l:null, pe:216.3, pb:8.05, dy:0.11 },
+    { n:"Nifty NBFC", k:"niftynbcf", c:"Sectoral", p:54806.92, cp:0.86, o:null, h:null, l:null, pe:23.33, pb:4.05, dy:0.46 },
+    { n:"Nifty Insurance", k:"niftyinsurance", c:"Sectoral", p:1908.59, cp:-0.13, o:null, h:null, l:null, pe:34.73, pb:8.05, dy:0.48 },
+    { n:"Nifty Housing Finance", k:"niftyhousingfinance", c:"Sectoral", p:765.9, cp:-0.11, o:null, h:null, l:null, pe:111.82, pb:1.57, dy:0.69 },
+    { n:"Nifty Hospitals", k:"niftyhospitals", c:"Sectoral", p:4424.86, cp:-0.42, o:null, h:null, l:null, pe:67.9, pb:10.26, dy:0.17 },
+    { n:"Nifty REITs & InvITs", k:"niftyreitsinvits", c:"Sectoral", p:1346.14, cp:-0.04, o:null, h:null, l:null, pe:46.3, pb:1.97, dy:5.22 },
+    { n:"Nifty REITs & Realty", k:"niftyreitsrealty", c:"Sectoral", p:1818.45, cp:0.88, o:1809.2, h:1819.9, l:1799.7, pe:48.52, pb:2.52, dy:3.22 },
+    { n:"Nifty50 Equal Weight", k:"nifty50equalweight", c:"Strategy", p:32496, cp:0.34, o:32480.15, h:32536.15, l:32373.85, pe:24.99, pb:3.68, dy:1.26 },
+    { n:"Nifty100 Equal Weight", k:"nifty100equalweight", c:"Strategy", p:34220.35, cp:0.3, o:34227.25, h:34258.55, l:34052.55, pe:22.12, pb:3.61, dy:1.2 },
+    { n:"Nifty500 Equal Weight", k:"nifty500equalweight", c:"Strategy", p:14562.9, cp:0.42, o:14559.45, h:14585.95, l:14498.4, pe:28.49, pb:3.85, dy:0.82 },
+    { n:"Nifty50 Value 20", k:"nifty50value20", c:"Strategy", p:12099.6, cp:0.43, o:12067.15, h:12108.35, l:12039.85, pe:15.86, pb:2.68, dy:1.72 },
+    { n:"Nifty Alpha 50", k:"niftyalpha50", c:"Strategy", p:53201.5, cp:-0.08, o:53387.65, h:53409.3, l:52859.8, pe:26.87, pb:4.28, dy:0.65 },
+    { n:"Nifty Low Volatility 50", k:"niftylowvolatility50", c:"Strategy", p:24271.95, cp:0.57, o:24212.65, h:24286.6, l:24183, pe:28.31, pb:4.77, dy:1.22 },
+    { n:"Nifty High Beta 50", k:"niftyhighbeta50", c:"Strategy", p:4309.2, cp:0.6, o:4298.75, h:4312.5, l:4273.65, pe:25.85, pb:3.85, dy:0.8 },
+    { n:"NIFTY100 Quality 30", k:"nifty100quality30", c:"Strategy", p:5489.15, cp:0.6, o:5475.85, h:5495.65, l:5463.85, pe:28.69, pb:7.33, dy:1.81 },
+    { n:"NIFTY200 Quality 30", k:"nifty200quality30", c:"Strategy", p:20023.7, cp:0.9, o:19915, h:20037.95, l:19891.5, pe:29.23, pb:9.57, dy:1.81 },
+    { n:"Nifty200 Momentum 30", k:"nifty200momentum30", c:"Strategy", p:31042.75, cp:-0.09, o:31113.25, h:31141.65, l:30905.55, pe:26.94, pb:4.44, dy:0.65 },
+    { n:"Nifty200 Alpha 30", k:"nifty200alpha30", c:"Strategy", p:26076.2, cp:-0.39, o:26207.7, h:26207.7, l:25903.45, pe:23.59, pb:4.04, dy:0.81 },
+    { n:"Nifty200 Value 30", k:"nifty200value30", c:"Strategy", p:15441.4, cp:-0.12, o:15455.8, h:15458.65, l:15341.4, pe:9.61, pb:1.51, dy:2.41 },
+    { n:"NIFTY100 Alpha 30", k:"nifty100alpha30", c:"Strategy", p:18100.05, cp:-0.53, o:18196.9, h:18203.65, l:18019.1, pe:17.21, pb:3.32, dy:1.46 },
+    { n:"NIFTY Alpha Low-Volatility 30", k:"niftyalphalowvolatility30", c:"Strategy", p:26163.85, cp:0.28, o:26161.15, h:26211.8, l:26101.3, pe:30.76, pb:4.45, dy:0.71 },
+    { n:"NIFTY Alpha Quality Low-Volatility 30", k:"niftyalphaqualitylowvolatility30", c:"Strategy", p:22517.45, cp:0.68, o:22474.8, h:22561, l:22439.05, pe:32.18, pb:7.54, dy:1.34 },
+    { n:"NIFTY Alpha Quality Value Low-Volatility 30", k:"niftyalphaqualityvaluelowvolatility30", c:"Strategy", p:20043.6, cp:0.6, o:19983.3, h:20057.9, l:19965.45, pe:21.39, pb:4.46, dy:1.81 },
+    { n:"Nifty100 Low Volatility 30", k:"nifty100lowvolatility30", c:"Strategy", p:19741.15, cp:0.47, o:19716.5, h:19775.5, l:19687.55, pe:27.04, pb:4.6, dy:1.31 },
+    { n:"NIFTY Quality Low-Volatility 30", k:"niftyqualitylowvolatility30", c:"Strategy", p:16298.75, cp:0.68, o:16239.8, h:16308, l:16218.55, pe:26.41, pb:5.84, dy:1.71 },
+    { n:"NIFTY Midcap150 Quality 50", k:"niftymidcap150quality50", c:"Strategy", p:24179.7, cp:0.84, o:24082.95, h:24190.75, l:24044.4, pe:32.14, pb:7.81, dy:1.15 },
+    { n:"Nifty Midcap150 Momentum 50", k:"niftymidcap150momentum50", c:"Strategy", p:63818.15, cp:0.17, o:63927.65, h:64008.85, l:63416.15, pe:25.15, pb:5.08, dy:0.69 },
+    { n:"Nifty Smallcap250 Quality 50", k:"niftysmallcap250quality50", c:"Strategy", p:24929.9, cp:0.75, o:24872.05, h:24994.05, l:24818.6, pe:23.76, pb:5.22, dy:1.46 },
+    { n:"Nifty Smallcap250 Momentum Quality 100", k:"niftysmallcap250momentumquality100", c:"Strategy", p:45630.05, cp:0.48, o:45586.3, h:45725.45, l:45413.25, pe:28.09, pb:4.94, dy:0.79 },
+    { n:"Nifty MidSmallcap400 Momentum Quality 100", k:"niftymidsmallcap400momentumquality100", c:"Strategy", p:50999.35, cp:0.51, o:50936.45, h:51031.35, l:50658.85, pe:28.76, pb:6.38, dy:0.76 },
+    { n:"Nifty500 Momentum 50", k:"nifty500momentum50", c:"Strategy", p:53928.6, cp:-0.05, o:54051.65, h:54057.05, l:53661.7, pe:30.16, pb:5, dy:0.54 },
+    { n:"Nifty500 Quality 50", k:"nifty500quality50", c:"Strategy", p:19620.95, cp:0.82, o:19519.25, h:19632.15, l:19465.95, pe:30.71, pb:10.24, dy:1.32 },
+    { n:"Nifty500 Low Volatility 50", k:"nifty500lowvolatility50", c:"Strategy", p:21898.3, cp:0.37, o:21871.55, h:21910.6, l:21813.8, pe:22.79, pb:4.34, dy:1.76 },
+    { n:"NIFTY500 Value 50", k:"nifty500value50", c:"Strategy", p:16473.55, cp:-0.17, o:16490.4, h:16493.35, l:16363.55, pe:10.61, pb:1.54, dy:2.34 },
+    { n:"Nifty500 Flexicap Quality 30", k:"nifty500flexicapquality30", c:"Strategy", p:9772.75, cp:1.01, o:9724.15, h:9779.45, l:9703.8, pe:30.52, pb:6.59, dy:1.43 },
+    { n:"Nifty500 Multifactor MQVLv 50", k:"nifty500multifactormqvlv50", c:"Strategy", p:30974.25, cp:0.24, o:30985.6, h:31047.55, l:30816.9, pe:13.65, pb:2.74, dy:1.75 },
+    { n:"Nifty500 LargeMidSmall Equal-Cap Weighted", k:"nifty500largemidsmallequalcapweighted", c:"Strategy", p:18070.15, cp:0.44, o:18055.6, h:18078.4, l:17989.35, pe:26.7, pb:3.8, dy:0.85 },
+    { n:"Nifty500 Multicap 50:25:25", k:"nifty500multicap502525", c:"Strategy", p:16217.4, cp:0.45, o:16199.1, h:16225.05, l:16148.5, pe:24.81, pb:3.64, dy:0.94 },
+    { n:"Nifty500 Multicap Infrastructure 50:30:20", k:"nifty500multicapinfrastructure503020", c:"Strategy", p:14522.95, cp:0.61, o:14500.3, h:14534.75, l:14459.7, pe:23.17, pb:3.53, dy:0.88 },
+    { n:"Nifty500 Multicap India Manufacturing 50:30:20", k:"nifty500multicapindiamanufacturing503020", c:"Strategy", p:16146.6, cp:0.08, o:16184.75, h:16185.05, l:16088, pe:29.38, pb:4.08, dy:0.85 },
+    { n:"Nifty Total Market Momentum Quality 50", k:"niftytotalmarketmomentumquality50", c:"Strategy", p:44254.6, cp:-0.03, o:44379.45, h:44391.55, l:44045.65, pe:34.38, pb:8.32, dy:0.73 },
+    { n:"Nifty Top 10 Equal Weight", k:"niftytop10equalweight", c:"Strategy", p:8722.35, cp:0.79, o:8672.9, h:8728, l:8660.05, pe:18.84, pb:3.24, dy:1.16 },
+    { n:"Nifty Top 15 Equal Weight", k:"niftytop15equalweight", c:"Strategy", p:9810.35, cp:0.7, o:9770.7, h:9816.45, l:9761.25, pe:19.93, pb:3.43, dy:1.13 },
+    { n:"Nifty Top 20 Equal Weight", k:"niftytop20equalweight", c:"Strategy", p:8638, cp:0.86, o:8597.4, h:8642.65, l:8589.7, pe:21.75, pb:3.68, dy:1.24 },
+    { n:"Nifty Growth Sectors 15", k:"niftygrowthsectors15", c:"Strategy", p:10873.35, cp:0.59, o:10846.2, h:10889.85, l:10814.55, pe:28.19, pb:6.85, dy:1.61 },
+    { n:"Nifty50 TR 1x Inverse", k:"nifty50tr1xinverse", c:"Strategy", p:179.45, cp:-0.55, o:179.95, h:180.2, l:179.35, pe:null, pb:null, dy:null },
+    { n:"Nifty50 TR 2x Leverage", k:"nifty50tr2xleverage", c:"Strategy", p:18011.75, cp:1.12, o:17914.25, h:18031.25, l:17862.5, pe:null, pb:null, dy:null },
+    { n:"Nifty50 PR 1x Inverse", k:"nifty50pr1xinverse", c:"Strategy", p:219.95, cp:-0.57, o:220.55, h:220.9, l:219.85, pe:null, pb:null, dy:null },
+    { n:"Nifty50 PR 2x Leverage", k:"nifty50pr2xleverage", c:"Strategy", p:11946.25, cp:1.12, o:11881.6, h:11959.2, l:11847.3, pe:null, pb:null, dy:null },
+    { n:"Nifty50 Dividend Points", k:"nifty50dividendpoints", c:"Dividend", p:62.14, cp:null, o:null, h:null, l:null, pe:null, pb:null, dy:null },
+    { n:"Nifty 8-13 yr G-Sec", k:"nifty813yrgsec", c:"Fixed Income", p:3011.94, cp:0.02, o:3011.97, h:3013.36, l:3011.42, pe:null, pb:null, dy:null },
+    { n:"Nifty 4-8 yr G-Sec Index", k:"nifty48yrgsecindex", c:"Fixed Income", p:3304.09, cp:0.02, o:3304.13, h:3304.26, l:3301.83, pe:null, pb:null, dy:null },
+    { n:"Nifty 11-15 yr G-Sec Index", k:"nifty1115yrgsecindex", c:"Fixed Income", p:3304.11, cp:0.1, o:3301.32, h:3305.88, l:3300.86, pe:null, pb:null, dy:null },
+    { n:"Nifty 15 yr and above G-Sec Index", k:"nifty15yrandabovegsecindex", c:"Fixed Income", p:3497.93, cp:0.08, o:3495.84, h:3498.2, l:3495.84, pe:null, pb:null, dy:null },
+    { n:"Nifty Composite G-sec Index", k:"niftycompositegsecindex", c:"Fixed Income", p:3097.22, cp:0.04, o:3096.47, h:3097.97, l:3096.38, pe:null, pb:null, dy:null },
+    { n:"Nifty 10 yr Benchmark G-Sec", k:"nifty10yrbenchmarkgsec", c:"Fixed Income", p:2640.28, cp:0.06, o:2639.19, h:2641.44, l:2638.7, pe:null, pb:null, dy:null },
+    { n:"Nifty 10 yr Benchmark G-Sec (Clean Price)", k:"nifty10yrbenchmarkgseccleanprice", c:"Fixed Income", p:873.31, cp:0.04, o:872.95, h:873.7, l:872.78, pe:null, pb:null, dy:null },
+    { n:"Nifty BHARAT Bond Index - April 2030", k:"niftybharatbondindexapril2030", c:"Fixed Income", p:1597.81, cp:-0.05, o:1598.87, h:1598.93, l:1597.81, pe:null, pb:null, dy:null },
+    { n:"Nifty BHARAT Bond Index - April 2031", k:"niftybharatbondindexapril2031", c:"Fixed Income", p:1452.26, cp:-0.05, o:1453.24, h:1453.24, l:1452.26, pe:null, pb:null, dy:null },
+    { n:"Nifty BHARAT Bond Index - April 2032", k:"niftybharatbondindexapril2032", c:"Fixed Income", p:1316.82, cp:0.06, o:1316.26, h:1316.82, l:1316.12, pe:null, pb:null, dy:null },
+    { n:"Nifty BHARAT Bond Index - April 2033", k:"niftybharatbondindexapril2033", c:"Fixed Income", p:1275.63, cp:0.02, o:1275.63, h:1275.63, l:1275.63, pe:null, pb:null, dy:null },
+    { n:"Nifty 1D Rate Index", k:"nifty1drateindex", c:"Fixed Income", p:2569.78, cp:0.01, o:null, h:null, l:null, pe:null, pb:null, dy:null },
+    { n:"Nifty50 USD", k:"nifty50usd", c:"Others", p:8790.56, cp:0.74, o:8726.2, h:8803.3, l:8599.25, pe:null, pb:null, dy:null },
+    { n:"Nifty 50 Futures Index", k:"nifty50futuresindex", c:"Others", p:5940.19, cp:0.35, o:null, h:null, l:null, pe:null, pb:null, dy:null },
+    { n:"Nifty 50 Futures TR Index", k:"nifty50futurestrindex", c:"Others", p:25672.19, cp:0.37, o:null, h:null, l:null, pe:null, pb:null, dy:null },
+    { n:"Nifty 50 Arbitrage", k:"nifty50arbitrage", c:"Others", p:2688.54, cp:0.14, o:null, h:null, l:null, pe:null, pb:null, dy:null },
+    { n:"India VIX", k:"indiavix", c:"Volatility", p:13.36, cp:-6.9, o:14.35, h:14.35, l:13.01, pe:null, pb:null, dy:null },
+  ]
+};</script>
 <script type="text/babel">
 // ── 4.1 React Imports ──
 const { useState, useRef, useMemo, useEffect } = React;
@@ -1330,25 +1475,11 @@ Reasoning: [One-line explanation tying data to the rule]`;
       pb: idx.pb != null ? String(idx.pb) : null,
       dy: idx.dy != null ? String(idx.dy) : null,
       key: idx.c,
-      indexSymbol: idx.k,
-      previousClose: idx.pc != null ? String(idx.pc) : null,
-      yearHigh: idx.yh != null ? String(idx.yh) : null,
-      yearLow: idx.yl != null ? String(idx.yl) : null,
-      perChange30d: idx['30d'] != null ? String(idx['30d']) : null,
-      perChange365d: idx['365d'] != null ? String(idx['365d']) : null,
+      indexSymbol: idx.k
     }));
 
     setNseData(nseRaw);
     setProgress({ done: 1, total: 1, label: `${nseRaw.length} indices loaded` });
-
-    // Show timestamp if available from live source
-    if (EMBEDDED_NSE_DATA.timestamp) {
-      try {
-        const d = new Date(EMBEDDED_NSE_DATA.timestamp);
-        if (!isNaN(d)) setLastUpdated(d);
-      } catch(_) {}
-      setDataSource(EMBEDDED_NSE_DATA.source === 'live' ? 'LIVE' : 'ARCHIVE');
-    }
 
     // Build price map from embedded data
     const priceMap = {};
@@ -1362,11 +1493,11 @@ Reasoning: [One-line explanation tying data to the rule]`;
         open: parseFloat(idx.open) || null,
         high: parseFloat(idx.high) || null,
         low: parseFloat(idx.low) || null,
-        prevClose: idx.previousClose != null ? parseFloat(idx.previousClose) : null,
-        yearHigh: idx.yearHigh != null ? parseFloat(idx.yearHigh) : null,
-        yearLow: idx.yearLow != null ? parseFloat(idx.yearLow) : null,
-        perChange30d: idx.perChange30d != null ? parseFloat(idx.perChange30d) : null,
-        perChange365d: idx.perChange365d != null ? parseFloat(idx.perChange365d) : null,
+        prevClose: null,
+        yearHigh: null,
+        yearLow: null,
+        perChange30d: null,
+        perChange365d: null,
         pe: idx.pe || null,
         pb: idx.pb || null,
         dy: idx.dy || null,
@@ -1424,7 +1555,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }
 
     if (historicalData) {
-      if (EMBEDDED_NSE_DATA.source !== 'live') setDataSource('NSE JSON');
+      setDataSource('NSE JSON');
       const total = indexList.length;
       for (const idx of indexList) {
         if (stopRef.current) break;
@@ -1496,7 +1627,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
       window._ldScannerData = { priceMap, indexList, dailyMap: sharedDailyMap, nseRaw: nseRawWith30d };
     } else {
       // No historical data available — show results with price info only
-      if (EMBEDDED_NSE_DATA.source !== 'live') setDataSource('SNAPSHOT');
+      setDataSource('SNAPSHOT');
       const total = indexList.length;
       for (let i = 0; i < total; i++) {
         if (stopRef.current) break;
@@ -1599,7 +1730,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }
 
     setProgress({ done: 0, total: 0, label: "" });
-    if (EMBEDDED_NSE_DATA.source !== 'live') setLastUpdated(new Date());
+    setLastUpdated(new Date());
     setPhase('done');
     // Notify Run All orchestrator
     if (typeof window.onScannerComplete === 'function') { try { window.onScannerComplete(); } catch(e) {} }
