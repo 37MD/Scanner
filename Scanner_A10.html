@@ -4905,8 +4905,33 @@ async function fetchNSEcsv(date){
   }catch(e){return null;}
 }
 
-// ── Fetch NSE allIndices for current prices (Equity + Gold ETF via Yahoo) ──
+// ── Fetch NSE allIndices for current prices (reuse Scanner data if available) ──
 async function fetchNSEallIndices(){
+  // Reuse data from main Scanner tab
+  var cached = window._ldScannerData && window._ldScannerData.nseRaw;
+  if(cached && cached.length > 10) {
+    // Convert nseRaw format back to NSE API-like format for compatibility
+    return cached.map(function(idx){
+      return {
+        index: idx.index,
+        last: idx.last,
+        percentChange: idx.percentChange,
+        open: idx.open,
+        high: idx.high,
+        low: idx.low,
+        previousClose: idx.previousClose || null,
+        yearHigh: idx.yearHigh || null,
+        yearLow: idx.yearLow || null,
+        perChange30d: idx.perChange30d || null,
+        perChange365d: null,
+        pe: idx.pe,
+        pb: idx.pb,
+        dy: idx.dy,
+        key: idx.key,
+        indexSymbol: idx.indexSymbol
+      };
+    });
+  }
   try{
     var res=await fetchProxyBA(NSE_ALL,{signal:AbortSignal.timeout(20000)});
     if(!res||!res.ok) return null;
