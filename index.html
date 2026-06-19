@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner_B2</title>
+<title>Scanner_B3</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -363,7 +363,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .progress-track{height:3px;background:var(--border2);width:100%}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--orange),#ffcc66);transition:width .3s ease;box-shadow:0 0 8px var(--orange)}
 /* ── 2.5 Scanner Table & Freeze Columns ── */
-.table-wrap{border:1px solid var(--border2);overflow-x:auto;background:var(--surface);position:relative}
+.table-wrap{border:1px solid var(--border2);overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 160px);background:var(--surface);position:relative}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
 /* ── Freeze: sticky headers — Scanner only ── */
 #tab-scanner thead th{padding:11px 12px;font-family:var(--mono);font-size:10px;font-weight:600;color:#000;letter-spacing:1.2px;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:3;background:var(--surface2)}
@@ -453,7 +453,7 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 .ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
 @media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px}}
-@media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}}
+@media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}.table-wrap{max-height:calc(100vh - 130px)}}
 @media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 
 /* ── 2.8 Column Group Backgrounds ── */
@@ -1169,7 +1169,7 @@ const {
   useMemo,
   useEffect
 } = React;
-const CORS_FALLBACKS = ['https://corsproxy.io/?', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://corsproxy.vercel.app/?', 'https://proxy.corsfix.com/?', 'https://cors-anywhere.azm.workers.dev/?', 'https://crossorigin.me/', 'https://nse-cors.vercel.app/api/proxy?url=', 'https://cors.exploit.sh/?', 'https://thingproxy.freeboard.io/fetch/'];
+const CORS_FALLBACKS = ['https://corsproxy.io/?url=', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
 const NSE_API = 'https://www.nseindia.com/api/allIndices';
 function normalize(n) {
   return (n || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -1573,6 +1573,8 @@ const Scanner = () => {
   const [baFilter, setBaFilter] = useState(null);
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState(null);
+  const [liveDetail, setLiveDetail] = useState('');
+  const [liveStatus, setLiveStatus] = useState('ok'); // 'ok' | 'partial' | 'stale'
   const stopRef = useRef(false);
   const autoRef = useRef(null);
   const baStopRef = useRef(false);
@@ -1985,6 +1987,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
   const handleScan = async () => {
     stopRef.current = false;
     setError(null);
+    setLiveDetail('');
+    setLiveStatus('ok');
     try {
       setPhase('prices');
       setProgress({
@@ -2051,13 +2055,17 @@ Reasoning: [One-line explanation tying data to the rule]`;
           nseKey: idx.key
         });
       });
+      let liveSucceeded = false;
+      let liveFailReason = '';
       try {
-        for (const proxy of CORS_FALLBACKS) {
+        for (let pi = 0; pi < CORS_FALLBACKS.length; pi++) {
+          const proxy = CORS_FALLBACKS[pi];
+          setProgress({ done: pi, total: CORS_FALLBACKS.length, label: `Live prices: trying proxy ${pi+1}/${CORS_FALLBACKS.length}…` });
           try {
             const res = await fetch(proxy + encodeURIComponent(NSE_API), {
               signal: AbortSignal.timeout(15000)
             });
-            if (!res.ok) throw new Error('HTTP ' + res.status);
+            if (!res.ok) { liveFailReason = 'HTTP ' + res.status; throw new Error(liveFailReason); }
             const json = await res.json();
             const liveData = json.data || [];
             if (liveData.length > 0) {
@@ -2077,28 +2085,65 @@ Reasoning: [One-line explanation tying data to the rule]`;
                   priceMap[key].perChange365d = parseFloat(idx.perChange365d) || null;
                 }
               });
-              setDataSource('LIVE + Embedded');
+              setDataSource('LIVE');
+              setLiveDetail('Live NSE prices loaded via proxy ' + (pi+1) + '.');
+              liveSucceeded = true;
+            } else {
+              liveFailReason = 'empty response';
             }
             break;
-          } catch (_) {}
+          } catch (e) { liveFailReason = e.message || 'network error'; }
         }
-      } catch (_) {}
+      } catch (e) { liveFailReason = e.message || 'unknown error'; }
+      if (!liveSucceeded) {
+        setDataSource('ARCHIVE');
+        setLiveStatus('stale');
+        setLiveDetail('⚠ Live price fetch failed (' + (liveFailReason || 'all proxies unreachable') + '). Showing archived data' + (EMBEDDED_NSE_DATA.validTill ? ' valid till ' + EMBEDDED_NSE_DATA.validTill : '') + '.');
+      }
       setPhase('rsi');
       let tempResults = {};
       let done = 0;
       let historicalData = null;
-      if (typeof EMBEDDED_HISTORICAL !== 'undefined' && Object.keys(EMBEDDED_HISTORICAL).length > 10) {
-        historicalData = EMBEDDED_HISTORICAL;
-      } else {
-        try {
-          const res = await fetch('nse_historical.json', {
-            signal: AbortSignal.timeout(5000)
+      let historicalSource = 'embedded snapshot';
+      // Try the live, incrementally-refreshed deep history cache first (the
+      // same 280-day rolling-window fetch built for the RSI Signal tab).
+      // EMBEDDED_HISTORICAL is a permanent, static snapshot baked into this
+      // file — it never updates on its own, so we only fall back to it if a
+      // live fetch genuinely can't produce anything.
+      try {
+        setProgress({ done: 0, total: 1, label: 'Fetching live closing prices…' });
+        if (typeof window.fetchDeepWeeklyHistory === 'function') {
+          const deepCache = await window.fetchDeepWeeklyHistory((doneN, totalN) => {
+            setProgress({ done: doneN, total: totalN, label: `Live closes: ${doneN}/${totalN} days` });
           });
-          if (res.ok) historicalData = await res.json();
-        } catch (e) {}
+          if (deepCache && deepCache.dailyMap && Object.keys(deepCache.dailyMap).length > 10) {
+            const converted = {};
+            for (const k of Object.keys(deepCache.dailyMap)) {
+              const entries = deepCache.dailyMap[k].slice().sort((a, b) => {
+                const da = a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
+                const db = b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
+                return da < db ? -1 : da > db ? 1 : 0;
+              });
+              // deep cache keys are lowercase-with-spaces (e.g. "nifty 50");
+              // the Scanner looks up by fully normalized key (no spaces,
+              // e.g. "nifty50") — re-key here so lookups actually match.
+              converted[normalize(k)] = entries.map(e => parseFloat(e.split('|')[4]));
+            }
+            historicalData = converted;
+            historicalSource = 'live (' + deepCache.lastDate + ')';
+          }
+        }
+      } catch (_) {}
+      if (!historicalData && typeof EMBEDDED_HISTORICAL !== 'undefined' && Object.keys(EMBEDDED_HISTORICAL).length > 10) {
+        historicalData = EMBEDDED_HISTORICAL;
+        historicalSource = 'embedded snapshot (stale — live fetch failed)';
       }
       if (historicalData) {
-        if (EMBEDDED_NSE_DATA.source !== 'live') setDataSource('NSE JSON');
+        if (historicalSource.indexOf('stale') !== -1) setLiveStatus('stale');
+        setLiveDetail(prev => {
+          const closesNote = 'Historical closes: ' + historicalSource + '.';
+          return prev ? prev + ' ' + closesNote : closesNote;
+        });
         const total = indexList.length;
         for (const idx of indexList) {
           if (stopRef.current) break;
@@ -2152,10 +2197,10 @@ Reasoning: [One-line explanation tying data to the rule]`;
           done++;
         }
         const sharedDailyMap = {};
-        if (typeof EMBEDDED_HISTORICAL !== 'undefined') {
+        if (historicalData) {
           const tDays = genTradingDays(100);
           indexList.forEach(idx => {
-            const closes = EMBEDDED_HISTORICAL[idx.key];
+            const closes = historicalData[idx.key];
             if (!closes || closes.length < 5) return;
             const lcName = idx.name.toLowerCase();
             const entries = [];
@@ -2170,7 +2215,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
         const nseRawWith30d = nseRaw.map(idx => {
           const key = normalize(idx.index || idx.indexSymbol);
-          const closes = typeof EMBEDDED_HISTORICAL !== 'undefined' ? EMBEDDED_HISTORICAL[key] : null;
+          const closes = historicalData ? historicalData[key] : null;
           let perChange30d = null;
           if (closes && closes.length >= 30) {
             const old = closes[closes.length - 30];
@@ -2564,7 +2609,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand-icon"
   }, "LD"), React.createElement("div", {
     className: "brand-text"
-  }, React.createElement("h1", null, "Scanner_B2"), React.createElement("p", null, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
+  }, React.createElement("h1", null, "Scanner_B3"), React.createElement("p", null, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
   }, lastUpdated && React.createElement("span", {
     style: {
@@ -2589,7 +2634,17 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
   }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? dataSource || 'SCANNED' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
     className: "main-wrap"
-  }, error && React.createElement("div", {
+  }, phase === 'done' && liveDetail && React.createElement("div", {
+    style: {
+      background: liveStatus === 'ok' ? "var(--green-dim)" : "var(--amber-dim)",
+      border: "1px solid " + (liveStatus === 'ok' ? "var(--green)" : "var(--amber)"),
+      padding: "8px 14px",
+      marginBottom: 12,
+      fontFamily: "var(--mono)",
+      fontSize: 11,
+      color: liveStatus === 'ok' ? "var(--green)" : "var(--amber)"
+    }
+  }, liveDetail), error && React.createElement("div", {
     style: {
       background: "var(--red-dim)",
       border: "1px solid var(--red)",
@@ -3040,7 +3095,9 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }, "8"), React.createElement("option", {
       value: 14
     }, "14")))));
-  })(), (phase === 'rsi' || phase === 'prices') && React.createElement("div", {
+  })(), (phase === 'rsi' || phase === 'prices') && (() => {
+    const pct = progress.total > 0 ? Math.round(progress.done / progress.total * 100) : 0;
+    return React.createElement("div", {
     className: "progress-wrap"
   }, React.createElement("div", {
     className: "progress-top"
@@ -3055,7 +3112,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
     style: {
       width: pct + '%'
     }
-  }))), hasData ? React.createElement("div", null, React.createElement("div", {
+  })));
+  })(), hasData ? React.createElement("div", null, React.createElement("div", {
     ref: topScrollRef,
     className: "table-top-scroll",
     style: {
@@ -3445,7 +3503,17 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "empty-state"
   }, React.createElement("div", {
     className: "big-icon"
-  }, "📡"), React.createElement("h2", null, "Ready to Scan"), React.createElement("p", null, "Fetches NSE live prices + index close files for all 158 indices."))), auditModal.show && React.createElement("div", {
+  }, "📡"), React.createElement("h2", null, "Ready to Scan"), React.createElement("p", null, "Fetches NSE live prices + index close files for all 158 indices."),
+  React.createElement("button", {
+    className: "btn-scan",
+    style: { marginTop: 16 },
+    onClick: handleScan
+  }, "⚡ Step 1 - Execute X-Ray Audit"))), React.createElement("button", {
+    className: "btn-scan",
+    id: "scannerHiddenBtn",
+    style: { position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1, overflow: 'hidden' },
+    onClick: handleScan
+  }, "scan"), auditModal.show && React.createElement("div", {
     style: {
       position: 'fixed',
       top: 0,
@@ -3828,17 +3896,28 @@ function runAllScans() {
     }, 300);
   };
 
-  // Trigger Scanner scan directly — there is no longer a Scan button on
-  // that tab to click; this is the only entry point for Step 1.
-  if (typeof window.handleScan === 'function') {
-    window.handleScan();
-  } else {
-    window._runAllActive = false;
-    window.onScannerError = null;
-    window.onScannerCoreDataReady = null;
-    window.onScannerComplete = null;
-    setStatus('⚠ Scanner not ready', true);
+  // Trigger Scanner scan by clicking the hidden btn-scan button rendered by
+  // React — this is reliable because the button always exists in the DOM
+  // once React mounts, and clicking it fires handleScan through React's
+  // own event system with correct closure bindings.
+  var scanAttempts = 0;
+  function tryStartScan() {
+    var scanReactBtn = document.getElementById('scannerHiddenBtn') ||
+                       document.querySelector('#tab-scanner .btn-scan');
+    if (scanReactBtn) {
+      scanReactBtn.click();
+    } else if (scanAttempts < 30) {
+      scanAttempts++;
+      setTimeout(tryStartScan, 100);
+    } else {
+      window._runAllActive = false;
+      window.onScannerError = null;
+      window.onScannerCoreDataReady = null;
+      window.onScannerComplete = null;
+      setStatus('⚠ Scanner not ready — try again', true);
+    }
   }
+  tryStartScan();
 }
 </script>
 
@@ -4116,7 +4195,7 @@ initBreadthScanner();
 (function(win) {
   'use strict';
   // ── 7.1 Configuration ──
-  var CORS_LIST   = ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+  var CORS_LIST   = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
   var NSE_API     = 'https://www.nseindia.com/api/allIndices';
   var CSV_URL     = 'https://archives.nseindia.com/content/indices/ind_close_all_';
   async function fetchProxy(url, opts) {
@@ -5152,7 +5231,7 @@ function rsRealReturn(name, tradingDaysAgo) {
 }
 
 // ── Constants (same sources as core scanner) ──
-var CORS_LIST_RS = ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+var CORS_LIST_RS = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 var NSE_URL= 'https://www.nseindia.com/api/allIndices';
 async function fetchProxyRS(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
@@ -6289,7 +6368,7 @@ win.rsToggleWL=rsToggleWL;
 'use strict';
 
 // ── Shared CORS proxy (same as TTF and RS tabs) ──
-var BA_CORS_LIST = ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+var BA_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 async function fetchProxyBA(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
   for (var pi = 0; pi < BA_CORS_LIST.length; pi++) {
@@ -6871,11 +6950,10 @@ win.runBAsScan = runBAsScan;
 
 // ── Config ──
 var PT_CORS=[
-  'https://corsproxy.io/?',
+  'https://corsproxy.io/?url=',
   'https://api.allorigins.win/raw?url=',
-  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url=',
-  'https://thingproxy.freeboard.io/fetch/',
-  'https://api.codetabs.com/v1/proxy?quest='
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://thingproxy.freeboard.io/fetch/'
 ];
 var PT_NSE_API='https://www.nseindia.com/api/allIndices';
 var PT_CSV_URL='https://archives.nseindia.com/content/indices/ind_close_all_';
@@ -7247,7 +7325,7 @@ win.ptReset=ptReset;
 var DEEP_CACHE_KEY = 'ld_deep_weekly_history';
 var DEEP_WINDOW_DAYS = 280; // comfortably above the 260-day floor rsiCalc(_,50) needs
 var DEEP_BATCH_SIZE = 5, DEEP_BATCH_DELAY = 350;
-var DEEP_CORS_LIST = ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+var DEEP_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 var DEEP_CSV_URL = 'https://archives.nseindia.com/content/indices/ind_close_all_';
 
 async function fetchProxyDeep(url, opts) {
@@ -7568,6 +7646,12 @@ function rsiDrawCloud(r50d,r8d){
 
 win.onRSITabActivated=function(){rsiRunAll();};
 win.rsiScanAll=rsiRunAll;
+// Expose the deep weekly-history cache (built for genuine period-50 weekly
+// RSI here) so Scanner's handleScan can also use it as a live, incrementally
+// refreshed source of daily closes — instead of being permanently locked to
+// the static EMBEDDED_HISTORICAL snapshot baked into the file.
+win.fetchDeepWeeklyHistory = fetchDeepWeeklyHistory;
+win.deepLoadCache = deepLoadCache;
 })(window);
 </script>
 
