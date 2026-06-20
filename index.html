@@ -509,7 +509,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:480px){.tab-btn{font-size:12px;font-weight:800;padding:4px 5px;letter-spacing:0}.app-tabs-right{min-width:48px}#runAllBtn{font-size:16px;font-weight:800;padding:4px 4px}#runAllStatus{display:none}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
-.breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#ffffff;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px}
+.breadth-panel{--bp-bg:#ffffff;--bp-bg2:#ffffff;--bp-bg3:#ffffff;--bp-border:#e0e0e0;--bp-border2:#cccccc;--bp-bull:#2e7d32;--bp-bull2:#1b5e20;--bp-bear:#c62828;--bp-bear2:#b71c1c;--bp-side:#e65100;--bp-side2:#bf360c;--bp-large:#1565c0;--bp-mid:#7b1fa2;--bp-small:#d84315;--bp-text:#000000;--bp-muted:#000000;--bp-accent:#000000;font-family:'Segoe UI',Arial,sans-serif;background:var(--bp-bg);color:var(--bp-text);min-height:100vh;overflow-x:hidden;border:3px solid var(--bp-border);border-radius:4px;margin:4px;padding-top:10px}
 .breadth-panel *{margin:0;padding:0;box-sizing:border-box}
 .breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#ffffff;border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .breadth-panel .bp-h-left{display:flex;align-items:center;gap:16px}
@@ -733,7 +733,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 /* ── 2.13 TTF RSI Weekly Panel (scoped with #tab-ttf) ── */
 #tab-ttf .ttf-panel * { margin:0; padding:0; box-sizing:border-box; }
-#tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:20px; min-height:100vh; }
+#tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:10px 20px; min-height:100vh; }
 #tab-ttf .ttf-panel h1 { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; letter-spacing:3px; color:#000; margin:0 0 6px 0; text-transform:uppercase; }
 #tab-ttf .ttf-panel .subtitle { font-family:'Segoe UI',Arial,sans-serif; font-size:11px; color:#000; margin-bottom:20px; }
 #tab-ttf .ttf-panel .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
@@ -826,7 +826,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Signal">⚡ SCAN</button>
+    <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Signal">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
@@ -2605,20 +2605,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand-text"
   }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
-  }, lastUpdated && React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11,
-      color: "var(--text-faint)",
-      marginLeft: "2.5em",
-      whiteSpace: "normal",
-      textAlign: "right",
-      lineHeight: 1.3
-    }
-  }, "Updated ", lastUpdated.toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })), hasData && React.createElement("span", {
+  }, hasData && React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 11,
@@ -3708,6 +3695,10 @@ function switchTab(name) {
 }
 
 // ── Scan All: Sequential auto-scan across Scanner → TTF → RS → BA ──
+function updateScanTimestamp(timeStr) {
+  var ts = document.getElementById('scanTimestamp');
+  if (ts) ts.textContent = timeStr ? 'Updated '+timeStr : '';
+}
 window._runAllActive = false;
 function runAllScans() {
   if (window._runAllActive) return;
@@ -3718,6 +3709,7 @@ function runAllScans() {
   function setStatus(msg, done) {
     if (statusEl) { statusEl.textContent = msg; statusEl.style.color = done ? 'var(--green)' : 'var(--orange)'; }
     if (btn) btn.disabled = !done;
+    if (done) updateScanTimestamp(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
   }
 
   setStatus('1/6 Scanner…');
@@ -4937,7 +4929,7 @@ initBreadthScanner();
 <!-- 8.2 RS CSS v2 -->
 <style>
 /* panel visibility — controlled by .tab-panel.active */
-.rs-wrap { max-width:1600px; margin:0 auto; padding:20px; font-family:'Segoe UI',Arial,sans-serif; }
+.rs-wrap { max-width:1600px; margin:0 auto; padding:10px 20px; font-family:'Segoe UI',Arial,sans-serif; }
 
 /* Header */
 .rs-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
@@ -4950,7 +4942,7 @@ initBreadthScanner();
 .rs-fml sub { font-size:8px; }
 .rs-fml-sep { color:#000000; font-size:10px; }
 .rs-header-right { text-align:right; }
-.rs-lastupdated { font-size:9px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
+.rs-lastupdated { display:none; font-size:9px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
 
 /* Steps */
 .rs-steps { display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
@@ -5848,7 +5840,7 @@ async function runScan(){
     $('rsSumAmcFound').textContent=amcFound;
 
     S.lastScan=new Date();
-    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); if(typeof updateScanTimestamp==='function')updateScanTimestamp(S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     updateCacheStatus(); // refresh badge to show if cache was used or freshly saved
 
     // Save RS leader+AMC names for cross-tab green highlight
@@ -5927,7 +5919,7 @@ EL.rsResetBtn.addEventListener('click',function(){
   EL.rsProgressWrap.style.display='none';
   EL.rsTableBody.innerHTML='';
   EL.rsAiBtn.style.display='none';
-  EL.rsLastUpdated.textContent='Not scanned yet';
+  EL.rsLastUpdated.textContent='Not scanned yet'; if(typeof updateScanTimestamp==='function')updateScanTimestamp('');
   setStep(0);
 });
 
@@ -6050,7 +6042,7 @@ win.onRSTabActivated=function(){
     var sf=$('rsSumAmcFound'); if(sf) sf.textContent=amcFound;
     if(snap.ts){
       var d=new Date(snap.ts);
-      EL.rsLastUpdated.textContent='Last scan: '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (cached)';
+      EL.rsLastUpdated.textContent='Last scan: '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (cached)'; if(typeof updateScanTimestamp==='function')updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     }
     renderRSTable();
     EL.rsSummaryRow.style.display='flex';
@@ -6271,7 +6263,7 @@ win.rsToggleWL=rsToggleWL;
 
 <!-- 9.2 BA CSS -->
 <style>
-.ba-wrap{max-width:1400px;margin:0 auto;padding:20px;font-family:var(--sans);}
+.ba-wrap{max-width:1400px;margin:0 auto;padding:10px 20px;font-family:var(--sans);}
 
 /* Header */
 .ba-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
@@ -6280,7 +6272,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-logo span{color:#000;}
 .ba-subtitle{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;}
 .ba-header-right{text-align:right;}
-.ba-lastupdated{font-family:var(--mono);font-size:9px;color:#000000;text-align:right;}
+.ba-lastupdated{display:none;font-family:var(--mono);font-size:9px;color:#000000;text-align:right;}
 
 /* Legend */
 .ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#000000;}
@@ -6924,7 +6916,7 @@ async function runBAsScan(){
 
     setBAProgress(100,'Done!');
     setTimeout(function(){baEl('baProgressWrap').style.display='none';},1200);
-    baEl('baLastUpdated').textContent='Last scan: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    baEl('baLastUpdated').textContent='Last scan: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); if(typeof updateScanTimestamp==='function')updateScanTimestamp(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     baEl('baFootnote').style.display='block';
 
   }catch(e){
@@ -6977,7 +6969,7 @@ function restoreBACache() {
     if (snap.debtLabel) baEl('baDebtLabel').textContent = snap.debtLabel;
     if (snap.ts) {
       var d = new Date(snap.ts);
-      baEl('baLastUpdated').textContent = 'Last scan: ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (cached)';
+      baEl('baLastUpdated').textContent = 'Last scan: ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (cached)'; if(typeof updateScanTimestamp==='function')updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     }
     return true;
   } catch(e) { return false; }
