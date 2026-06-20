@@ -1599,7 +1599,7 @@ const Scanner = () => {
   });
   const [sortConfig, setSortConfig] = useState({
     key: 'regime',
-    direction: 'asc'
+    direction: 'desc'
   });
   const [sortField1, setSortField1] = useState('');
   const [sortDir1, setSortDir1] = useState('asc');
@@ -1645,8 +1645,8 @@ const Scanner = () => {
     return () => window.removeEventListener('storage', handler);
   }, []);
   const requestSort = key => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
     setSortConfig({
       key,
       direction
@@ -1654,7 +1654,7 @@ const Scanner = () => {
   };
   const getSortIcon = key => {
     if (sortConfig.key !== key) return '';
-    return sortConfig.direction === 'asc' ? ' ▲' : ' ▼';
+    return sortConfig.direction === 'desc' ? ' ▼' : ' ▲';
   };
   const toggleWatchlist = name => {
     setWatchlist(prev => {
