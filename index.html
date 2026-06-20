@@ -497,7 +497,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .app-tabs-btns{display:flex;flex-wrap:wrap;gap:0;flex:1;align-content:flex-start}
 .app-tabs-right{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border-left:1px solid var(--border2);padding:4px 12px;min-width:72px}
 .app-tabs-right #runAllStatus{font-family:var(--mono);font-size:9px;color:var(--orange);white-space:nowrap}
-#runAllBtn{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:8px 12px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border-radius:4px;width:100%;text-align:center}
+#runAllBtn{background:var(--orange);color:#000;font-family:var(--mono);font-size:16px;font-weight:800;padding:8px 12px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border-radius:4px;width:100%;text-align:center}
 .tab-btn{font-family:var(--mono);font-size:16px;font-weight:800;padding:10px 20px;border:none;background:transparent;color:#000000;cursor:pointer;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid transparent;transition:all .15s}
 .tab-btn:hover{color:var(--text);background:var(--surface2)}
 .tab-btn.active{color:var(--orange);border-bottom-color:var(--orange);background:var(--orange-dim)}
@@ -3802,6 +3802,8 @@ function runAllScans() {
                                         window._runAllActive = false;
                                         switchTab('scanner');
                                         setStatus(baStillRunning ? '✓ 6/6 complete (BA still running in background)' : '✓ All 6 scans complete', true);
+                                        if (typeof fetchBpMacroLive === 'function') { fetchBpMacroLive(); }
+                                        if (typeof updateBpPrices === 'function') { updateBpPrices(); }
                                       }
                                     }, 500);
                                     setTimeout(function() {
@@ -3942,13 +3944,39 @@ const BP_SECTORS = [
   {name:'MEDIA',rsi:38,sma:42},{name:'PSU BANK',rsi:35,sma:39}
 ];
 
-const BP_MACRO = [
+var BP_MACRO = [
   {icon:'📈',label:'GDP GROWTH',value:'7.2%',trend:'↑ Q4 FY25',status:'pos'},
   {icon:'🏦',label:'RBI RATE',value:'6.25%',trend:'↓ Cut 25bps',status:'pos'},
   {icon:'🏭',label:'PMI MFG',value:'58.5',trend:'↑ 3yr high',status:'pos'},
   {icon:'💰',label:'GST COLLECT',value:'₹2.1L Cr',trend:'↑ 12% YoY',status:'pos'},
-  {icon:'💱',label:'USD/INR',value:'₹95.2',trend:'↑ Weak INR',status:'neu'}
+  {icon:'💱',label:'USD/INR',value:'₹--',trend:'--',status:'neu'}
 ];
+
+async function fetchBpMacroLive() {
+  try {
+    for (var pi = 0; pi < CORS_FALLBACKS.length; pi++) {
+      try {
+        var r = await fetch(CORS_FALLBACKS[pi] + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/INR=X?interval=1d&range=5d'), {signal: AbortSignal.timeout(12000)});
+        if (!r.ok) continue;
+        var j = await r.json();
+        var res = j && j.chart && j.chart.result && j.chart.result[0];
+        if (!res) continue;
+        var closes = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+        var usdInr = closes.filter(function(c){return c != null;}).pop();
+        if (usdInr != null && !isNaN(usdInr)) {
+          BP_MACRO[4].value = '₹' + usdInr.toFixed(2);
+          var prev = closes.length >= 2 ? closes[closes.length - 2] : null;
+          if (prev != null) {
+            BP_MACRO[4].trend = (usdInr >= prev ? '↑ Weak INR' : '↓ Strong INR');
+            BP_MACRO[4].status = (usdInr >= prev ? 'neg' : 'pos');
+          }
+          renderBpMacro();
+        }
+        break;
+      } catch(e) { continue; }
+    }
+  } catch(_) {}
+}
 
 let bpChartInst = null;
 
@@ -4061,6 +4089,34 @@ function renderBpChart() {
   });
 }
 
+function updateBpPrices() {
+  var niftyEl = document.getElementById('bpNiftyVal');
+  if (!niftyEl) return;
+  try {
+    var raw = localStorage.getItem('ld_scanner_cache');
+    if (raw) {
+      var snap = JSON.parse(raw);
+      var results = snap.results || {};
+      var nifty = results["nifty50"];
+      if (nifty && nifty.price != null) {
+        niftyEl.textContent = nifty.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+        var athEls = document.querySelectorAll('.bp-ath-item');
+        if (athEls.length >= 3) {
+          var midcap = results["niftymidcap150"];
+          var smallcap = results["niftysmallcap250"];
+          if (midcap && midcap.price != null) {
+            var midAthVal = athEls[1].querySelector('.bp-ath-val');
+            if (midAthVal) midAthVal.textContent = midcap.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+          }
+          if (smallcap && smallcap.price != null) {
+            var smAthVal = athEls[2].querySelector('.bp-ath-val');
+            if (smAthVal) smAthVal.textContent = smallcap.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+          }
+        }
+      }
+    }
+  } catch(_) {}
+}
 function updateBpVerdict() {
   const avg = (BP_DATA.large.at(-1) + BP_DATA.mid.at(-1) + BP_DATA.small.at(-1)) / 3;
   const reg = bpRegime(avg);
@@ -4166,6 +4222,8 @@ function renderBpRecommendations() {
 }
 
 function initBreadthScanner() {
+  updateBpPrices();
+  fetchBpMacroLive();
   renderBpCards();
   renderBpStrats();
   renderBpSectors();
