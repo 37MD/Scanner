@@ -1520,7 +1520,7 @@ function ConfPill({
 // BA calls (callGeminiBA, callGeminiBA_Batch, callGeminiAudit) and by the RS
 // Scanner's AMC check. Each model is tried with API key 1 across all 4
 // models, then the same 4 models are retried with API key 2.
-const GEMINI_MODEL_CASCADE = [{
+var GEMINI_MODEL_CASCADE = [{
   key: 1,
   model: 'gemini-3.1-flash-lite'
 }, {
@@ -3462,7 +3462,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "btn-scan",
     style: { marginTop: 16 },
     onClick: handleScan
-  }, "⚡ Step 1 - Execute X-Ray Audit"))), React.createElement("button", {
+  }, "⚡ Step 1 - Execute X-Ray Audit"))),
     auditModal.show && React.createElement("div", {
     style: {
       position: 'fixed',
