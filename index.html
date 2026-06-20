@@ -735,8 +735,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 /* ── 2.13 TTF RSI Weekly Panel (scoped with #tab-ttf) ── */
 #tab-ttf .ttf-panel * { margin:0; padding:0; box-sizing:border-box; }
 #tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:20px; min-height:100vh; }
-#tab-ttf .ttf-panel h1 { font-size:22px; margin-bottom:5px; color:#000; }
-#tab-ttf .ttf-panel .subtitle { font-size:13px; color:#000; margin-bottom:20px; }
+#tab-ttf .ttf-panel h1 { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; letter-spacing:3px; color:#000; margin-bottom:5px; text-transform:uppercase; }
+#tab-ttf .ttf-panel .subtitle { font-family:'Segoe UI',Arial,sans-serif; font-size:11px; color:#000; margin-bottom:20px; }
 #tab-ttf .ttf-panel .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
 #tab-ttf .ttf-panel .btn { background:#d4880f; color:#000; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
 #tab-ttf .ttf-panel .btn:hover { background:#e6a020; }
@@ -784,8 +784,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 /* ── Mobile: TTF responsive (≤600px) ── */
 @media(max-width:600px) {
   #tab-ttf .ttf-panel { padding:10px; }
-  #tab-ttf .ttf-panel h1 { font-size:16px; }
-  #tab-ttf .ttf-panel .subtitle { font-size:11px; margin-bottom:12px; }
+  #tab-ttf .ttf-panel h1 { font-size:14px; }
+  #tab-ttf .ttf-panel .subtitle { font-size:10px; margin-bottom:12px; }
   #tab-ttf .ttf-panel .controls { flex-direction:column; align-items:stretch; gap:8px; }
   #tab-ttf .ttf-panel .btn { padding:10px 16px; font-size:12px; text-align:center; }
   #tab-ttf .ttf-panel .controls label { font-size:11px; }
@@ -804,7 +804,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 @media(max-width:480px) {
   #tab-ttf .ttf-panel { padding:6px; }
-  #tab-ttf .ttf-panel h1 { font-size:14px; }
+  #tab-ttf .ttf-panel h1 { font-size:12px; }
   #tab-ttf .ttf-panel tbody td.idx { max-width:90px; width:90px; font-size:9px; }
   #tab-ttf .ttf-panel thead th { font-size:8px; padding:3px 1px; }
   #tab-ttf .ttf-panel .subtitle { font-size:10px; }
@@ -940,8 +940,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ── 3.4 TTF RSI Weekly Scanner Panel ── -->
 <div id="tab-ttf" class="tab-panel">
 <div class="ttf-panel">
-<h1>&#9650; TTF RSI Weekly Scanner</h1>
-<p class="subtitle">NSE Daily OHLC &middot; RSI(4,6,8) Weekly Zones + Daily</p>
+<h1>TTF RSI Weekly Scanner</h1>
+<p class="subtitle">NSE Daily OHLC · RSI(4,6,8) Weekly Zones + Daily</p>
 <div class="controls">
   <label><input type="checkbox" id="rsi8Filter" checked> RSI(8) Weekly &ge; 45 only</label>
 </div>
@@ -2606,7 +2606,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand"
   }, React.createElement("div", {
     className: "brand-text"
-  }, React.createElement("h1", null, "Nifty Index Scanner"), React.createElement("p", null, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
+  }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:0,textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
   }, lastUpdated && React.createElement("span", {
     style: {
@@ -4945,9 +4945,9 @@ initBreadthScanner();
 /* Header */
 .rs-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
 .rs-header-left { display:flex; align-items:flex-start; gap:14px; flex-direction:column; }
-.rs-logo { font-family:'Segoe UI Mono','Courier New',monospace; font-size:20px; font-weight:800; color:var(--text); letter-spacing:2px; }
-.rs-logo span { color:var(--orange); }
-.rs-header-sub { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:#000000; }
+.rs-logo { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; color:#000; letter-spacing:3px; }
+.rs-logo span { color:#000; }
+.rs-header-sub { font-family:'Segoe UI',Arial,sans-serif; font-size:11px; color:#000; }
 .rs-formula-bar { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
 .rs-fml { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; color:var(--orange); background:var(--orange-dim); padding:2px 8px; border:1px solid var(--orange); }
 .rs-fml sub { font-size:8px; }
@@ -5235,7 +5235,7 @@ initBreadthScanner();
 
 @media(max-width:600px){
   .rs-wrap{padding:10px}
-  .rs-logo{font-size:16px}
+  .rs-logo{font-size:14px}
   .rs-steps{display:none}
   .rs-summary-row{gap:6px}
   .rs-sum-card{min-width:90px;padding:8px 10px}
@@ -6163,8 +6163,8 @@ win.rsToggleWL=rsToggleWL;
 <div id="tab-pt" class="tab-panel">
 <div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
-<h2 style="color:#cc5500;font-size:16px;margin-bottom:3px">Paper Trade</h2>
-<p style="color:#b8860b;font-size:8px;margin-bottom:8px">V9E_DEFAULT + ALL indicators + MONTHLY | Rs 10,00,000 | 158 NSE indices</p>
+<h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">Paper Trade</h2>
+<p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin-bottom:8px">V9E_DEFAULT + ALL indicators + MONTHLY | Rs 10,00,000 | 158 NSE indices</p>
 
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0">
   <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Portfolio</div><div id="pt-pv" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 10,00,000</div></div>
@@ -6214,8 +6214,8 @@ win.rsToggleWL=rsToggleWL;
 <div id="tab-rsi" class="tab-panel">
 <div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
-  <h2 style="color:#cc5500;font-size:15px;margin:0 0 2px">📡 RSI Buy &amp; Sell Timing</h2>
-  <p style="color:#888;font-size:8px;margin:0 0 10px">D-RSI(8) &middot; D-RSI(50) &middot; W-RSI(50) &middot; Close + Signal columns &middot; click row for Cloud &amp; History</p>
+  <h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">RSI Buy &amp; Sell Timing</h2>
+  <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin:0 0 10px">D-RSI(8) · D-RSI(50) · W-RSI(50) · Close + Signal columns · click row for Cloud &amp; History</p>
 
   <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">—</div>
 
@@ -6281,9 +6281,9 @@ win.rsToggleWL=rsToggleWL;
 /* Header */
 .ba-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
 .ba-header-left{display:flex;flex-direction:column;gap:4px;}
-.ba-logo{font-family:var(--mono);font-size:20px;font-weight:800;color:var(--text);letter-spacing:2px;}
-.ba-logo span{color:var(--orange);}
-.ba-subtitle{font-family:var(--mono);font-size:10px;color:#000000;}
+.ba-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:#000;letter-spacing:3px;}
+.ba-logo span{color:#000;}
+.ba-subtitle{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;}
 .ba-header-right{text-align:right;}
 .ba-lastupdated{font-family:var(--mono);font-size:9px;color:#000000;text-align:right;}
 
