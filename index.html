@@ -4,7 +4,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner_B3</title>
+<title>Scanner_B6</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -2609,7 +2609,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand-icon"
   }, "LD"), React.createElement("div", {
     className: "brand-text"
-  }, React.createElement("h1", null, "Scanner_B3"), React.createElement("p", null, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
+  }, React.createElement("h1", null, "Scanner_B6"), React.createElement("p", null, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
   }, lastUpdated && React.createElement("span", {
     style: {
@@ -4650,8 +4650,8 @@ initBreadthScanner();
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!--  8. RS SCANNER v2 — RELATIVE STRENGTH · MF & ETF ONLY         -->
 <!--  Formula: RS_1M = (Fund_ret_1M - Bench_ret_1M)                -->
-<!--           RS_2M = (Fund_ret_2M - Bench_ret_2M) [approx 2×1M]  -->
-<!--           RS_3M = (Fund_ret_3M - Bench_ret_3M) [approx 1Y÷4]  -->
+<!--           RS_2M = (Fund_ret_2M - Bench_ret_2M) [real, ~42 trading days] -->
+<!--           RS_3M = (Fund_ret_3M - Bench_ret_3M) [real, ~63 trading days] -->
 <!--  Signal: LEADER if RS_1M>0 & RS_3M>0, IMPROVING if RS_1M>0   -->
 <!--  AMC Check via Gemini: HDFC, ICICI, Kotak, Aditya Birla MF    -->
 <!-- ════════════════════════════════════════════════════════════════ -->
@@ -4767,12 +4767,12 @@ initBreadthScanner();
       <div class="rs-fb-item">
         <div class="rs-fb-label">RS (2 Month)</div>
         <div class="rs-fb-val">Fund_2M% − Benchmark_2M%</div>
-        <div class="rs-fb-note">≈ 2 × 1M return (NSE proxy)</div>
+        <div class="rs-fb-note">Real return, ~42 trading days back (historical closes)</div>
       </div>
       <div class="rs-fb-item">
         <div class="rs-fb-label">RS (3 Month)</div>
         <div class="rs-fb-val">Fund_3M% − Benchmark_3M%</div>
-        <div class="rs-fb-note">≈ 1Y return ÷ 4 (NSE proxy)</div>
+        <div class="rs-fb-note">Real return, ~63 trading days back (historical closes)</div>
       </div>
       <div class="rs-fb-item">
         <div class="rs-fb-label">RS Score</div>
@@ -4876,7 +4876,7 @@ initBreadthScanner();
   </div>
 
   <div style="margin-top:16px;font-size:10px;color:#000000;text-align:center;font-family:'Segoe UI Mono','Courier New',monospace;">
-    Data: NSE allIndices API · RS = Return differential vs benchmark · AMC data via Gemini AI · 2M ≈ 2×1M proxy · 3M ≈ 1Y÷4 proxy
+    Data: NSE allIndices API · RS = Return differential vs benchmark · AMC data via Gemini AI · 2M/3M from real historical closes
   </div>
 
 </div><!-- .rs-wrap -->
@@ -4912,7 +4912,11 @@ initBreadthScanner();
 /* Controls */
 .rs-controls-bar { background:var(--surface); border:1px solid var(--border2); padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
 .rs-controls-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.rs-controls-right { display:flex; align-items:center; gap:8px; }
+.rs-controls-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+@media(max-width:480px){
+  .rs-controls-right { width:100%; justify-content:flex-start; }
+  .rs-btn-ai, .rs-btn-cache-clear { flex:1 1 auto; text-align:center; }
+}
 .rs-btn-primary { background:var(--orange); color:#000; font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; font-weight:700; padding:9px 22px; border:none; cursor:pointer; letter-spacing:1px; text-transform:uppercase; clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); }
 .rs-btn-primary:hover { background:#e6a020; }
 .rs-btn-stop { background:transparent; color:var(--red); font-family:'Segoe UI Mono','Courier New',monospace; font-size:12px; font-weight:700; padding:9px 20px; border:1px solid var(--red); cursor:pointer; }
@@ -7167,7 +7171,7 @@ async function ptRunScan(){
     }
     if(pm.price>0)closes=closes.concat([pm.price]);
     if(closes.length<20)continue;
-    var row=ptComputeRow(closes,pm.name||key);
+    var row=ptComputeRow(closes,pm._nseName||pm.name||key);
     if(!row)continue;
     row.change=pm.change||0;
     ptScanR.push(row);count++;
@@ -7443,7 +7447,12 @@ function rsiFillDaily(el,name){
     var sd=win._ldScannerData;
     if(!sd||!sd.dailyMap)return;
     var entries=sd.dailyMap[name.toLowerCase()];
-    if(!entries||entries.length<20){el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';return;}
+    if(!entries||entries.length<20){
+      var noneAtAll = !entries || entries.length===0;
+      el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';
+      el.cells[5].textContent = noneAtAll ? 'NO HISTORY FOR THIS INDEX' : 'INSUFFICIENT DATA';
+      return;
+    }
     var c=[];for(var i=0;i<entries.length;i++)c.push(+entries[i].split('|')[4]);
     var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
     if(!r50d.length||!r8d.length){el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';return;}
