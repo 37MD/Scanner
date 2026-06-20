@@ -3820,7 +3820,7 @@ function switchTab(name) {
   document.querySelector('.tab-btn[onclick*="' + name + '"]').classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'breadth' && !window._bpInited) { window._bpInited = true; initBreadthScanner(); }
-  if (name === 'ttf' && window.TTFScanner && !window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); }
+  if (name === 'ttf' && window.TTFScanner) { if (!window._ttfInited) { window._ttfInited = true; if (typeof TTFScanner._loadCache === 'function') TTFScanner._loadCache(); } if (typeof TTFScanner.run === 'function') TTFScanner.run(); }
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
   if (name === 'pt' && typeof window.onPTTabActivated === 'function') { window.onPTTabActivated(); }
@@ -4368,7 +4368,8 @@ initBreadthScanner();
   // ── 7.1 Configuration ──
   var CORS_LIST   = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
   var NSE_API     = 'https://www.nseindia.com/api/allIndices';
-  var CSV_URL     = 'https://nsearchives.nseindia.com/content/indices/ind_close_all_','https://archives.nseindia.com/content/indices/ind_close_all_';
+  var CSV_URL     = 'https://nsearchives.nseindia.com/content/indices/ind_close_all_';
+  var CSV_URL_FALLBACK = 'https://archives.nseindia.com/content/indices/ind_close_all_';
   async function fetchProxy(url, opts) {
     var lastErr = new Error('All proxies failed for: ' + url);
     for (var pi = 0; pi < CORS_LIST.length; pi++) {
@@ -4701,6 +4702,30 @@ initBreadthScanner();
     if (sd && sd.dailyMap && Object.keys(sd.dailyMap).length > 10) {
       setStatus('<span class="spinner"></span> Using cached data from Lie Detector (' + Object.keys(sd.dailyMap).length + ' dates)...');
       completeScan(sd.priceMap, sd.indexList, sd.dailyMap, 'from Lie Detector cache');
+      return;
+    }
+    if (typeof EMBEDDED_NSE_DATA !== 'undefined' && EMBEDDED_NSE_DATA.indices && typeof EMBEDDED_HISTORICAL !== 'undefined') {
+      var tDays = genTradingDays(800);
+      var indexList = [], priceMap = {}, dailyMap = {};
+      EMBEDDED_NSE_DATA.indices.forEach(function(idx) {
+        var key = normalize(idx.n);
+        priceMap[key] = { price: idx.p, open: idx.o, high: idx.h, low: idx.l };
+        indexList.push({ name: idx.n, key: key });
+        var closes = EMBEDDED_HISTORICAL[key];
+        if (!closes || closes.length < 5) return;
+        var entries = [];
+        var n = Math.min(closes.length, tDays.length);
+        for (var j = 0; j < n; j++) {
+          var td = tDays[tDays.length - 1 - j];
+          var dd = String(td.getDate()).padStart(2, '0');
+          var mm = String(td.getMonth() + 1).padStart(2, '0');
+          var yyyy = td.getFullYear();
+          entries.push(dd + mm + yyyy + '|' + closes[j] + '|' + closes[j] + '|' + closes[j] + '|' + closes[j]);
+        }
+        if (entries.length > 0) dailyMap[idx.n.toLowerCase()] = entries;
+      });
+      setStatus('<span class="spinner"></span> Using embedded 800-day data (' + indexList.length + ' indices)...');
+      completeScan(priceMap, indexList, dailyMap, 'embedded 800-day snapshot');
       return;
     }
     setStatus('<span class="spinner"></span> Fetching NSE index list...');
