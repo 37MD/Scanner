@@ -499,8 +499,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .tab-btn.active{color:var(--orange);border-bottom-color:var(--orange);background:var(--orange-dim)}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
-@media(max-width:600px){.app-tabs{padding:0 8px}.tab-btn{font-size:9px;padding:8px 10px;letter-spacing:0.5px}}
-@media(max-width:480px){.tab-btn{font-size:8px;padding:6px 5px;letter-spacing:0}.app-tabs{gap:2px}}
+@media(max-width:600px){.app-tabs{padding:0 8px;overflow-x:auto;flex-wrap:nowrap}.app-tabs>div:first-child{flex-shrink:1;min-width:0;overflow-x:auto}.tab-btn{font-size:9px;padding:8px 10px;letter-spacing:0.5px;white-space:nowrap}}
+@media(max-width:480px){.tab-btn{font-size:8px;padding:6px 5px;letter-spacing:0}.app-tabs{gap:2px;overflow-x:auto;flex-wrap:nowrap}.app-tabs>div:first-child{flex-shrink:1;min-width:0;overflow-x:auto}}
 @media(max-width:600px){#runAllBtn{font-size:9px;padding:5px 8px}#runAllStatus{display:none}}
 
 /* ── 2.12 Market Breadth Scanner (scoped with .breadth-panel) ── */
