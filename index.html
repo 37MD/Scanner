@@ -1561,14 +1561,12 @@ const Scanner = () => {
   });
   const [results, setResults] = useState({});
   const [nseData, setNseData] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [regimeFilter, setRegimeFilter] = useState("ALL");
   const [phaseFilter, setPhaseFilter] = useState("ALL");
   const [catFilter, setCatFilter] = useState("ALL");
   const [baFilter, setBaFilter] = useState(null);
   const [error, setError] = useState(null);
-  const [dataSource, setDataSource] = useState(null);
   const [liveDetail, setLiveDetail] = useState('');
   const [liveStatus, setLiveStatus] = useState('ok'); // 'ok' | 'partial' | 'stale'
   const stopRef = useRef(false);
@@ -1619,7 +1617,6 @@ const Scanner = () => {
           console.log('[LD] Restored cache:', Object.keys(snap.results).length, 'indices,', snap.baResults ? Object.keys(snap.baResults).length + ' BA' : 'no BA');
           setResults(snap.results);
           if (snap.baResults) setBaResults(snap.baResults);
-          setLastUpdated(new Date());
           setPhase('done');
         }
       } else {
@@ -2016,13 +2013,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
         total: 1,
         label: `${nseRaw.length} indices loaded`
       });
-      if (EMBEDDED_NSE_DATA.timestamp) {
-        try {
-          const d = new Date(EMBEDDED_NSE_DATA.timestamp);
-          if (!isNaN(d)) setLastUpdated(d);
-        } catch (_) {}
-        setDataSource(EMBEDDED_NSE_DATA.source === 'live' ? 'LIVE' : 'ARCHIVE');
-      }
       const priceMap = {};
       const indexList = [];
       nseRaw.forEach(idx => {
@@ -2081,7 +2071,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
                   priceMap[key].perChange365d = parseFloat(idx.perChange365d) || null;
                 }
               });
-              setDataSource('LIVE');
               setLiveDetail('Live NSE prices loaded via proxy ' + (pi+1) + '.');
               liveSucceeded = true;
             } else {
@@ -2092,7 +2081,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
       } catch (e) { liveFailReason = e.message || 'unknown error'; }
       if (!liveSucceeded) {
-        setDataSource('ARCHIVE');
         setLiveStatus('stale');
         setLiveDetail('⚠ Live price fetch failed (' + (liveFailReason || 'all proxies unreachable') + '). Showing archived data' + (EMBEDDED_NSE_DATA.validTill ? ' valid till ' + EMBEDDED_NSE_DATA.validTill : '') + '.');
       }
@@ -2230,7 +2218,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
           nseRaw: nseRawWith30d
         };
       } else {
-        if (EMBEDDED_NSE_DATA.source !== 'live') setDataSource('SNAPSHOT');
         const total = indexList.length;
         for (let i = 0; i < total; i++) {
           if (stopRef.current) break;
@@ -2389,7 +2376,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
         total: 0,
         label: ""
       });
-      if (EMBEDDED_NSE_DATA.source !== 'live') setLastUpdated(new Date());
       setPhase('done');
       if (typeof window.onScannerComplete === 'function') {
         try {
@@ -3038,7 +3024,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }, vixPrice.toFixed(1)), vixOpen != null && React.createElement("span", {
       style: {
         fontSize: 9,
-        color: "var(--text-dim)"
+        color: vixPrice - vixOpen > 0 ? "var(--green)" : "var(--red)"
       }
     }, vixPrice - vixOpen > 0 ? '▲' : '▼', Math.abs((vixPrice - vixOpen) / vixOpen * 100).toFixed(1), "%")), React.createElement("div", {
       style: {
@@ -4714,7 +4700,6 @@ initBreadthScanner();
       </div>
     </div>
     <div class="rs-header-right">
-      <div class="rs-lastupdated" id="rsLastUpdated">Not scanned yet</div>
     </div>
   </div>
 
@@ -4936,7 +4921,7 @@ initBreadthScanner();
 .rs-fml sub { font-size:8px; }
 .rs-fml-sep { color:#000000; font-size:10px; }
 .rs-header-right { text-align:right; }
-.rs-lastupdated { display:none; font-size:9px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; text-align:right; }
+
 
 /* Steps */
 .rs-steps { display:flex; align-items:center; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
@@ -5303,7 +5288,7 @@ var EL = {};
  'rsProgressPct','rsProgressFill','rsProgressSub','rsError','rsSummaryRow',
  'rsFormulaBox','rsAmcLegend','rsTableWrap','rsTableBody','rsBenchmarkSelect',
  'rsSignalFilter','rsAmcFilter','rsAiBtn','rsAiModal','rsAiClose',
- 'rsAiLoading','rsAiError','rsAiResult','rsClockDisplay','rsLastUpdated',
+ 'rsAiLoading','rsAiError','rsAiResult','rsClockDisplay',
  'rsStep1','rsStep2','rsStep3','rsStep4','rsStep5',
  'rsClearCacheBtn','rsAmcCacheStatus'
 ].forEach(function(id){ EL[id]=$(''+id); });
@@ -5834,7 +5819,7 @@ async function runScan(){
     $('rsSumAmcFound').textContent=amcFound;
 
     S.lastScan=new Date();
-    EL.rsLastUpdated.textContent='Last scan: '+S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); if(typeof updateScanTimestamp==='function')updateScanTimestamp(S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+    updateScanTimestamp(S.lastScan.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     updateCacheStatus(); // refresh badge to show if cache was used or freshly saved
 
     // Save RS leader+AMC names for cross-tab green highlight
@@ -5913,7 +5898,7 @@ EL.rsResetBtn.addEventListener('click',function(){
   EL.rsProgressWrap.style.display='none';
   EL.rsTableBody.innerHTML='';
   EL.rsAiBtn.style.display='none';
-  EL.rsLastUpdated.textContent='Not scanned yet'; if(typeof updateScanTimestamp==='function')updateScanTimestamp('');
+  updateScanTimestamp('');
   setStep(0);
 });
 
@@ -6036,7 +6021,7 @@ win.onRSTabActivated=function(){
     var sf=$('rsSumAmcFound'); if(sf) sf.textContent=amcFound;
     if(snap.ts){
       var d=new Date(snap.ts);
-      EL.rsLastUpdated.textContent='Last scan: '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (cached)'; if(typeof updateScanTimestamp==='function')updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+      updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     }
     renderRSTable();
     EL.rsSummaryRow.style.display='flex';
@@ -6077,7 +6062,6 @@ win.rsToggleWL=rsToggleWL;
       <div class="ba-subtitle">Gold-powered portfolio rankings · 6-month blocks · Last 3 years</div>
     </div>
     <div class="ba-header-right">
-      <div class="ba-lastupdated" id="baLastUpdated"></div>
     </div>
   </div>
 
@@ -6266,7 +6250,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-logo span{color:#000;}
 .ba-subtitle{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;}
 .ba-header-right{text-align:right;}
-.ba-lastupdated{display:none;font-family:var(--mono);font-size:9px;color:#000000;text-align:right;}
+
 
 /* Legend */
 .ba-legend-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-family:var(--mono);font-size:10px;color:#000000;}
@@ -6910,7 +6894,7 @@ async function runBAsScan(){
 
     setBAProgress(100,'Done!');
     setTimeout(function(){baEl('baProgressWrap').style.display='none';},1200);
-    baEl('baLastUpdated').textContent='Last scan: '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); if(typeof updateScanTimestamp==='function')updateScanTimestamp(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+    updateScanTimestamp(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     baEl('baFootnote').style.display='block';
 
   }catch(e){
@@ -6963,7 +6947,7 @@ function restoreBACache() {
     if (snap.debtLabel) baEl('baDebtLabel').textContent = snap.debtLabel;
     if (snap.ts) {
       var d = new Date(snap.ts);
-      baEl('baLastUpdated').textContent = 'Last scan: ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + ' (cached)'; if(typeof updateScanTimestamp==='function')updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+      updateScanTimestamp(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
     }
     return true;
   } catch(e) { return false; }
