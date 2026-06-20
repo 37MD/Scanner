@@ -393,7 +393,7 @@ table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
   tbody td{padding:7px 6px;font-size:11px}
   #tab-scanner thead th:nth-child(1),#tab-scanner tbody td:nth-child(1){width:28px;min-width:28px;max-width:28px;padding-left:4px;padding-right:4px;font-size:9px}
   #tab-scanner thead th:nth-child(2),#tab-scanner tbody td:nth-child(2){left:28px}
-  td.name-col{min-width:60px;max-width:70px;font-size:9px;white-space:normal;word-break:break-all}
+  td.name-col{min-width:60px;max-width:70px;font-size:9px;white-space:normal;word-break:break-word}
   .pill{min-width:30px;padding:2px 5px;font-size:8px}
   .conf-pill{min-width:22px;padding:1px 3px;font-size:8px}
   .controls-bar{padding:6px 8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;align-items:start}
@@ -511,8 +511,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 .breadth-panel *{margin:0;padding:0;box-sizing:border-box}
 .breadth-panel .bp-header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#ffffff;border-bottom:1px solid var(--bp-border2);box-shadow:0 2px 12px rgba(0,0,0,0.06)}
 .breadth-panel .bp-h-left{display:flex;align-items:center;gap:16px}
-.breadth-panel .bp-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:var(--bp-accent);letter-spacing:3px}
-.breadth-panel .bp-logo span{color:var(--bp-text)}
+.breadth-panel .bp-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase}
+.breadth-panel .bp-logo span{color:#000}
 .breadth-panel .bp-sub{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:var(--bp-muted)}
 .breadth-panel .bp-h-right{display:flex;align-items:center;gap:24px}
 .breadth-panel #bpNiftyVal{font-size:16px}
@@ -735,7 +735,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 /* ── 2.13 TTF RSI Weekly Panel (scoped with #tab-ttf) ── */
 #tab-ttf .ttf-panel * { margin:0; padding:0; box-sizing:border-box; }
 #tab-ttf .ttf-panel { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:20px; min-height:100vh; }
-#tab-ttf .ttf-panel h1 { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; letter-spacing:3px; color:#000; margin-bottom:5px; text-transform:uppercase; }
+#tab-ttf .ttf-panel h1 { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; letter-spacing:3px; color:#000; margin:0 0 6px 0; text-transform:uppercase; }
 #tab-ttf .ttf-panel .subtitle { font-family:'Segoe UI',Arial,sans-serif; font-size:11px; color:#000; margin-bottom:20px; }
 #tab-ttf .ttf-panel .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
 #tab-ttf .ttf-panel .btn { background:#d4880f; color:#000; border:none; padding:8px 20px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; }
@@ -752,13 +752,13 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 #tab-ttf .ttf-panel .table-wrap { overflow-x:auto; overflow-y:auto; max-height:calc(100vh - 220px); border:1px solid #cccccc; border-radius:8px; }
 #tab-ttf .ttf-panel table { border-collapse:separate; border-spacing:0; font-size:12px; width:100%; min-width:800px; table-layout:fixed; }
 #tab-ttf .ttf-panel thead { z-index:4; }
-#tab-ttf .ttf-panel thead th { background:#ffffff; color:#000; padding:6px 4px; border:1px solid #cccccc; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
+#tab-ttf .ttf-panel thead th { font-family:'Segoe UI',Arial,sans-serif; background:#ffffff; color:#000; padding:6px 4px; border:1px solid #cccccc; text-align:center; font-weight:600; font-size:10px; white-space:nowrap; }
 #tab-ttf .ttf-panel thead th.group-header { background:#ffffff; color:#d4880f; }
 #tab-ttf .ttf-panel thead th.group-header:first-child { width:28px;min-width:28px;max-width:28px; }
 #tab-ttf .ttf-panel thead th.group-header:nth-child(2) { min-width:40px; }
 #tab-ttf .ttf-panel thead th.sub-header { background:#ffffff; font-weight:400; font-size:10px; color:#000 !important; padding:4px 3px; overflow:hidden; }
 #tab-ttf .ttf-panel tbody td { padding:6px 4px; border:1px solid #cccccc; text-align:center; white-space:nowrap; color:#000; }
-#tab-ttf .ttf-panel tbody td.idx { font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; width:170px; }
+#tab-ttf .ttf-panel tbody td.idx { font-family:'Segoe UI',Arial,sans-serif; font-weight:600; text-align:left; padding-left:4px; color:#000; font-size:11px; word-break:break-word; overflow-wrap:break-word; white-space:normal; max-width:170px; width:170px; }
 #tab-ttf .ttf-panel tbody tr:hover td { background:#ffffff; }
 #tab-ttf .ttf-panel tbody tr:hover td.idx { background:#ffffff; }
 #tab-ttf .ttf-panel .empty-row td { color:#000; font-style:italic; text-align:center; }
@@ -791,8 +791,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-ttf .ttf-panel .controls label { font-size:11px; }
   #tab-ttf .ttf-panel .legend { font-size:10px; gap:6px; }
   #tab-ttf .ttf-panel .table-wrap { border-radius:4px; }
-  #tab-ttf .ttf-panel tbody td { padding:4px 3px; font-size:10px; }
-  #tab-ttf .ttf-panel tbody td.idx { font-size:10px; max-width:120px; width:120px; }
+  #tab-ttf .ttf-panel tbody td { font-family:'Segoe UI',Arial,sans-serif; padding:4px 3px; font-size:10px; }
+  #tab-ttf .ttf-panel tbody td.idx { font-family:'Segoe UI',Arial,sans-serif; font-size:9px; max-width:120px; width:120px; }
   #tab-ttf .ttf-panel thead th { padding:4px 2px; font-size:9px; }
   #tab-ttf .ttf-panel .rsi-cell { font-size:10px; }
   #tab-ttf .ttf-panel footer { font-size:10px; }
@@ -805,7 +805,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:480px) {
   #tab-ttf .ttf-panel { padding:6px; }
   #tab-ttf .ttf-panel h1 { font-size:12px; }
-  #tab-ttf .ttf-panel tbody td.idx { max-width:90px; width:90px; font-size:9px; }
+  #tab-ttf .ttf-panel tbody td.idx { font-family:'Segoe UI',Arial,sans-serif; max-width:90px; width:90px; font-size:9px; }
   #tab-ttf .ttf-panel thead th { font-size:8px; padding:3px 1px; }
   #tab-ttf .ttf-panel .subtitle { font-size:10px; }
   #tab-ttf .ttf-panel .legend { font-size:9px; gap:4px; }
@@ -2606,7 +2606,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand"
   }, React.createElement("div", {
     className: "brand-text"
-  }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:0,textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
+  }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
   }, lastUpdated && React.createElement("span", {
     style: {
@@ -4945,7 +4945,7 @@ initBreadthScanner();
 /* Header */
 .rs-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
 .rs-header-left { display:flex; align-items:flex-start; gap:14px; flex-direction:column; }
-.rs-logo { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; color:#000; letter-spacing:3px; }
+.rs-logo { font-family:'Segoe UI',Arial,sans-serif; font-size:18px; font-weight:900; letter-spacing:3px; color:#000; margin:0 0 6px 0; text-transform:uppercase; }
 .rs-logo span { color:#000; }
 .rs-header-sub { font-family:'Segoe UI',Arial,sans-serif; font-size:11px; color:#000; }
 .rs-formula-bar { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
@@ -5090,7 +5090,7 @@ initBreadthScanner();
   background:var(--surface2);
   color:var(--text);
   padding:8px 10px;
-  font-family:'Segoe UI Mono','Courier New',monospace;
+  font-family:'Segoe UI',Arial,sans-serif;
   font-size:10px;
   font-weight:700;
   letter-spacing:1px;
@@ -5127,27 +5127,28 @@ initBreadthScanner();
 #rsTable thead th:last-child { border-right:none; }
 
 #rsTable tbody td {
-  padding:7px 10px;
-  font-family:'Segoe UI Mono','Courier New',monospace;
-  font-size:11px;
-  color:var(--text);
-  border-right:1px solid var(--border);
-  border-bottom:1px solid var(--border);
-  white-space:nowrap;
-  text-align:center;
+  padding: 7px 10px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  color: var(--text);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  text-align: center;
 }
 #rsTable tbody td:last-child { border-right:none; }
 #rsTable tbody tr:hover td { background:var(--surface2)!important; }
 #rsTable tbody td.rs-td-name {
-  text-align:left;
-  font-weight:600;
-  font-size:11px;
-  width:150px;
-  min-width:150px;
-  max-width:150px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* ── Sticky columns — col 1 (#) and col 2 (name) ── */
@@ -5247,7 +5248,7 @@ initBreadthScanner();
   /* Tighter sticky column on mobile */
   #rsTable thead th:nth-child(1), #rsTable tbody td:nth-child(1){width:22px;min-width:22px;max-width:22px;}
   #rsTable thead th:nth-child(2), #rsTable tbody td:nth-child(2){left:22px;width:120px;min-width:120px;max-width:120px;}
-  #rsTable tbody td.rs-td-name{width:120px;min-width:120px;max-width:120px;font-size:10px;}
+  #rsTable tbody td.rs-td-name{width:120px;min-width:120px;max-width:120px;font-family:'Segoe UI',Arial,sans-serif;font-size:9px;word-break:break-word;white-space:normal}
 }
 /* Tablet landscape */
 @media(min-width:601px) and (max-width:900px){
@@ -6189,7 +6190,7 @@ win.rsToggleWL=rsToggleWL;
 
 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
 <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
-  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI14</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Regime</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
+  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI14</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Regime</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
   <tbody id="pt-tb"><tr><td colspan="10" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
 </table>
 </div>
@@ -6223,7 +6224,7 @@ win.rsToggleWL=rsToggleWL;
   <table id="rsi-tbl" style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:#f5f5f5;position:sticky;top:0">
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">#</th>
-      <th style="padding:4px 6px;text-align:left;font-size:9px;color:#888">Index</th>
+      <th style="font-family:'Segoe UI',Arial,sans-serif;padding:4px 6px;text-align:left;font-size:9px;color:#000;text-transform:uppercase">Index</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI8</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI50</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">W-RSI50</th>
@@ -6281,7 +6282,7 @@ win.rsToggleWL=rsToggleWL;
 /* Header */
 .ba-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
 .ba-header-left{display:flex;flex-direction:column;gap:4px;}
-.ba-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;color:#000;letter-spacing:3px;}
+.ba-logo{font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase;}
 .ba-logo span{color:#000;}
 .ba-subtitle{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;}
 .ba-header-right{text-align:right;}
@@ -7253,7 +7254,7 @@ function ptRender(results){
     var held=ptPf.pos[r.name];
     return'<tr style="background:'+(held?'#f0fff0':'#fff')+';border-bottom:1px solid #eee">'+
       '<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px;font-weight:bold">'+r.name.replace('NIFTY ','N')+'</td>'+
+      '<td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:5px 4px;font-size:11px;font-weight:600;color:#000;word-break:break-word;white-space:normal">'+r.name+'</td>'+
       '<td style="padding:5px 4px;font-size:9px">'+ptFmt(r.price)+'</td>'+
       '<td style="padding:5px 4px;font-size:9px;color:'+(r.change>=0?'#1a8a1a':'#cc0000')+'">'+(r.change>=0?'+':'')+r.change.toFixed(1)+'%</td>'+
       '<td style="padding:5px 4px;font-size:9px">'+r.r4+'</td>'+
@@ -7583,7 +7584,7 @@ function rsiRunAll(){
   if(!tb||!sd||!sd.indexList||!sd.indexList.length){if(st)st.textContent='⚠ Run Scanner tab first';return;}
   var all=sd.indexList||[];
   // Pre-fill Sl No + Index Name
-  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="padding:3px 6px;font-weight:bold;color:#0055aa;font-size:10px">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td></tr>';}).join('');
+  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:3px 6px;font-weight:600;color:#000;font-size:11px;word-break:break-word;white-space:normal">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td></tr>';}).join('');
   if(st)st.textContent='⏳ Filling D-RSI8/D-RSI50...';
   // Pass 1: fill daily columns for ALL rows immediately (fast, no batching needed)
   var i,el;
