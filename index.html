@@ -2605,15 +2605,9 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand-text"
   }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
-  }, hasData && React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11,
-      color: "var(--text-dim)"
-    }
-  }, sortedRows.length, " idx"), React.createElement("span", {
+  }, React.createElement("span", {
     className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
-  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? dataSource || 'SCANNED' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
+  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
     className: "main-wrap"
   }, phase === 'done' && liveDetail && React.createElement("div", {
     style: {
