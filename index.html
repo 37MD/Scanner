@@ -2075,7 +2075,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
       } catch (e) { liveFailReason = e.message || 'unknown error'; }
       if (!liveSucceeded) {
         setLiveStatus('stale');
-        setLiveDetail('⚠ Live price fetch failed (' + (liveFailReason || 'all proxies unreachable') + '). Showing archived data' + (EMBEDDED_NSE_DATA.validTill ? ' valid till ' + EMBEDDED_NSE_DATA.validTill : '') + '.');
+        setLiveDetail('⚠ Today data not available');
       }
       setPhase('rsi');
       let tempResults = {};
