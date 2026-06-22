@@ -823,21 +823,21 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ── 3.1 Tab Navigation ── -->
 <div class="app-tabs">
   <div class="app-tabs-btns">
-    <button class="tab-btn active" onclick="switchTab('breadth')">📊 Market Breadth</button>
-    <button class="tab-btn" onclick="switchTab('scanner')">⚡ Nifty Index Scanner</button>
+    <button class="tab-btn active" onclick="switchTab('scanner')">⚡ Nifty Index Scanner</button>
+    <button class="tab-btn" onclick="switchTab('breadth')">📊 Market Breadth</button>
     <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
+    <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
     <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
-    <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
-<!-- ── 3.2 Market Breadth Panel (active by default) ── -->
-<div id="tab-breadth" class="tab-panel active breadth-panel">
+<!-- ── 3.2 Market Breadth Panel ── -->
+<div id="tab-breadth" class="tab-panel breadth-panel">
 
 <div class="bp-header">
   <div class="bp-h-left">
@@ -936,8 +936,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 </div>
-<!-- ── 3.3 Lie Detector V7 (React mount point) ── -->
-<div id="tab-scanner" class="tab-panel">
+<!-- ── 3.3 Lie Detector V7 (React mount point, active by default) ── -->
+<div id="tab-scanner" class="tab-panel active">
 <div id="root"></div>
 </div>
 
@@ -3285,10 +3285,12 @@ Reasoning: [One-line explanation tying data to the rule]`;
   }, React.createElement("table", null, React.createElement("thead", null, React.createElement("tr", {
     className: "group-header"
   }, React.createElement("th", null), React.createElement("th", null), React.createElement("th", {
-    colSpan: "6"
-  }, "Core Condition"), React.createElement("th", {
     colSpan: "2"
-  }, "Confirmation 1"), React.createElement("th", {
+  }, "Price"), React.createElement("th", {
+    colSpan: "2"
+  }, "Trend Filter"), React.createElement("th", {
+    colSpan: "4"
+  }, "RSI & Regime"), React.createElement("th", {
     colSpan: "3"
   }, "Final Decision"), React.createElement("th", {
     colSpan: "2"
@@ -3315,26 +3317,36 @@ Reasoning: [One-line explanation tying data to the rule]`;
   }, "% Chg", getSortIcon('changePct')), React.createElement("th", {
     "data-group": "2",
     className: "group-start",
+    onClick: () => requestSort('wma20Rsi')
+  }, "WMA20", getSortIcon('wma20Rsi')), React.createElement("th", {
+    "data-group": "2",
+    style: {
+      textAlign: "center"
+    },
+    onClick: () => requestSort('priceVsWma')
+  }, "P>WMA", getSortIcon('priceVsWma')), React.createElement("th", {
+    "data-group": "3",
+    className: "group-start",
     style: {
       textAlign: "center"
     },
     onClick: () => requestSort('dRsi14')
   }, "D RSI 4·8·14", getSortIcon('dRsi14')), React.createElement("th", {
-    "data-group": "2",
+    "data-group": "3",
     style: {
       textAlign: "center"
     },
     title: "Approximate weekly RSI — built from every-5-trading-day blocks, not true calendar weeks (NSE holidays cause drift vs TradingView's actual weekly chart)",
     onClick: () => requestSort('wRsi14')
   }, "W RSI 4·8·14 ≈", getSortIcon('wRsi14')), React.createElement("th", {
-    "data-group": "2",
+    "data-group": "3",
     style: {
       textAlign: "center"
     },
     title: "Regime is derived from the approximate weekly RSI (see W RSI ≈ column)",
     onClick: () => requestSort('regime')
   }, "Regime", getSortIcon('regime')), React.createElement("th", {
-    "data-group": "2",
+    "data-group": "3",
     style: {
       textAlign: "center",
       minWidth: 90
@@ -3342,16 +3354,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
     onClick: () => requestSort('baPct'),
     title: "% of index market-cap weight in Regime A (Gemini AI estimate, Regime A indices only)"
   }, "% Wt Regime A", getSortIcon('baPct')), React.createElement("th", {
-    "data-group": "3",
-    className: "group-start",
-    onClick: () => requestSort('wma20Rsi')
-  }, "WMA20", getSortIcon('wma20Rsi')), React.createElement("th", {
-    "data-group": "3",
-    style: {
-      textAlign: "center"
-    },
-    onClick: () => requestSort('priceVsWma')
-  }, "P>WMA", getSortIcon('priceVsWma')), React.createElement("th", {
     "data-group": "4",
     className: "group-start",
     style: {
@@ -3467,6 +3469,16 @@ Reasoning: [One-line explanation tying data to the rule]`;
       }
     }, r.changePct == null ? "—" : `${r.changePct > 0 ? "▲" : r.changePct < 0 ? "▼" : ""}${Math.abs(r.changePct).toFixed(2)}%`), React.createElement("td", {
       "data-group": "2",
+      className: "group-start"
+    }, r.wma20Rsi ?? "—"), React.createElement("td", {
+      "data-group": "2",
+      className: wmaClass,
+      style: {
+        textAlign: "center",
+        fontWeight: 600
+      }
+    }, wmaText), React.createElement("td", {
+      "data-group": "3",
       className: "group-start",
       style: {
         textAlign: "center"
@@ -3484,7 +3496,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }), React.createElement(ConfPill, {
       val: r.dRsi14
     }))), React.createElement("td", {
-      "data-group": "2",
+      "data-group": "3",
       style: {
         textAlign: "center"
       }
@@ -3501,7 +3513,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }), React.createElement(ConfPill, {
       val: r.wRsi14
     }))), React.createElement("td", {
-      "data-group": "2",
+      "data-group": "3",
       style: {
         textAlign: "center"
       }
@@ -3509,7 +3521,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
       v: r.regime,
       logic: r.regime
     })), React.createElement("td", {
-      "data-group": "2",
+      "data-group": "3",
       style: {
         textAlign: "center"
       }
@@ -3545,16 +3557,6 @@ Reasoning: [One-line explanation tying data to the rule]`;
         title: `${pct}% in Regime A | ${ba.bull ?? '?'}/${ba.total ?? '?'} stocks | ${ba.conf} | ${ba.note || ''}`
       }, pct, "% ", confBadge);
     })()), React.createElement("td", {
-      "data-group": "3",
-      className: "group-start"
-    }, r.wma20Rsi ?? "—"), React.createElement("td", {
-      "data-group": "3",
-      className: wmaClass,
-      style: {
-        textAlign: "center",
-        fontWeight: 600
-      }
-    }, wmaText), React.createElement("td", {
       "data-group": "4",
       className: "group-start",
       style: {
@@ -3953,7 +3955,7 @@ function runAllScans() {
                                     window.rsiScanAll();
                                     var rsiPoller = setInterval(function() {
                                       var rsiTbody = document.getElementById('rsi-tbody');
-                                      var rsiDone = rsiTbody && rsiTbody.rows && rsiTbody.rows.length > 0 && rsiTbody.rows[0].cells[4].textContent !== '…';
+                                      var rsiDone = rsiTbody && rsiTbody.rows && rsiTbody.rows.length > 0 && rsiTbody.rows[0].cells[7].textContent !== '…';
                                       if (rsiDone) {
                                         clearInterval(rsiPoller);
                                         window._runAllActive = false;
@@ -3993,7 +3995,7 @@ function runAllScans() {
                                 window.rsiScanAll();
                                 var rsiPoller2 = setInterval(function() {
                                   var rsiTbody2 = document.getElementById('rsi-tbody');
-                                  var rsiDone2 = rsiTbody2 && rsiTbody2.rows && rsiTbody2.rows.length > 0 && rsiTbody2.rows[0].cells[4].textContent !== '…';
+                                  var rsiDone2 = rsiTbody2 && rsiTbody2.rows && rsiTbody2.rows.length > 0 && rsiTbody2.rows[0].cells[7].textContent !== '…';
                                   if (rsiDone2) {
                                     clearInterval(rsiPoller2);
                                     window._runAllActive = false;
@@ -4390,7 +4392,8 @@ function initBreadthScanner() {
   }, 200);
 }
 
-// Auto-init on page load since breadth tab is active by default
+// Auto-init on page load (Scanner is now the default tab, but we still
+// pre-warm Breadth in the background so it's ready the moment it's clicked)
 initBreadthScanner();
 </script>
 
@@ -5085,8 +5088,8 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
         <tr class="rs-thead-group">
           <th rowspan="2" style="width:30px;">#</th>
           <th rowspan="2" class="rs-th-name" data-sort="name">INDEX NAME</th>
-          <th rowspan="2" data-sort="signal" style="min-width:90px;">SIGNAL</th>
           <th colspan="4" class="rs-th-group-sec">RELATIVE STRENGTH vs <span id="rsTblBenchName">Nifty 50</span></th>
+          <th rowspan="2" data-sort="signal" style="min-width:90px;">SIGNAL</th>
           <th colspan="4" class="rs-th-group-amc">AMC PRODUCTS (HDFC · ICICI · Kotak · ABSL)</th>
           <th rowspan="2" style="min-width:44px;border-left:2px solid var(--border2);">WL</th>
         </tr>
@@ -5931,11 +5934,11 @@ function renderRSTable(){
       return '<tr>'
         +'<td style="text-align:center;color:#000000;font-size:10px;">'+num+'</td>'
         +'<td class="rs-td-name" title="'+r.name+'" style="'+nameBg+'">'+r.name+'</td>'
-        +'<td><span class="rs-pill rs-pill-'+sig+'">'+sig+'</span></td>'
         +'<td>'+fmtRS(r.rs.rs1m)+'</td>'
         +'<td>'+fmtRS(r.rs.rs2m)+'</td>'
         +'<td>'+fmtRS(r.rs.rs3m)+'</td>'
         +'<td>'+fmtScore(r.rs.score)+'</td>'
+        +'<td><span class="rs-pill rs-pill-'+sig+'">'+sig+'</span></td>'
         +'<td>'+amcCell('HDFC',r.name)+'</td>'
         +'<td>'+amcCell('ICICI',r.name)+'</td>'
         +'<td>'+amcCell('Kotak',r.name)+'</td>'
@@ -6414,42 +6417,25 @@ win.rsToggleWL=rsToggleWL;
 <div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
   <h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">RSI Buy &amp; Sell Timing</h2>
-  <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin:0 0 10px">D-RSI(8) · D-RSI(50) · W-RSI(50) · Close + Signal columns · Monthly &amp; Weekly RSI(9)+EMA(3)+WMA(21) Mindset groups · click row for Cloud &amp; History</p>
+  <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin:0 0 10px">D-RSI(8) · D-RSI(50) · W-RSI(50) · Close + Signal columns · click row for Cloud &amp; History</p>
 
   <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">—</div>
   <div id="rsi-diag" style="font-size:8px;color:#666;margin-bottom:6px;padding:4px 6px;background:#f8f8f8;border-radius:3px;display:none"></div>
 
-  <style>
-    /* Monthly group: M-RSI9, EMA3, WMA21, Mindset (columns 9-12) */
-    #rsi-tbl th:nth-child(9),#rsi-tbl td:nth-child(9){border-left:3px solid #1565C0;}
-    #rsi-tbl th:nth-child(12),#rsi-tbl td:nth-child(12){border-right:3px solid #1565C0;}
-    #rsi-tbl thead th:nth-child(9),#rsi-tbl thead th:nth-child(10),#rsi-tbl thead th:nth-child(11),#rsi-tbl thead th:nth-child(12){border-top:3px solid #1565C0;background:#eaf2ff;}
-    #rsi-tbl tbody tr:last-child td:nth-child(9),#rsi-tbl tbody tr:last-child td:nth-child(10),#rsi-tbl tbody tr:last-child td:nth-child(11),#rsi-tbl tbody tr:last-child td:nth-child(12){border-bottom:3px solid #1565C0;}
-    /* Weekly group: W-RSI9, EMA3, WMA21, Mindset (columns 13-16) */
-    #rsi-tbl th:nth-child(13),#rsi-tbl td:nth-child(13){border-left:3px solid #8E24AA;}
-    #rsi-tbl th:nth-child(16),#rsi-tbl td:nth-child(16){border-right:3px solid #8E24AA;}
-    #rsi-tbl thead th:nth-child(13),#rsi-tbl thead th:nth-child(14),#rsi-tbl thead th:nth-child(15),#rsi-tbl thead th:nth-child(16){border-top:3px solid #8E24AA;background:#f5ecfa;}
-    #rsi-tbl tbody tr:last-child td:nth-child(13),#rsi-tbl tbody tr:last-child td:nth-child(14),#rsi-tbl tbody tr:last-child td:nth-child(15),#rsi-tbl tbody tr:last-child td:nth-child(16){border-bottom:3px solid #8E24AA;}
-  </style>
   <div style="max-height:70vh;overflow-y:auto;border:1px solid #ddd;border-radius:4px">
   <table id="rsi-tbl" style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:#f5f5f5;position:sticky;top:0">
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">#</th>
       <th style="font-family:'Segoe UI',Arial,sans-serif;padding:4px 6px;text-align:left;font-size:9px;color:#000;text-transform:uppercase">Index</th>
+      <th style="padding:4px 6px;text-align:right;font-size:9px;color:#888">Close</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI8</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">D-RSI50</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">W-RSI50</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Status</th>
-      <th style="padding:4px 6px;text-align:right;font-size:9px;color:#888">Close</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Signal</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">M-RSI9</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">EMA3</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">WMA21</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700;cursor:pointer" onclick="rsiSortByMindset()">Mindset ▾</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">W-RSI9</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">EMA3</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">WMA21</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">Mindset</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">W-RSI50</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700">M-RSI9</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700">WMA21</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700;cursor:pointer" onclick="rsiSortByMindset()">Mindset ▾</th>
     </tr></thead>
     <tbody id="rsi-tbody"></tbody>
   </table>
@@ -7741,23 +7727,23 @@ function rsiFillDaily(el,name){
     var entries=sd.dailyMap[name.toLowerCase()];
     if(!entries||entries.length<20){
       var noneAtAll = !entries || entries.length===0;
-      el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';
+      el.cells[3].textContent='—';el.cells[4].textContent='—';el.cells[2].textContent='—';
       el.cells[5].textContent = noneAtAll ? 'NO HISTORY FOR THIS INDEX' : 'INSUFFICIENT DATA';
       return;
     }
     var c=[];for(var i=0;i<entries.length;i++)c.push(+entries[i].split('|')[4]);
     var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
-    if(!r50d.length||!r8d.length){el.cells[2].textContent='—';el.cells[3].textContent='—';el.cells[6].textContent='—';return;}
+    if(!r50d.length||!r8d.length){el.cells[3].textContent='—';el.cells[4].textContent='—';el.cells[2].textContent='—';return;}
     var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1];
     el._rsiDaily={c:c,r50d:r50d,r8d:r8d,r50:r50,r8:r8};
-    el.cells[2].textContent=r8.toFixed(1);
-    el.cells[2].style.color=r8>r50?'#1a8a1a':'#cc0000';
-    el.cells[3].textContent=r50.toFixed(1);
-    el.cells[3].style.color=r50>50?'#1a8a1a':'#cc0000';
+    el.cells[3].textContent=r8.toFixed(1);
+    el.cells[3].style.color=r8>r50?'#1a8a1a':'#cc0000';
+    el.cells[4].textContent=r50.toFixed(1);
+    el.cells[4].style.color=r50>50?'#1a8a1a':'#cc0000';
     var cp=+entries[entries.length-1].split('|')[4];
-    el.cells[6].textContent=cp.toLocaleString('en-IN',{maximumFractionDigits:1});
-    el.cells[6].style.color='#333';
-  }catch(e){el.cells[2].textContent='ERR';el.cells[3].textContent='ERR';el.cells[6].textContent='ERR';}
+    el.cells[2].textContent=cp.toLocaleString('en-IN',{maximumFractionDigits:1});
+    el.cells[2].style.color='#333';
+  }catch(e){el.cells[3].textContent='ERR';el.cells[4].textContent='ERR';el.cells[2].textContent='ERR';}
 }
 
 // Calendar-week aggregation: Mon start, last trading day's close = week close
@@ -7800,63 +7786,40 @@ function wma(arr,n){
   for(var i=0;i<slice.length;i++){num+=slice[i]*(i+1);den+=(i+1);}
   return den?num/den:null;
 }
-// EMA(n) of a series, seeded by the SMA of the first n values (standard method).
-// Returns only the latest/last EMA value.
-function emaLast(arr,n){
-  if(!arr||arr.length<n)return null;
-  var k=2/(n+1),sum=0,i;
-  for(i=0;i<n;i++)sum+=arr[i];
-  var e=sum/n;
-  for(i=n;i<arr.length;i++)e=arr[i]*k+e*(1-k);
-  return e;
-}
-// Fill M-RSI(9), EMA(3), WMA(21) + Monthly Mindset columns from monthly aggregated closes.
-// Mindset: BUY MINDSET only when ALL THREE (RSI9, EMA3, WMA21) are individually > 50.
+// Fill M-RSI(9) and WMA21 columns from monthly aggregated closes
 function rsiFillMonthly(el,name){
   try{
     var sd=win._ldScannerData;
-    if(!sd||!sd.dailyMap){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
+    if(!sd||!sd.dailyMap){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
     var entries=sd.dailyMap[(name||'').toLowerCase()];
-    if(!entries||entries.length<200){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
+    if(!entries||entries.length<200){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
     var mc=toMonthlyCloses(entries);
     var r9m=rsiCalc(mc,9);
-    if(!r9m||r9m.length<21){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
+    if(!r9m||r9m.length<21){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
     var latestRSI9=r9m[r9m.length-1];
-    var ema3=emaLast(r9m,3);
     var wmaVal=wma(r9m,21);
     el.cells[8].textContent=latestRSI9.toFixed(1);
     el.cells[8].style.color=latestRSI9>50?'#1a8a1a':'#cc0000';
-    if(ema3!==null){
-      el.cells[9].textContent=ema3.toFixed(1);
-      el.cells[9].style.color=ema3>50?'#1a8a1a':'#cc0000';
+    if(wmaVal!==null){
+      el.cells[9].textContent=wmaVal.toFixed(1);
+      el.cells[9].style.color='#333';
+      var mindset=latestRSI9>wmaVal?'BUY MINDSET':'SELL MINDSET';
+      el.cells[10].textContent=mindset;
+      el.cells[10].style.color=mindset==='BUY MINDSET'?'#006600':'#cc0000';
+      el.cells[10].style.fontWeight='bold';
     }else{
       el.cells[9].textContent='—';
-    }
-    if(wmaVal!==null){
-      el.cells[10].textContent=wmaVal.toFixed(1);
-      el.cells[10].style.color=wmaVal>50?'#1a8a1a':'#cc0000';
-      if(ema3!==null){
-        var mindset=(latestRSI9>50&&ema3>50&&wmaVal>50)?'BUY MINDSET':'SELL MINDSET';
-        el.cells[11].textContent=mindset;
-        el.cells[11].style.color=mindset==='BUY MINDSET'?'#006600':'#cc0000';
-        el.cells[11].style.fontWeight='bold';
-      }else{
-        el.cells[11].textContent='—';
-      }
-    }else{
       el.cells[10].textContent='—';
-      el.cells[11].textContent='—';
     }
-  }catch(e){el.cells[8].textContent='ERR';el.cells[9].textContent='ERR';el.cells[10].textContent='ERR';el.cells[11].textContent='ERR';}
+  }catch(e){el.cells[8].textContent='ERR';el.cells[9].textContent='ERR';el.cells[10].textContent='ERR';}
 }
-// Fill W-RSI(50) column (+ W-RSI9/EMA3/WMA21/Weekly Mindset group): tries DEEP cache → Scanner data → embedded
+// Fill W-RSI(50) column: tries DEEP cache → Scanner data → embedded
 // Source indicator: EXACT (calendar-week) or APPROX (every-5th-day)
-// Weekly Mindset: BUY MINDSET only when ALL THREE (W-RSI9, EMA3, WMA21) are individually > 50.
 function rsiFillWeekly(el,name){
   try{
     var deep = win._deepWeeklyCache;
     var rd=el._rsiDaily;
-    if(!rd){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';el._rsiSrc='FAIL';return;}
+    if(!rd){el.cells[7].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
     var de=deep&&deep.dailyMap?deep.dailyMap[(name||'').toLowerCase()]:null;
     var wc, src='';
     if(de&&de.length>=260){ wc=deepToWeeklyCloses(de); src='DEEP'; }
@@ -7867,45 +7830,19 @@ function rsiFillWeekly(el,name){
       if(rawEntries&&rawEntries.length>=20){ wc=deepToWeeklyCloses(rawEntries); src='EXACT'; }
       else { wc=[];for(var i=0;i<rd.c.length;i+=5)wc.push(rd.c[Math.min(i+4,rd.c.length-1)]);src='APPROX'; }
     }
-    else { el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';el._rsiSrc='FAIL';return; }
-    // Weekly RSI(9)+EMA(3)+WMA(21)+Mindset group needs far less history than the
-    // W-RSI(50) below (~30 weeks vs ~71), so compute it as soon as 'wc' exists.
-    var r9w=wc?rsiCalc(wc,9):[];
-    if(r9w&&r9w.length>=21){
-      var latestRSI9w=r9w[r9w.length-1];
-      var ema3w=emaLast(r9w,3);
-      var wmaValw=wma(r9w,21);
-      el.cells[12].textContent=latestRSI9w.toFixed(1);
-      el.cells[12].style.color=latestRSI9w>50?'#1a8a1a':'#cc0000';
-      if(ema3w!==null){
-        el.cells[13].textContent=ema3w.toFixed(1);
-        el.cells[13].style.color=ema3w>50?'#1a8a1a':'#cc0000';
-      }else{ el.cells[13].textContent='—'; }
-      if(wmaValw!==null){
-        el.cells[14].textContent=wmaValw.toFixed(1);
-        el.cells[14].style.color=wmaValw>50?'#1a8a1a':'#cc0000';
-        if(ema3w!==null){
-          var mindsetW=(latestRSI9w>50&&ema3w>50&&wmaValw>50)?'BUY MINDSET':'SELL MINDSET';
-          el.cells[15].textContent=mindsetW;
-          el.cells[15].style.color=mindsetW==='BUY MINDSET'?'#006600':'#cc0000';
-          el.cells[15].style.fontWeight='bold';
-        }else{ el.cells[15].textContent='—'; }
-      }else{ el.cells[14].textContent='—';el.cells[15].textContent='—'; }
-    }else{
-      el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';
-    }
-    if(!wc||wc.length<65){el.cells[4].textContent='—';el.cells[5].textContent='NEED MORE DATA';el._rsiSrc='FAIL';return;}
+    else { el.cells[7].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return; }
+    if(!wc||wc.length<65){el.cells[7].textContent='—';el.cells[5].textContent='NEED MORE DATA';el._rsiSrc='FAIL';return;}
     var r50w=rsiCalc(wc,50);
     var rw=r50w.length?r50w[r50w.length-1]:null;
-    if(rw===null||isNaN(rw)){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
+    if(rw===null||isNaN(rw)){el.cells[7].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
     var r8=rd.r8,r50=rd.r50;
     var st;
     if(xov(rd.r8d,50))st='⚡CROSSOVER';else if(xun(rd.r8d,50))st='⛔CROSSUNDER';
     else if(r8>=40&&r8<50)st='WATCH BUY';else if(r8>50&&r8<=55)st='WATCH SELL';
     else if(rw>50)st='ABOVE';else st='BELOW';
-    el.cells[4].textContent=rw.toFixed(1)+(src==='EXACT'?'':'≈');
-    el.cells[4].style.color=rw>50?'#1a8a1a':'#cc0000';
-    el.cells[4].title=src==='EXACT'?'TradingView calendar-week W-RSI(50)':'Approximate (every-5th-day)';
+    el.cells[7].textContent=rw.toFixed(1)+(src==='EXACT'?'':'≈');
+    el.cells[7].style.color=rw>50?'#1a8a1a':'#cc0000';
+    el.cells[7].title=src==='EXACT'?'TradingView calendar-week W-RSI(50)':'Approximate (every-5th-day)';
     el.cells[5].textContent=st;
     var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':st==='ABOVE'?'#1a8a1a':'#888';
     el.cells[5].style.color=sc;
@@ -7915,12 +7852,12 @@ function rsiFillWeekly(el,name){
     else if(xov(rd.r8d,40)&&r50>50&&rw>50)sigs.push('BUY △');
     else if(xun(rd.r8d,40)&&r50<50&&rw<50)sigs.push('SELL ▼');
     else if(xun(rd.r8d,60)&&r50<50&&rw<50)sigs.push('SELL ▽');
-    el.cells[7].textContent=sigs.length?sigs[0]+' '+tr:tr;
-    el.cells[7].style.color=sigs.length?(sigs[0].indexOf('BUY')>=0?'#006600':'#cc0000'):(tr==='BULL'?'#1a8a1a':'#cc0000');
-    el.cells[7].style.fontWeight='bold';
+    el.cells[6].textContent=sigs.length?sigs[0]+' '+tr:tr;
+    el.cells[6].style.color=sigs.length?(sigs[0].indexOf('BUY')>=0?'#006600':'#cc0000'):(tr==='BULL'?'#1a8a1a':'#cc0000');
+    el.cells[6].style.fontWeight='bold';
     el._rsi={r50:r50,r8:r8,rw:rw,st:st,r50d:rd.r50d,r8d:rd.r8d,closes:rd.c};
     el._rsiSrc=src;
-  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';el.cells[7].textContent='ERR';el.cells[12].textContent='ERR';el.cells[13].textContent='ERR';el.cells[14].textContent='ERR';el.cells[15].textContent='ERR';el._rsiSrc='FAIL';}
+  }catch(e){el.cells[7].textContent='ERR';el.cells[5].textContent='ERR';el.cells[6].textContent='ERR';el._rsiSrc='FAIL';}
 }
 
 // Entry point for RSI Bias tab: builds table, fills daily + weekly columns
@@ -7957,7 +7894,7 @@ function rsiRunAll(){
   }
   var all=sd.indexList||[];
   // Pre-fill Sl No + Index Name
-  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-weight:600;color:#000;font-size:11px;word-break:break-word;white-space:normal">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td></tr>';}).join('');
+  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-weight:600;color:#000;font-size:11px;word-break:break-word;white-space:normal">'+idx.name+'</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td></tr>';}).join('');
   if(st)st.textContent='⏳ Filling D-RSI8/D-RSI50...';
   // Pass 1: fill daily columns for ALL rows immediately (fast, no batching needed)
   var i,el;
@@ -8032,8 +7969,8 @@ function rsiSortTable(){
   var rows=[].slice.call(tb.rows);
   var pri={'BUY MINDSET':0,'⚡CROSSOVER':1,'WATCH BUY':2,'ABOVE':3,'SELL MINDSET':4,'⛔CROSSUNDER':5,'WATCH SELL':6,'BELOW':7};
   rows.sort(function(a,b){
-    var ma=a.cells[11].textContent.trim();
-    var mb=b.cells[11].textContent.trim();
+    var ma=a.cells[10].textContent.trim();
+    var mb=b.cells[10].textContent.trim();
     var pa=ma==='BUY MINDSET'?0:ma==='SELL MINDSET'?4:8;
     var pb=mb==='BUY MINDSET'?0:mb==='SELL MINDSET'?4:8;
     if(pa!==pb)return pa-pb;
@@ -8052,8 +7989,8 @@ function rsiSortByMindset(){
   var asc=window._rsiMindsetAsc;
   var rows=[].slice.call(tb.rows);
   rows.sort(function(a,b){
-    var ma=a.cells[11].textContent.trim();
-    var mb=b.cells[11].textContent.trim();
+    var ma=a.cells[10].textContent.trim();
+    var mb=b.cells[10].textContent.trim();
     var va=ma==='BUY MINDSET'?0:ma==='SELL MINDSET'?1:2;
     var vb=mb==='BUY MINDSET'?0:mb==='SELL MINDSET'?1:2;
     return asc?va-vb:vb-va;
@@ -8061,7 +7998,7 @@ function rsiSortByMindset(){
   rows.forEach(function(r,i){tb.appendChild(r);r.cells[0].textContent=i+1;});
   window._rsiMindsetAsc=!asc;
   var ths=document.querySelectorAll('#rsi-tbl th');
-  if(ths[11])ths[11].textContent='Mindset '+(asc?'▴':'▾');
+  if(ths[10])ths[10].textContent='Mindset '+(asc?'▴':'▾');
 }
 
 function rsiShowDetail(idx){
