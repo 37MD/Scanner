@@ -1,6 +1,12 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- ════════════════════════════════════════════ -->
+<!-- ================================================================
+   SECTION 1: DOCUMENT HEAD & EMBEDDED LIBRARIES
+   Meta tags, PWA manifest, inlined React/ReactDOM/Chart.js
+   ================================================================ -->
+<!-- ════════════════════════════════════════════ -->
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -809,7 +815,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <body>
 <!-- ================================================================
    SECTION 3: HTML BODY — 7-TAB SINGLE-PAGE APP
-   Tabs: Breadth | Scanner | TTF | RS | Balanced Allocation | Paper Trade | RSI Signal
+   Tabs: Breadth | Scanner | TTF | RS | Balanced Allocation | Paper Trade | RSI Bias
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
 <!--  3. HTML: 3-TAB PAGE STRUCTURE             -->
@@ -823,11 +829,11 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
     <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
-    <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Signal</button>
+    <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Signal">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
+    <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
 <!-- ── 3.2 Market Breadth Panel (active by default) ── -->
@@ -1363,58 +1369,7 @@ function ldStorageSet(key, value) {
     return false;
   }
 }
-const YAHOO = {
-  nifty50: "^NSEI",
-  niftynext50: "^NIFTYNXT50",
-  nifty100: "^CNX100",
-  nifty200: "^CNX200",
-  nifty500: "^CNX500",
-  niftymidcap50: "^CNXMIDCAP50",
-  niftymidcap100: "^NSMIDCP100",
-  niftymidcap150: "^CNXMIDCAP150",
-  niftymidselect: "^NIFTYMIDSEL",
-  niftysmallcap100: "^CNXSC",
-  niftysmallcap50: "^CNXSC50",
-  niftysmallcap250: "^CNXSC250",
-  niftymidsmallcap400: "^CNXMIDSMALL400",
-  niftylargemidcap250: "^CNXLARGEMID250",
-  niftymicrocap250: "^NIFTYMICROCAP250",
-  niftytotalmarket: "^NIFTYTOTALMKT",
-  niftybank: "^NSEBANK",
-  niftypsubank: "^CNXPSUBNK",
-  niftyprivatebank: "^CNXPVTBNK",
-  niftyfinancialservices: "^CNXFINANCE",
-  niftyfinancialservices2550: "^CNXFIN2550",
-  niftyit: "^CNXIT",
-  niftyauto: "^CNXAUTO",
-  niftypharma: "^CNXPHARMA",
-  niftyhealthcareindex: "^NIFTYHC",
-  niftyfmcg: "^CNXFMCG",
-  niftymetal: "^CNXMETAL",
-  niftyrealty: "^CNXREALTY",
-  niftyenergy: "^CNXENERGY",
-  niftyoilgas: "^CNXOILGAS",
-  niftycpse: "^CNXCPSE",
-  niftypse: "^CNXPSE",
-  niftymedia: "^CNXMEDIA",
-  niftyinfrastructure: "^CNXINFRA",
-  niftyservicessector: "^CNXSERVICE",
-  niftymnc: "^CNXMNC",
-  niftycommodities: "^CNXCOMMODITIES",
-  indiavix: "^INDIAVIX",
-  niftyalpha50: "^CNXALPHA50",
-  nifty50equalweight: "^NIFTY50EW",
-  nifty100equalweight: "^CNX100EW",
-  nifty100qualty30: "^NIFTY100QU30",
-  nifty100lowvolatility30: "^NIFTY100LV30",
-  nifty200quality30: "^NIFTY200QU30",
-  nifty200momentum30: "^NIFTY200MO30",
-  nifty200alpha30: "^NIFTY200AL30",
-  nifty200value30: "^NIFTY200VA30",
-  nifty50value20: "^NIFTY50VA20",
-  niftyconsumerd: "^CNXCONSUMER",
-  niftyconsumption: "^CNXCONSUMPTION"
-};
+
 function calcRSI(closes, period) {
   const v = closes.filter(x => x != null && !isNaN(x));
   if (v.length < period + 1) return [];
@@ -1554,26 +1509,45 @@ function calcSMA(arr, period) {
   const sl = arr.slice(-period);
   return sl.reduce((a, b) => a + b, 0) / period;
 }
-function computeHACandles(closes) {
+// True Heikin Ashi (matches TradingView):
+//   haClose[i] = (open[i]+high[i]+low[i]+close[i]) / 4
+//   haOpen[0]  = (open[0]+close[0]) / 2
+//   haOpen[i]  = (haOpen[i-1]+haClose[i-1]) / 2
+// If full OHLC isn't available (e.g. the offline embedded snapshot only
+// stores closes), we fall back to an approximation — haClose=close,
+// haOpen seeded from close[0] — and flag it via `approx: true` so callers
+// can be honest about the result instead of presenting it as true HA.
+function computeHACandles(ohlcOrCloses) {
+  const hasOHLC = ohlcOrCloses && Array.isArray(ohlcOrCloses.closes) &&
+    Array.isArray(ohlcOrCloses.opens) && Array.isArray(ohlcOrCloses.highs) && Array.isArray(ohlcOrCloses.lows);
+  if (hasOHLC) {
+    const { opens, highs, lows, closes } = ohlcOrCloses;
+    if (closes.length < 3) return null;
+    const haCloses = closes.map((c, i) => (opens[i] + highs[i] + lows[i] + c) / 4);
+    const haOpens = [(opens[0] + closes[0]) / 2];
+    for (let i = 1; i < closes.length; i++) {
+      haOpens.push((haOpens[i - 1] + haCloses[i - 1]) / 2);
+    }
+    return { haCloses, haOpens, approx: false };
+  }
+  const closes = ohlcOrCloses;
   if (!closes || closes.length < 3) return null;
   const haCloses = closes.map(c => c);
   const haOpens = [closes[0]];
   for (let i = 1; i < closes.length; i++) {
     haOpens.push((haOpens[i - 1] + haCloses[i - 1]) / 2);
   }
-  return {
-    haCloses,
-    haOpens
-  };
+  return { haCloses, haOpens, approx: true };
 }
 function computeHABandSignal(row, vixPrice) {
   const closes = row._dailyCloses;
   if (!closes || closes.length < 22) return null;
-  const ha = computeHACandles(closes);
+  const ha = computeHACandles(row._dailyOHLC || closes);
   if (!ha) return null;
   const {
     haCloses,
-    haOpens
+    haOpens,
+    approx
   } = ha;
   const n = haCloses.length;
   const haCurClose = haCloses[n - 1];
@@ -1672,6 +1646,9 @@ function computeHABandSignal(row, vixPrice) {
   if (vixPrice && vixPrice > 20 && signalClass === "buy") {
     reasons.push(`⚠ VIX elevated (${vixPrice?.toFixed(1)}) — size down`);
   }
+  if (approx) {
+    reasons.push("ⓘ Approx HA (close-only history — true OHLC unavailable for this snapshot)");
+  }
   return {
     signal,
     signalClass,
@@ -1680,6 +1657,7 @@ function computeHABandSignal(row, vixPrice) {
     sma8: sma8.toFixed(0),
     sma21: sma21.toFixed(0),
     haBull,
+    approx,
     reason: reasons.join(" · ")
   };
 }
@@ -1746,7 +1724,6 @@ const Scanner = () => {
   const [liveDetail, setLiveDetail] = useState('');
   const [liveStatus, setLiveStatus] = useState('ok'); // 'ok' | 'partial' | 'stale'
   const stopRef = useRef(false);
-  const autoRef = useRef(null);
   const baStopRef = useRef(false);
   const tableWrapRef = useRef(null);
   const topScrollRef = useRef(null);
@@ -2264,9 +2241,10 @@ Reasoning: [One-line explanation tying data to the rule]`;
       let tempResults = {};
       let done = 0;
       let historicalData = null;
+      let historicalOHLC = null;
       let historicalSource = 'embedded snapshot';
       // Try the live, incrementally-refreshed deep history cache first (the
-      // same 280-day rolling-window fetch built for the RSI Signal tab).
+      // same 280-day rolling-window fetch built for the RSI Bias tab).
       // EMBEDDED_HISTORICAL is a permanent, static snapshot baked into this
       // file — it never updates on its own, so we only fall back to it if a
       // live fetch genuinely can't produce anything.
@@ -2278,15 +2256,29 @@ Reasoning: [One-line explanation tying data to the rule]`;
           });
           if (deepCache && deepCache.dailyMap && Object.keys(deepCache.dailyMap).length > 10) {
             const converted = {};
+            const convertedOHLC = {};
             for (const k of Object.keys(deepCache.dailyMap)) {
               const entries = deepCache.dailyMap[k].slice().sort((a, b) => {
                 const da = a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
                 const db = b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
                 return da < db ? -1 : da > db ? 1 : 0;
               });
-              converted[normalize(k)] = entries.map(e => parseFloat(e.split('|')[4]));
+              // Each entry is "ddmmyyyy|open|high|low|close" — keep full OHLC
+              // (not just close) so Heikin Ashi can be computed correctly,
+              // matching TradingView's HA formula instead of a close-only proxy.
+              const opensArr = [], highsArr = [], lowsArr = [], closesArr = [];
+              for (const e of entries) {
+                const parts = e.split('|');
+                opensArr.push(parseFloat(parts[1]));
+                highsArr.push(parseFloat(parts[2]));
+                lowsArr.push(parseFloat(parts[3]));
+                closesArr.push(parseFloat(parts[4]));
+              }
+              converted[normalize(k)] = closesArr;
+              convertedOHLC[normalize(k)] = { opens: opensArr, highs: highsArr, lows: lowsArr, closes: closesArr };
             }
             historicalData = converted;
+            historicalOHLC = convertedOHLC;
             historicalSource = 'live (' + deepCache.lastDate + ')';
           }
         }
@@ -2325,6 +2317,15 @@ Reasoning: [One-line explanation tying data to the rule]`;
             row.dRsi8 = dA8.length ? dA8[dA8.length - 1] : null;
             row.dRsi14 = dA14.length ? dA14[dA14.length - 1] : null;
             row._dailyCloses = closes.slice(-30);
+            const ohlcEntry = historicalOHLC && historicalOHLC[sym];
+            if (ohlcEntry && ohlcEntry.closes && ohlcEntry.closes.length === closes.length) {
+              row._dailyOHLC = {
+                opens: ohlcEntry.opens.slice(-30),
+                highs: ohlcEntry.highs.slice(-30),
+                lows: ohlcEntry.lows.slice(-30),
+                closes: ohlcEntry.closes.slice(-30)
+              };
+            }
             const weekly = [];
             for (let i = 0; i < closes.length; i += 5) weekly.push(closes[Math.min(i + 4, closes.length - 1)]);
             if (weekly.length >= 15) {
@@ -3323,12 +3324,14 @@ Reasoning: [One-line explanation tying data to the rule]`;
     style: {
       textAlign: "center"
     },
+    title: "Approximate weekly RSI — built from every-5-trading-day blocks, not true calendar weeks (NSE holidays cause drift vs TradingView's actual weekly chart)",
     onClick: () => requestSort('wRsi14')
-  }, "W RSI 4·8·14", getSortIcon('wRsi14')), React.createElement("th", {
+  }, "W RSI 4·8·14 ≈", getSortIcon('wRsi14')), React.createElement("th", {
     "data-group": "2",
     style: {
       textAlign: "center"
     },
+    title: "Regime is derived from the approximate weekly RSI (see W RSI ≈ column)",
     onClick: () => requestSort('regime')
   }, "Regime", getSortIcon('regime')), React.createElement("th", {
     "data-group": "2",
@@ -3616,8 +3619,8 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
       }, React.createElement("span", {
         className: `ha-pill ${pillCls}`,
-        title: `Zone: ${ha.zone} | SMA8: ${ha.sma8} | 21SMA: ${ha.sma21}`
-      }, ha.signal), React.createElement("div", {
+        title: `Zone: ${ha.zone} | SMA8: ${ha.sma8} | 21SMA: ${ha.sma21}` + (ha.approx ? ' | Approx HA (close-only history, true OHLC unavailable)' : ' | True HA (full OHLC)')
+      }, ha.signal + (ha.approx ? '≈' : '')), React.createElement("div", {
         style: {
           marginTop: 3,
           fontSize: 9,
@@ -3861,7 +3864,7 @@ function switchTab(name) {
 }
 
 // ═══ SCAN ALL: Sequential orchestration ═══
-// Steps: Scanner core data → TTF → RS → BA → Paper Trade → RSI Signal
+// Steps: Scanner core data → TTF → RS → BA → Paper Trade → RSI Bias
 // Each step waits for the previous tab's onComplete callback.
 function updateScanTimestamp(timeStr) {
   var ts = document.getElementById('scanTimestamp');
@@ -3925,7 +3928,6 @@ function runAllScans() {
                 switchTab('ba');
                 setTimeout(function() {
                   if (typeof window.runBAsScan === 'function') {
-                    var origBA = window.onBAsScanComplete;
                     window._baRunAllWaiting = true;
                     var baPoller = setInterval(function() {
                       var baStopBtn = document.getElementById('baStopBtn');
@@ -3943,8 +3945,8 @@ function runAllScans() {
                               var ptDone = ptBody && ptBody.children.length > 0 && ptBody.children[0].textContent !== 'No data yet — run SCAN ALL';
                               if (ptDone) {
                                 clearInterval(ptPoller);
-                                // Step 6: RSI Signal
-                                setStatus('6/6 RSI Signal…');
+                                // Step 6: RSI Bias
+                                setStatus('6/6 RSI Bias…');
                                 switchTab('rsi');
                                 setTimeout(function() {
                                   if (typeof window.rsiScanAll === 'function') {
@@ -3984,7 +3986,7 @@ function runAllScans() {
                               }
                             }, 20000);
                           } else {
-                            setStatus('6/6 RSI Signal…');
+                            setStatus('6/6 RSI Bias…');
                             switchTab('rsi');
                             setTimeout(function() {
                               if (typeof window.rsiScanAll === 'function') {
@@ -4304,8 +4306,6 @@ const BP_SECTOR_2_INDEX = {
   'METAL':'NIFTY METAL','REALTY':'NIFTY REALTY','ENERGY':'NIFTY ENERGY',
   'TELECOM':'NIFTY TELECOM','MEDIA':'NIFTY MEDIA','PSU BANK':'NIFTY PSU BANK'
 };
-function bpNorm(n){return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase();}
-
 function renderBpRecommendations() {
   const container = document.getElementById('bpRecsGrid');
   const note = document.getElementById('bpRecsNote');
@@ -4423,7 +4423,7 @@ initBreadthScanner();
     throw lastErr;
   }
   var RSI_PERIODS = [4, 6, 8];
-  var FETCH_DAYS  = 100;
+  var FETCH_DAYS  = 300; // was 100 — deeper warm-up for RSI(8) when run standalone (no shared Scanner cache yet). 800 would match Scanner exactly but costs ~64s vs ~24s in fetch time.
   var BATCH_SIZE  = 5;
   var BATCH_DELAY = 400;
   var $ = function(id) { return document.getElementById(id); };
@@ -4432,7 +4432,6 @@ initBreadthScanner();
   var _ttfRunning = false; // replaces scanBtn.disabled since button was removed
   var CACHE_KEY = 'ttf_scanner_cache';
   var _lastResults = null, _sortKey = 'name', _sortDir = 'asc', _debugData = {};
-  function sleep(ms)         { return new Promise(function(r) { setTimeout(r, ms); }); }
   function normalize(n)      { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
   // B=Bond/Fixed Income, O=Other (VIX/Futures), E=Equity index
 function classifyIndex(n)  { var s=n.toLowerCase(); if (/g[- ]?sec|bond|aaa|t[- ]?bill|treasury|yield|debt|liquid|overnight|money\s*market|sovereign/.test(s)) return 'B'; if (/vix|futures?|div\s*point/.test(s)) return 'O'; return 'E'; }
@@ -6389,8 +6388,8 @@ win.rsToggleWL=rsToggleWL;
 
 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
 <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
-  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI14</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Regime</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
-  <tbody id="pt-tb"><tr><td colspan="10" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
+  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI14</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Regime uses weekly RSI(8), built from every-5-trading-day blocks (approximate, not true calendar weeks)">Regime≈</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
+  <tbody id="pt-tb"><tr><td colspan="11" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
 </table>
 </div>
 
@@ -6415,11 +6414,23 @@ win.rsToggleWL=rsToggleWL;
 <div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
   <h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">RSI Buy &amp; Sell Timing</h2>
-  <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin:0 0 10px">D-RSI(8) · D-RSI(50) · W-RSI(50) · Close + Signal columns · click row for Cloud &amp; History</p>
+  <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin:0 0 10px">D-RSI(8) · D-RSI(50) · W-RSI(50) · Close + Signal columns · Monthly &amp; Weekly RSI(9)+EMA(3)+WMA(21) Mindset groups · click row for Cloud &amp; History</p>
 
   <div id="rsi-st" style="font-size:8px;color:#888;margin-bottom:8px;min-height:14px">—</div>
   <div id="rsi-diag" style="font-size:8px;color:#666;margin-bottom:6px;padding:4px 6px;background:#f8f8f8;border-radius:3px;display:none"></div>
 
+  <style>
+    /* Monthly group: M-RSI9, EMA3, WMA21, Mindset (columns 9-12) */
+    #rsi-tbl th:nth-child(9),#rsi-tbl td:nth-child(9){border-left:3px solid #1565C0;}
+    #rsi-tbl th:nth-child(12),#rsi-tbl td:nth-child(12){border-right:3px solid #1565C0;}
+    #rsi-tbl thead th:nth-child(9),#rsi-tbl thead th:nth-child(10),#rsi-tbl thead th:nth-child(11),#rsi-tbl thead th:nth-child(12){border-top:3px solid #1565C0;background:#eaf2ff;}
+    #rsi-tbl tbody tr:last-child td:nth-child(9),#rsi-tbl tbody tr:last-child td:nth-child(10),#rsi-tbl tbody tr:last-child td:nth-child(11),#rsi-tbl tbody tr:last-child td:nth-child(12){border-bottom:3px solid #1565C0;}
+    /* Weekly group: W-RSI9, EMA3, WMA21, Mindset (columns 13-16) */
+    #rsi-tbl th:nth-child(13),#rsi-tbl td:nth-child(13){border-left:3px solid #8E24AA;}
+    #rsi-tbl th:nth-child(16),#rsi-tbl td:nth-child(16){border-right:3px solid #8E24AA;}
+    #rsi-tbl thead th:nth-child(13),#rsi-tbl thead th:nth-child(14),#rsi-tbl thead th:nth-child(15),#rsi-tbl thead th:nth-child(16){border-top:3px solid #8E24AA;background:#f5ecfa;}
+    #rsi-tbl tbody tr:last-child td:nth-child(13),#rsi-tbl tbody tr:last-child td:nth-child(14),#rsi-tbl tbody tr:last-child td:nth-child(15),#rsi-tbl tbody tr:last-child td:nth-child(16){border-bottom:3px solid #8E24AA;}
+  </style>
   <div style="max-height:70vh;overflow-y:auto;border:1px solid #ddd;border-radius:4px">
   <table id="rsi-tbl" style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:#f5f5f5;position:sticky;top:0">
@@ -6431,9 +6442,14 @@ win.rsToggleWL=rsToggleWL;
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Status</th>
       <th style="padding:4px 6px;text-align:right;font-size:9px;color:#888">Close</th>
       <th style="padding:4px 6px;text-align:center;font-size:9px;color:#888">Signal</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700">M-RSI9</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700">WMA21</th>
-      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#006;font-weight:700;cursor:pointer" onclick="rsiSortByMindset()">Mindset ▾</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">M-RSI9</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">EMA3</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700">WMA21</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#0d47a1;font-weight:700;cursor:pointer" onclick="rsiSortByMindset()">Mindset ▾</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">W-RSI9</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">EMA3</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">WMA21</th>
+      <th style="padding:4px 6px;text-align:center;font-size:9px;color:#6a1b9a;font-weight:700">Mindset</th>
     </tr></thead>
     <tbody id="rsi-tbody"></tbody>
   </table>
@@ -6643,7 +6659,6 @@ async function fetchProxyBA(url, opts) {
   }
   throw lastErr;
 }
-var NSE_ALL = 'https://www.nseindia.com/api/allIndices';
 var NSE_CSV = 'https://nsearchives.nseindia.com/content/indices/ind_close_all_';
 
 var baStop = false;
@@ -6745,6 +6760,31 @@ function lastTradingDayOfMonth(y,m){
 async function fetchNSEcsv(date){
   var ds=fmtDDMMYYYY(date);
 
+  // 0) Prefer Scanner tab's already-fetched live data when available — avoids
+  // BA showing different prices than the other tabs, and is usually deeper/
+  // fresher than any of the fallbacks below. Only falls through to them for
+  // dates/indices Scanner's cache doesn't cover (e.g. Scanner not run yet,
+  // or a date older than its rolling window).
+  var sdBA=(typeof window!=='undefined')?window._ldScannerData:null;
+  if(sdBA&&sdBA.dailyMap){
+    var dCandidates=[ds];
+    var d2x=new Date(date);d2x.setDate(d2x.getDate()-1);dCandidates.push(fmtDDMMYYYY(d2x));
+    var d3x=new Date(date);d3x.setDate(d3x.getDate()-2);dCandidates.push(fmtDDMMYYYY(d3x));
+    var liveMap={};
+    for(var nm in sdBA.dailyMap){
+      var entries2=sdBA.dailyMap[nm];
+      for(var ei=entries2.length-1;ei>=0;ei--){
+        var parts2=entries2[ei].split('|');
+        if(dCandidates.indexOf(parts2[0])>=0){
+          var closeVal=parseFloat(parts2[4]);
+          if(!isNaN(closeVal))liveMap[nm]=closeVal;
+          break;
+        }
+      }
+    }
+    if(Object.keys(liveMap).length>0) return liveMap;
+  }
+
   // 1) Try EMBEDDED_BA_DATA (generated by generate_data.ps1, loaded via <script src>)
   if(typeof EMBEDDED_BA_DATA!=='undefined'){
     var embedded=EMBEDDED_BA_DATA[ds];
@@ -6813,41 +6853,6 @@ async function fetchNSEcsv(date){
     // Cache in localStorage
     try{localStorage.setItem(cacheKey,JSON.stringify(map));}catch(e){}
     return map;
-  }catch(e){return null;}
-}
-
-// ── Fetch NSE allIndices for current prices (reuse Scanner data if available) ──
-async function fetchNSEallIndices(){
-  // Reuse data from main Scanner tab
-  var cached = window._ldScannerData && window._ldScannerData.nseRaw;
-  if(cached && cached.length > 10) {
-    // Convert nseRaw format back to NSE API-like format for compatibility
-    return cached.map(function(idx){
-      return {
-        index: idx.index,
-        last: idx.last,
-        percentChange: idx.percentChange,
-        open: idx.open,
-        high: idx.high,
-        low: idx.low,
-        previousClose: idx.previousClose || null,
-        yearHigh: idx.yearHigh || null,
-        yearLow: idx.yearLow || null,
-        perChange30d: idx.perChange30d || null,
-        perChange365d: null,
-        pe: idx.pe,
-        pb: idx.pb,
-        dy: idx.dy,
-        key: idx.key,
-        indexSymbol: idx.indexSymbol
-      };
-    });
-  }
-  try{
-    var res=await fetchProxyBA(NSE_ALL,{signal:AbortSignal.timeout(20000)});
-    if(!res||!res.ok) return null;
-    var j=await res.json();
-    return j.data||null;
   }catch(e){return null;}
 }
 
@@ -7228,7 +7233,7 @@ var PT_CORS=[
 ];
 var PT_NSE_API='https://www.nseindia.com/api/allIndices';
 var PT_CSV_URL='https://nsearchives.nseindia.com/content/indices/ind_close_all_';
-var PT_BATCH=5,PT_DELAY=400,PT_FETCH_DAYS=100;
+var PT_BATCH=5,PT_DELAY=400,PT_FETCH_DAYS=300; // was 100 — deeper warm-up when run standalone without the shared Scanner cache
 
 // ── Portfolio state ──
 // Initial portfolio: INR 10L cash, empty positions, empty trade log
@@ -7308,7 +7313,7 @@ function ptComputeRow(closes,name){
   var r4=ptCalcRSI(closes,4),r8=ptCalcRSI(closes,8),r14=ptCalcRSI(closes,14);
   var w=[];
   for(var i=0;i<closes.length;i+=5)w.push(closes[Math.min(i+4,closes.length-1)]);
-  var wr4=ptCalcRSI(w,4),wr8=ptCalcRSI(w,8);
+  var wr8=ptCalcRSI(w,8);
   var wma20=ptCalcWMA(w,20);
   var macdLine=0;
   if(closes.length>=26){
@@ -7317,13 +7322,13 @@ function ptComputeRow(closes,name){
     macdLine=e12-e26;
   }
   var dR=r4.length?r4[r4.length-1]:50;
-  var wR=wr4.length?wr4[wr4.length-1]:50;
+  var wR=wr8.length?wr8[wr8.length-1]:50; // matches Scanner tab default basePeriod=8
   var price=closes[closes.length-1];
   var regime='C';
   if(wR>=50&&(!wma20||price>wma20))regime='A';
   else if(wR>=40)regime='B';
   var score=0;
-  if(dR>=40&&dR<=60)score+=50;else if(dR>=30&&dR<=70)score+=30;
+  if(dR>=40&&dR<=50)score+=50;else if(dR>=30&&dR<=70)score+=30;
   var r8v=r8.length?r8[r8.length-1]:50;
   if(r8v>=40&&r8v<=60)score+=40;else if(r8v>=30&&r8v<=70)score+=20;
   var r14v=r14.length?r14[r14.length-1]:50;
@@ -7409,7 +7414,7 @@ async function ptRunScan(){
         return ptFetchProxy(PT_CSV_URL+ds+'.csv',8000)
           .then(function(r){return r.text()})
           .then(function(text){
-            if(!text||text.indexOf('Symbol')<0)return;
+            if(!text||text.indexOf('Index Name')<0)return;
             csvOk=true;
             var lines=text.trim().split('\n');
             for(var j=1;j<lines.length;j++){
@@ -7454,10 +7459,6 @@ async function ptRunScan(){
 }
 
 function ptRender(results){
-  var now = new Date();
-  var thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  var alreadyRebalanced = ptPf.lastRebalMonth === thisMonth;
-
   var top3=results.slice(0,3).map(function(r){return r.name});
   ptEl('pt-tb').innerHTML=results.map(function(r,i){
     var sc=r.score>=200?'#1a8a1a':r.score>=150?'#b8860b':'#cc0000';
@@ -7607,7 +7608,6 @@ var DEEP_WINDOW_DAYS = 800; // comfortably above the 260-day floor rsiCalc(_,50)
 var DEEP_BATCH_SIZE = 5, DEEP_BATCH_DELAY = 350;
 var DEEP_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 var DEEP_CSV_URL_LIST = ['https://nsearchives.nseindia.com/content/indices/ind_close_all_','https://archives.nseindia.com/content/indices/ind_close_all_'];
-var DEEP_CSV_URL = DEEP_CSV_URL_LIST[0];
 // Race multiple CSV source URLs; return first successful response
 async function fetchWithFallback(urls, ds, opts) {
   var promises = urls.map(function(base){
@@ -7720,7 +7720,7 @@ function fetchDeepWeeklyHistory(onProgress){
   });
 }
 
-// Compact Wilder RSI (used by RSI Signal tab for daily + weekly)
+// Compact Wilder RSI (used by RSI Bias tab for daily + weekly)
 function rsiCalc(c,p){
   var v=c.filter(function(x){return x!=null&&!isNaN(x)});
   if(v.length<p+2)return[];
@@ -7800,40 +7800,63 @@ function wma(arr,n){
   for(var i=0;i<slice.length;i++){num+=slice[i]*(i+1);den+=(i+1);}
   return den?num/den:null;
 }
-// Fill M-RSI(9) and WMA21 columns from monthly aggregated closes
+// EMA(n) of a series, seeded by the SMA of the first n values (standard method).
+// Returns only the latest/last EMA value.
+function emaLast(arr,n){
+  if(!arr||arr.length<n)return null;
+  var k=2/(n+1),sum=0,i;
+  for(i=0;i<n;i++)sum+=arr[i];
+  var e=sum/n;
+  for(i=n;i<arr.length;i++)e=arr[i]*k+e*(1-k);
+  return e;
+}
+// Fill M-RSI(9), EMA(3), WMA(21) + Monthly Mindset columns from monthly aggregated closes.
+// Mindset: BUY MINDSET only when ALL THREE (RSI9, EMA3, WMA21) are individually > 50.
 function rsiFillMonthly(el,name){
   try{
     var sd=win._ldScannerData;
-    if(!sd||!sd.dailyMap){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
+    if(!sd||!sd.dailyMap){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
     var entries=sd.dailyMap[(name||'').toLowerCase()];
-    if(!entries||entries.length<200){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
+    if(!entries||entries.length<200){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
     var mc=toMonthlyCloses(entries);
     var r9m=rsiCalc(mc,9);
-    if(!r9m||r9m.length<21){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
+    if(!r9m||r9m.length<21){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';el.cells[11].textContent='—';return;}
     var latestRSI9=r9m[r9m.length-1];
+    var ema3=emaLast(r9m,3);
     var wmaVal=wma(r9m,21);
     el.cells[8].textContent=latestRSI9.toFixed(1);
     el.cells[8].style.color=latestRSI9>50?'#1a8a1a':'#cc0000';
-    if(wmaVal!==null){
-      el.cells[9].textContent=wmaVal.toFixed(1);
-      el.cells[9].style.color='#333';
-      var mindset=latestRSI9>wmaVal?'BUY MINDSET':'SELL MINDSET';
-      el.cells[10].textContent=mindset;
-      el.cells[10].style.color=mindset==='BUY MINDSET'?'#006600':'#cc0000';
-      el.cells[10].style.fontWeight='bold';
+    if(ema3!==null){
+      el.cells[9].textContent=ema3.toFixed(1);
+      el.cells[9].style.color=ema3>50?'#1a8a1a':'#cc0000';
     }else{
       el.cells[9].textContent='—';
-      el.cells[10].textContent='—';
     }
-  }catch(e){el.cells[8].textContent='ERR';el.cells[9].textContent='ERR';el.cells[10].textContent='ERR';}
+    if(wmaVal!==null){
+      el.cells[10].textContent=wmaVal.toFixed(1);
+      el.cells[10].style.color=wmaVal>50?'#1a8a1a':'#cc0000';
+      if(ema3!==null){
+        var mindset=(latestRSI9>50&&ema3>50&&wmaVal>50)?'BUY MINDSET':'SELL MINDSET';
+        el.cells[11].textContent=mindset;
+        el.cells[11].style.color=mindset==='BUY MINDSET'?'#006600':'#cc0000';
+        el.cells[11].style.fontWeight='bold';
+      }else{
+        el.cells[11].textContent='—';
+      }
+    }else{
+      el.cells[10].textContent='—';
+      el.cells[11].textContent='—';
+    }
+  }catch(e){el.cells[8].textContent='ERR';el.cells[9].textContent='ERR';el.cells[10].textContent='ERR';el.cells[11].textContent='ERR';}
 }
-// Fill W-RSI(50) column: tries DEEP cache → Scanner data → embedded
+// Fill W-RSI(50) column (+ W-RSI9/EMA3/WMA21/Weekly Mindset group): tries DEEP cache → Scanner data → embedded
 // Source indicator: EXACT (calendar-week) or APPROX (every-5th-day)
+// Weekly Mindset: BUY MINDSET only when ALL THREE (W-RSI9, EMA3, WMA21) are individually > 50.
 function rsiFillWeekly(el,name){
   try{
     var deep = win._deepWeeklyCache;
     var rd=el._rsiDaily;
-    if(!rd){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
+    if(!rd){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';el._rsiSrc='FAIL';return;}
     var de=deep&&deep.dailyMap?deep.dailyMap[(name||'').toLowerCase()]:null;
     var wc, src='';
     if(de&&de.length>=260){ wc=deepToWeeklyCloses(de); src='DEEP'; }
@@ -7844,16 +7867,41 @@ function rsiFillWeekly(el,name){
       if(rawEntries&&rawEntries.length>=20){ wc=deepToWeeklyCloses(rawEntries); src='EXACT'; }
       else { wc=[];for(var i=0;i<rd.c.length;i+=5)wc.push(rd.c[Math.min(i+4,rd.c.length-1)]);src='APPROX'; }
     }
-    else { el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return; }
+    else { el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';el._rsiSrc='FAIL';return; }
+    // Weekly RSI(9)+EMA(3)+WMA(21)+Mindset group needs far less history than the
+    // W-RSI(50) below (~30 weeks vs ~71), so compute it as soon as 'wc' exists.
+    var r9w=wc?rsiCalc(wc,9):[];
+    if(r9w&&r9w.length>=21){
+      var latestRSI9w=r9w[r9w.length-1];
+      var ema3w=emaLast(r9w,3);
+      var wmaValw=wma(r9w,21);
+      el.cells[12].textContent=latestRSI9w.toFixed(1);
+      el.cells[12].style.color=latestRSI9w>50?'#1a8a1a':'#cc0000';
+      if(ema3w!==null){
+        el.cells[13].textContent=ema3w.toFixed(1);
+        el.cells[13].style.color=ema3w>50?'#1a8a1a':'#cc0000';
+      }else{ el.cells[13].textContent='—'; }
+      if(wmaValw!==null){
+        el.cells[14].textContent=wmaValw.toFixed(1);
+        el.cells[14].style.color=wmaValw>50?'#1a8a1a':'#cc0000';
+        if(ema3w!==null){
+          var mindsetW=(latestRSI9w>50&&ema3w>50&&wmaValw>50)?'BUY MINDSET':'SELL MINDSET';
+          el.cells[15].textContent=mindsetW;
+          el.cells[15].style.color=mindsetW==='BUY MINDSET'?'#006600':'#cc0000';
+          el.cells[15].style.fontWeight='bold';
+        }else{ el.cells[15].textContent='—'; }
+      }else{ el.cells[14].textContent='—';el.cells[15].textContent='—'; }
+    }else{
+      el.cells[12].textContent='—';el.cells[13].textContent='—';el.cells[14].textContent='—';el.cells[15].textContent='—';
+    }
     if(!wc||wc.length<65){el.cells[4].textContent='—';el.cells[5].textContent='NEED MORE DATA';el._rsiSrc='FAIL';return;}
     var r50w=rsiCalc(wc,50);
-    if(name.indexOf('Nifty 50')===0||name.indexOf('Nifty 200 Value')===0)console.log('W50_DEBUG', name, 'de:',de?de.length:0,'wc:',wc.length,'r50:',r50w.length?r50w[r50w.length-1]:'?','src:',src,'last5wc:',wc.slice(-5).map(function(v){return v.toFixed(1)}).join(','));
     var rw=r50w.length?r50w[r50w.length-1]:null;
     if(rw===null||isNaN(rw)){el.cells[4].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
     var r8=rd.r8,r50=rd.r50;
     var st;
     if(xov(rd.r8d,50))st='⚡CROSSOVER';else if(xun(rd.r8d,50))st='⛔CROSSUNDER';
-    else if(r8>=45&&r8<50)st='WATCH BUY';else if(r8>50&&r8<=55)st='WATCH SELL';
+    else if(r8>=40&&r8<50)st='WATCH BUY';else if(r8>50&&r8<=55)st='WATCH SELL';
     else if(rw>50)st='ABOVE';else st='BELOW';
     el.cells[4].textContent=rw.toFixed(1)+(src==='EXACT'?'':'≈');
     el.cells[4].style.color=rw>50?'#1a8a1a':'#cc0000';
@@ -7872,10 +7920,10 @@ function rsiFillWeekly(el,name){
     el.cells[7].style.fontWeight='bold';
     el._rsi={r50:r50,r8:r8,rw:rw,st:st,r50d:rd.r50d,r8d:rd.r8d,closes:rd.c};
     el._rsiSrc=src;
-  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';el.cells[7].textContent='ERR';el._rsiSrc='FAIL';}
+  }catch(e){el.cells[4].textContent='ERR';el.cells[5].textContent='ERR';el.cells[7].textContent='ERR';el.cells[12].textContent='ERR';el.cells[13].textContent='ERR';el.cells[14].textContent='ERR';el.cells[15].textContent='ERR';el._rsiSrc='FAIL';}
 }
 
-// Entry point for RSI Signal tab: builds table, fills daily + weekly columns
+// Entry point for RSI Bias tab: builds table, fills daily + weekly columns
 function rsiRunAll(){
   var sd=win._ldScannerData;
   var st=document.getElementById('rsi-st');
@@ -7909,7 +7957,7 @@ function rsiRunAll(){
   }
   var all=sd.indexList||[];
   // Pre-fill Sl No + Index Name
-  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-weight:600;color:#000;font-size:11px;word-break:break-word;white-space:normal">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td></tr>';}).join('');
+  tb.innerHTML=all.map(function(idx,i){return'<tr id="rsi-r'+i+'" style="cursor:pointer"><td style="padding:3px 6px;text-align:center;color:#999;font-size:10px">'+(i+1)+'</td><td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-weight:600;color:#000;font-size:11px;word-break:break-word;white-space:normal">'+idx.name+'</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:right;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td><td style="padding:3px 6px;text-align:center;font-size:10px;color:#006;font-weight:700">…</td></tr>';}).join('');
   if(st)st.textContent='⏳ Filling D-RSI8/D-RSI50...';
   // Pass 1: fill daily columns for ALL rows immediately (fast, no batching needed)
   var i,el;
@@ -7966,9 +8014,6 @@ function rsiRunAll(){
       try{
         var dg=document.getElementById('rsi-diag');
         if(dg){
-          var dc=win._deepWeeklyCache;
-          var dcKeys=dc&&dc.dailyMap?Object.keys(dc.dailyMap).length:0;
-          var dcDate=dc&&dc.lastDate?dc.lastDate:'none';
           var sd=win._ldScannerData;
           var dmKeys=sd&&sd.dailyMap?Object.keys(sd.dailyMap).length:0;
           dg.style.display='block';
@@ -7987,8 +8032,8 @@ function rsiSortTable(){
   var rows=[].slice.call(tb.rows);
   var pri={'BUY MINDSET':0,'⚡CROSSOVER':1,'WATCH BUY':2,'ABOVE':3,'SELL MINDSET':4,'⛔CROSSUNDER':5,'WATCH SELL':6,'BELOW':7};
   rows.sort(function(a,b){
-    var ma=a.cells[10].textContent.trim();
-    var mb=b.cells[10].textContent.trim();
+    var ma=a.cells[11].textContent.trim();
+    var mb=b.cells[11].textContent.trim();
     var pa=ma==='BUY MINDSET'?0:ma==='SELL MINDSET'?4:8;
     var pb=mb==='BUY MINDSET'?0:mb==='SELL MINDSET'?4:8;
     if(pa!==pb)return pa-pb;
@@ -8007,8 +8052,8 @@ function rsiSortByMindset(){
   var asc=window._rsiMindsetAsc;
   var rows=[].slice.call(tb.rows);
   rows.sort(function(a,b){
-    var ma=a.cells[10].textContent.trim();
-    var mb=b.cells[10].textContent.trim();
+    var ma=a.cells[11].textContent.trim();
+    var mb=b.cells[11].textContent.trim();
     var va=ma==='BUY MINDSET'?0:ma==='SELL MINDSET'?1:2;
     var vb=mb==='BUY MINDSET'?0:mb==='SELL MINDSET'?1:2;
     return asc?va-vb:vb-va;
@@ -8016,7 +8061,7 @@ function rsiSortByMindset(){
   rows.forEach(function(r,i){tb.appendChild(r);r.cells[0].textContent=i+1;});
   window._rsiMindsetAsc=!asc;
   var ths=document.querySelectorAll('#rsi-tbl th');
-  if(ths[10])ths[10].textContent='Mindset '+(asc?'▴':'▾');
+  if(ths[11])ths[11].textContent='Mindset '+(asc?'▴':'▾');
 }
 
 function rsiShowDetail(idx){
