@@ -815,7 +815,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-hilega .hm-input-row { flex-direction:column; }
   #tab-hilega .hm-input-group { min-width:100% !important; }
   #tab-hilega #hmCatSelect { flex:1 1 100% !important; }
-  #tab-hilega #hmDateRange { flex-wrap:wrap; }
+  #tab-hilega #hmDateRange { flex-wrap:wrap !important; }
   #tab-hilega #hmDateRange input[type="date"] { flex:1 1 100%; }
   #tab-hilega #hmRangeResult { flex-wrap:wrap; }
   #tab-hilega #hmInfoRow { grid-template-columns:repeat(3,1fr) !important; }
@@ -846,6 +846,86 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     justify-content: center;
     padding: 20px;
   }
+}
+/* ── BA (Balanced Allocation) Mobile ── */
+@media(max-width:600px){
+  .ba-wrap{padding:6px 8px}
+  .ba-grid-hdr,.ba-grid-bench,.ba-grid-row,.ba-grid-avg-row{min-width:360px}
+  .ba-grid-hdr-period,.ba-grid-bench-cell,.ba-grid-cell{min-width:60px;padding:4px 3px}
+  .ba-grid-hdr-rank{width:30px;min-width:30px}
+  .ba-rank-table{font-size:10px}
+  .ba-rank-table thead th{padding:4px 6px;font-size:8px}
+  .ba-rank-table tbody td{padding:4px 6px;font-size:9px}
+  .ba-period-block{margin-bottom:16px}
+  .ba-legend-row{gap:10px;font-size:9px}
+  .ba-header{flex-direction:column;gap:6px}
+  .ba-logo{font-size:15px}
+  .ba-subtitle{font-size:10px}
+  .ba-controls{gap:6px}
+  .ba-portdef-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .ba-grid-hdr,.ba-grid-bench,.ba-grid-row,.ba-grid-avg-row{min-width:300px}
+  .ba-grid-hdr-period,.ba-grid-bench-cell,.ba-grid-cell{min-width:48px;padding:3px 2px;font-size:8px}
+  .ba-grid-hdr-rank{width:24px;min-width:24px;padding:4px 2px;font-size:7px}
+  .ba-grid-rank-lbl{width:24px;min-width:24px;padding:4px 2px}
+  .ba-cell-ret{font-size:9px}
+  .ba-cm-eq,.ba-cm-db,.ba-cm-gd{font-size:7px}
+  .ba-rank-medal{font-size:11px}
+  .ba-portdef-grid{grid-template-columns:1fr}
+  .ba-pl-card{min-width:80px;padding:4px 6px}
+  .ba-pl-id{font-size:9px}
+}
+/* ── Paper Trade Mobile ── */
+@media(max-width:600px){
+  #tab-pt #pt-wrap{padding:6px}
+  #tab-pt h2{font-size:15px;letter-spacing:2px}
+  #tab-pt p{font-size:10px}
+  #tab-pt .summary-grid{grid-template-columns:repeat(2,1fr);gap:4px}
+  #tab-pt .summary-grid > div{padding:6px 3px}
+  #tab-pt .summary-grid > div div:first-child{font-size:6px}
+  #tab-pt .summary-grid > div div:last-child{font-size:13px}
+  #tab-pt table{min-width:360px;font-size:8px}
+  #tab-pt table th{padding:3px 2px;font-size:6px}
+  #tab-pt table td{padding:3px 2px;font-size:8px}
+}
+@media(max-width:480px){
+  #tab-pt #pt-wrap{padding:4px}
+  #tab-pt h2{font-size:13px;letter-spacing:1px}
+  #tab-pt p{font-size:9px}
+  #tab-pt table{min-width:300px}
+}
+/* ── RSI Buy/Sell Signal Mobile ── */
+@media(max-width:600px){
+  #tab-rsi #rsi-wrap{padding:6px}
+  #tab-rsi h2{font-size:15px;letter-spacing:2px}
+  #tab-rsi p{font-size:10px}
+  #tab-rsi .rsi-detail-grid{grid-template-columns:repeat(2,1fr)!important}
+  #tab-rsi .rsi-detail-val{font-size:16px}
+  #tab-rsi table{font-size:8px}
+  #tab-rsi table th{padding:3px 2px;font-size:7px}
+  #tab-rsi table td{padding:3px 2px;font-size:8px}
+}
+@media(max-width:480px){
+  #tab-rsi #rsi-wrap{padding:4px}
+  #tab-rsi h2{font-size:13px}
+  #tab-rsi .rsi-detail-grid{grid-template-columns:1fr!important}
+}
+/* ── TTF Filter Selects Mobile ── */
+@media(max-width:600px){
+  #tab-ttf .ttf-panel .controls select{min-width:0!important;flex:1;font-size:11px;padding:4px 6px}
+  #tab-ttf .ttf-panel .controls{flex-wrap:wrap;gap:4px}
+}
+/* ── Global 393px/400px breakpoint — Xiaomi POCO M6 5G etc ── */
+@media(max-width:400px){
+  .ba-grid-hdr,.ba-grid-bench,.ba-grid-row,.ba-grid-avg-row{min-width:280px}
+  .ba-grid-hdr-period,.ba-grid-bench-cell,.ba-grid-cell{min-width:40px;padding:2px 1px;font-size:7px}
+  .ba-cell-ret{font-size:8px}
+  #tab-pt table{min-width:260px}
+  #tab-pt h2{font-size:11px}
+  #tab-rsi h2{font-size:11px}
+  .rs-sum-card{min-width:70px;padding:6px 6px}
+  .rs-sum-val{font-size:16px}
 }
 </style>
 </head>
@@ -5204,7 +5284,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
       <div class="rs-sum-lbl">🏦 AMC Products</div>
       <div class="rs-sum-sub">ETF or Index MF found</div>
     </div>
-    <div class="rs-sum-card" style="min-width:180px;">
+    <div class="rs-sum-card">
       <div class="rs-sum-val" id="rsBenchmarkVal">—</div>
       <div class="rs-sum-lbl">📌 Benchmark</div>
       <div class="rs-sum-sub" id="rsBenchmarkName">Nifty 50</div>
@@ -6653,7 +6733,7 @@ win.rsToggleWL=rsToggleWL;
           <option value="">Select Index…</option>
         </select>
       </div>
-      <div id="hmDateRange" style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap;">
+      <div id="hmDateRange" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
         <span style="font-size:11px;color:#888;white-space:nowrap;">From</span>
         <input type="date" id="hmDateFrom" onchange="hmCalcDateRange()" style="padding:3px 4px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);flex:1;">
         <span style="font-size:11px;color:#888;white-space:nowrap;">To</span>
@@ -8925,10 +9005,12 @@ function hmShowCanvasMessage(line1, line2) {
   if (!canvas) return;
   var wrap = canvas.parentElement;
   var rect = wrap.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
+  var w = Math.max(rect.width, 320);
+  var h = Math.max(rect.height, 220);
+  canvas.width = w;
+  canvas.height = h;
   var ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, rect.width, rect.height);
+  if (ctx) ctx.clearRect(0, 0, w, h);
   var banner = document.getElementById('hmNoDataBanner');
   var bannerMsg = document.getElementById('hmNoDataMsg');
   if (banner) {
@@ -9063,6 +9145,7 @@ async function drawHilegaMilega() {
         canvas.style.width = rect.width + 'px';
         canvas.style.height = rect.height + 'px';
         var ctx = canvas.getContext('2d');
+        if (!ctx) { hmShowCanvasMessage('Canvas context unavailable', 'Brave Shields may block canvas. Try disabling fingerprint protection for this site.'); hmClearStatBoxes('Canvas blocked'); clearTimeout(safetyTimer); hmHideOv(); return; }
         ctx.scale(dpr, dpr);
         var W = rect.width, H = rect.height;
         ctx.clearRect(0, 0, W, H);
@@ -9088,7 +9171,7 @@ async function drawHilegaMilega() {
         plotLine(ema, '#16a34a', 1);
         for (var ci = 1; ci < n; ci++) { var prev = rsi[ci - 1], cur = rsi[ci]; if (prev == null || cur == null) continue; if (prev >= 20 && cur < 20) { var lowest = cur, lowestIdx = ci; for (var lj = ci; lj < Math.min(ci + 5, n); lj++) { if (rsi[lj] != null && rsi[lj] < lowest) { lowest = rsi[lj]; lowestIdx = lj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(34,197,94,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#16a34a'; ctx.fill(); ctx.restore(); } if (prev <= 88 && cur > 88) { var highest = cur, highestIdx = ci; for (var hj = ci; hj < Math.min(ci + 5, n); hj++) { if (rsi[hj] != null && rsi[hj] > highest) { highest = rsi[hj]; highestIdx = hj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(239,68,68,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.restore(); } }
         window._hmChart = { rsi: rsi, wma: wma, ema: ema, dates: dates, pad: pad, cW: cW, cH: cH, n: n, W: W, H: H, midLine: midLine, xStep: xStep, toX: toX, toY: toY, navs: navs, dpr: dpr };
-        window._hmCleanCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        try { window._hmCleanCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch(_e) { window._hmCleanCanvas = null; }
         ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(pad.l, 2, 180, 18);
         ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#000'; ctx.textAlign = 'left';
         // ── Right HUD: latest values ──
@@ -9102,11 +9185,11 @@ async function drawHilegaMilega() {
           var cr = canvas.getBoundingClientRect();
           var mx = e.clientX - cr.left;
           var my = e.clientY - cr.top;
-          if (mx < chart.pad.l || mx > chart.W - chart.pad.r) { canvas.style.cursor = 'default'; if (hudEl) hudEl.style.display = 'none'; ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
+          if (mx < chart.pad.l || mx > chart.W - chart.pad.r) { canvas.style.cursor = 'default'; if (hudEl) hudEl.style.display = 'none'; if (window._hmCleanCanvas) ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
           canvas.style.cursor = 'crosshair';
           var idx = Math.round((mx - chart.pad.l) / chart.xStep);
-          if (idx < 0 || idx >= chart.n) { if (hudEl) hudEl.style.display = 'none'; ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
-          ctx.putImageData(window._hmCleanCanvas, 0, 0);
+          if (idx < 0 || idx >= chart.n) { if (hudEl) hudEl.style.display = 'none'; if (window._hmCleanCanvas) ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
+          if (window._hmCleanCanvas) ctx.putImageData(window._hmCleanCanvas, 0, 0);
           ctx.save(); ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
           ctx.beginPath(); ctx.moveTo(chart.toX(idx), chart.pad.t); ctx.lineTo(chart.toX(idx), chart.H - chart.pad.b); ctx.stroke(); ctx.restore();
           if (hudEl) {
@@ -9116,12 +9199,12 @@ async function drawHilegaMilega() {
           }
         };
         canvas.onmouseleave = function() {
-          ctx.putImageData(window._hmCleanCanvas, 0, 0);
+          if (window._hmCleanCanvas) ctx.putImageData(window._hmCleanCanvas, 0, 0);
           if (hudEl) hudEl.style.display = 'none';
         };
         clearTimeout(safetyTimer); hmHideOv();
         hmCalcDateRange();
-    } catch (e) { clearTimeout(safetyTimer); hmHideOv(); }
+    } catch (e) { clearTimeout(safetyTimer); hmHideOv(); hmShowCanvasMessage('Chart render failed', e.message || 'Unknown error — check Brave Shields fingerprint protection'); hmClearStatBoxes('Render error'); }
 }
 function openHilegaTab() {
   hmPopulateIndexDropdown();
