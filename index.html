@@ -810,6 +810,24 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-ttf .ttf-panel .subtitle { font-size:10px; }
   #tab-ttf .ttf-panel .legend { font-size:9px; gap:4px; }
 }
+/* ── Hilega Tab Mobile ── */
+@media(max-width:600px){
+  #tab-hilega .hm-input-row { flex-direction:column; }
+  #tab-hilega .hm-input-group { min-width:100% !important; }
+  #tab-hilega #hmDateRange { flex-wrap:wrap; }
+  #tab-hilega #hmDateRange input[type="date"] { flex:1 1 100%; }
+  #tab-hilega #hmRangeResult { flex-wrap:wrap; }
+  #tab-hilega #hmInfoRow { grid-template-columns:repeat(3,1fr) !important; }
+  #tab-hilega #hmStatAction { grid-column:span 3 !important; }
+  #tab-hilega #hmStatSwitch { grid-column:span 3 !important; }
+  #tab-hilega #hmBtnRow { flex-wrap:wrap; justify-content:flex-start; gap:2px; }
+  #tab-hilega #hmBtnRow button { font-size:10px !important; padding:3px 5px !important; }
+}
+@media(max-width:480px){
+  #tab-hilega #hmInfoRow { grid-template-columns:repeat(2,1fr) !important; }
+  #tab-hilega #hmStatAction { grid-column:span 2 !important; }
+  #tab-hilega #hmStatSwitch { grid-column:span 2 !important; }
+}
 /* ── Portrait-only lock for mobile phones ── */
 @media screen and (orientation: landscape) and (max-height: 500px) {
   body::after {
@@ -967,6 +985,12 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <h1>TTF RSI Weekly Scanner</h1>
 <p class="subtitle">NSE Daily OHLC · RSI(4,6,8) Weekly Zones + Daily</p>
 <div class="controls">
+  <select id="catFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;min-width:180px;">
+    <option value="ALL">All Categories</option>
+  </select>
+  <select id="idxFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;min-width:200px;">
+    <option value="ALL">All Indices</option>
+  </select>
   <label><input type="checkbox" id="rsi8Filter" checked> RSI(8) Weekly &ge; 45 only</label>
 </div>
 <div class="status" id="status">Ready.</div>
@@ -4487,6 +4511,9 @@ initBreadthScanner();
   var $ = function(id) { return document.getElementById(id); };
   var statusEl = $('status'), headEl = $('tableHead'), bodyEl = $('tableBody');
   var tsEl = $('ts'), rsi8Filter = $('rsi8Filter');
+  var catFilterEl = $('catFilter'), idxFilterEl = $('idxFilter');
+  var _categoryFilter = 'ALL', _indexFilter = 'ALL';
+  var _catIdxMap = {}; // category → [index names]
   var _ttfRunning = false;
   var CACHE_KEY = 'ttf_scanner_cache';
   var _lastResults = null, _sortKey = 'name', _sortDir = 'asc', _debugData = {};
@@ -4657,8 +4684,47 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
     render(arr);
   }
   // ── 7.7 Table Builder ──
+  function buildCatFilterOptions(allResults) {
+    var map = {}, cats = [];
+    for (var k = 0; k < allResults.length; k++) {
+      var rc = allResults[k].category || '';
+      if (rc && !map[rc]) { map[rc] = true; cats.push(rc); }
+    }
+    cats.sort();
+    var cur = catFilterEl.value;
+    catFilterEl.innerHTML = '<option value="ALL">All Categories</option>';
+    for (var c = 0; c < cats.length; c++) {
+      var opt = document.createElement('option');
+      opt.value = cats[c]; opt.textContent = cats[c];
+      if (cats[c] === cur || cur === 'ALL') opt.selected = (cats[c] === cur);
+      catFilterEl.appendChild(opt);
+    }
+    _catIdxMap = {};
+    for (var j = 0; j < allResults.length; j++) {
+      var rCat = allResults[j].category || '';
+      if (!_catIdxMap[rCat]) _catIdxMap[rCat] = [];
+      _catIdxMap[rCat].push(allResults[j].name);
+    }
+    updateIdxFilter();
+  }
+  function updateIdxFilter() {
+    var cat = catFilterEl.value;
+    var names = cat === 'ALL' ? [] : (_catIdxMap[cat] || []);
+    if (names.length) names.sort();
+    var curIdx = idxFilterEl.value;
+    idxFilterEl.innerHTML = '<option value="ALL">' + (cat === 'ALL' ? 'All Indices' : 'All in ' + cat) + '</option>';
+    for (var n = 0; n < names.length; n++) {
+      var o = document.createElement('option');
+      o.value = names[n]; o.textContent = names[n];
+      if (names[n] === curIdx) o.selected = true;
+      idxFilterEl.appendChild(o);
+    }
+  }
   function render(results) {
     _lastResults = results;
+    _categoryFilter = catFilterEl.value;
+    _indexFilter = idxFilterEl.value;
+    buildCatFilterOptions(results);
     var ps = RSI_PERIODS, cols = 5 + ps.length * 4;
     headEl.innerHTML = '';
     var cg = '<colgroup>';
@@ -4679,8 +4745,10 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
     if (existingCg) tbl.removeChild(existingCg);
     tbl.insertAdjacentHTML('afterbegin', cg);
     var display = results.filter(function(r) { return r.type === 'E' && r.name && r.name.trim() !== ''; });
+    if (_categoryFilter !== 'ALL') display = display.filter(function(r) { return r.category === _categoryFilter; });
+    if (_indexFilter !== 'ALL') display = display.filter(function(r) { return r.name === _indexFilter; });
     if (rsi8Filter.checked) display = display.filter(function(r) { return r.w8 != null && r.w8 >= 45; });
-    if (!display.length) { bodyEl.innerHTML = '<tr class="empty-row"><td colspan="' + cols + '">No data.</td></tr>'; return; }
+    if (!display.length) { bodyEl.innerHTML = '<tr class="empty-row"><td colspan="' + cols + '">' + (_indexFilter !== 'ALL' ? 'Selected index not in equity filter.' : 'No data.') + '</td></tr>'; return; }
     // ── Freeze-pane inline style helpers ──
     // Header sticky: position:sticky;top works in <thead>, not <tbody>
     var C1W = 'width:28px;min-width:28px;max-width:28px;overflow:hidden;';
@@ -4784,7 +4852,10 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
     for (var i = 0; i < indexList.length; i++) {
       if (!indexList[i].name || !indexList[i].name.trim()) continue;
       var row = computeRow(indexList[i].name, priceMap, dailyMap);
-      if (row) results.push(row);
+      if (row) {
+        row.category = indexList[i].category || indexList[i].nseKey || '';
+        results.push(row);
+      }
     }
       results.sort(function(a, b) { var c = (b._rsiSort || 0) - (a._rsiSort || 0); if (c !== 0) return c; return (a._actSort || 9) - (b._actSort || 9); });
     render(results);
@@ -4811,7 +4882,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
       EMBEDDED_NSE_DATA.indices.forEach(function(idx) {
         var key = normalize(idx.n);
         priceMap[key] = { price: idx.p, open: idx.o, high: idx.h, low: idx.l };
-        indexList.push({ name: idx.n, key: key });
+        indexList.push({ name: idx.n, key: key, category: idx.c });
         var closes = EMBEDDED_HISTORICAL[key];
         if (!closes || closes.length < 5) return;
         var entries = [];
@@ -4917,6 +4988,17 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
   }
   var TTFScanner = { run: runScan, reset: reset, onComplete: null, _results: function() { return _lastResults; }, _loadCache: loadFromCache };
   win.TTFScanner = TTFScanner;
+  catFilterEl.addEventListener('change', function() {
+    _categoryFilter = catFilterEl.value;
+    _indexFilter = 'ALL';
+    idxFilterEl.value = 'ALL';
+    updateIdxFilter();
+    if (_lastResults) render(_lastResults);
+  });
+  idxFilterEl.addEventListener('change', function() {
+    _indexFilter = idxFilterEl.value;
+    if (_lastResults) render(_lastResults);
+  });
   rsi8Filter.addEventListener('change', function() { if (_lastResults) render(_lastResults); });
   headEl.addEventListener('click', function(e) {
     var th = e.target.closest('th[data-sort]');
@@ -6544,6 +6626,7 @@ win.rsToggleWL=rsToggleWL;
   <div style="display:flex;flex-direction:column;height:100vh;background:#fff;">
     <div style="width:100%;height:50vh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
       <canvas id="hmCanvas"></canvas>
+      <div id="hmHud" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.95);border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-family:monospace;font-size:11px;line-height:1.6;color:#000;box-shadow:2px 2px 8px rgba(0,0,0,0.12);z-index:10;white-space:nowrap;"></div>
       <div id="hmNoDataBanner" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#fff;text-align:center;padding:16px;">
         <div id="hmNoDataMsg" style="font-size:13px;color:#888;font-family:var(--mono);max-width:280px;white-space:pre-line;">No scanner data yet</div>
         <button onclick="switchTab('scanner')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:6px 14px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">Go to Scanner tab →</button>
@@ -6577,11 +6660,7 @@ win.rsToggleWL=rsToggleWL;
           <label style="font-size:11px;color:#888;text-transform:uppercase;">EMA Length</label>
           <input type="number" id="hmEmaLen" value="3" min="2" max="50" onchange="drawHilegaMilega()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:center;">
         </div>
-        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;min-width:70px;justify-content:flex-end;">
-          <button onclick="drawHilegaMilega()" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">GO</button>
-        </div>
       </div>
-      <div id="hmDebug" style="background:#fff;color:#000;font-family:monospace;font-size:11px;padding:6px 8px;border-radius:4px;white-space:pre-wrap;max-height:120px;overflow-y:auto;display:none;border:1px solid #ccc;margin-bottom:4px;"></div>
       <div id="hmBtnRow" style="display:flex;justify-content:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;flex-shrink:0;overflow-x:auto;">
         <button class="hm-tf-btn hm-period-btn active" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
         <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
@@ -8676,6 +8755,20 @@ function hmPopulateIndexDropdown() {
   else if (prevVal && sel.querySelector('option[value="' + prevVal + '"]')) sel.value = prevVal;
 }
 function hmOnIndexChange() { var sel = document.getElementById('hmIndexSelect'); localStorage.setItem('hm_index_key', sel.value); window._hmHist = null; window._hmHistCode = null; drawHilegaMilega(); }
+function hmSetDefaultDates() {
+    var hist = window._hmHist;
+    if (!hist || hist.length < 2) return;
+    var fromEl = document.getElementById('hmDateFrom'), toEl = document.getElementById('hmDateTo');
+    if (!fromEl || !toEl) return;
+    if (!fromEl.value) {
+      var first = hmParseDate(hist[0].date);
+      if (!isNaN(first.getTime())) fromEl.value = first.getFullYear() + '-' + String(first.getMonth()+1).padStart(2,'0') + '-' + String(first.getDate()).padStart(2,'0');
+    }
+    if (!toEl.value) {
+      var last = hmParseDate(hist[hist.length-1].date);
+      if (!isNaN(last.getTime())) toEl.value = last.getFullYear() + '-' + String(last.getMonth()+1).padStart(2,'0') + '-' + String(last.getDate()).padStart(2,'0');
+    }
+}
 function hmCalcDateRange() {
     var fromStr = document.getElementById('hmDateFrom').value;
     var toStr = document.getElementById('hmDateTo').value;
@@ -8703,15 +8796,15 @@ function setHmTf(btn, days) {
     if (period === 'monthly' && days < 365) days = 365;
     window._hmTfDays = days;
     localStorage.setItem('hm_tf_days', days);
-    document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
+    document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
+    btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
     drawHilegaMilega();
 }
 function setHmPeriod(btn, period) {
     window._hmPeriod = period;
     localStorage.setItem('hm_period', period);
-    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) { b.classList.remove('active'); });
-    btn.classList.add('active');
+    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
+    btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
     var curTf = window._hmTfDays || 99999;
     if (period === 'weekly' && curTf < 90) { window._hmTfDays = 90; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(7)').classList.add('active'); }
     else if (period === 'monthly' && curTf < 365) { window._hmTfDays = 365; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(9)').classList.add('active'); }
@@ -8732,18 +8825,6 @@ function hmCalcRSI(prices, period) {
 }
 function hmCalcWMA(data, period) { var out = new Array(data.length).fill(null); var denom = period * (period + 1) / 2; for (var i = period - 1; i < data.length; i++) { var num = 0; for (var j = 0; j < period; j++) num += data[i - j] * (period - j); out[i] = num / denom; } return out; }
 function hmCalcEMA(data, period) { var out = new Array(data.length).fill(null); var k = 2 / (period + 1); var sum = 0; for (var i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k); return out; }
-function hmDebug(msg) {
-  console.log('[Hilega]', msg);
-  var el = document.getElementById('hmDebug');
-  if (!el) return;
-  el.style.display = 'block';
-  el.textContent += msg + '\n';
-  el.scrollTop = el.scrollHeight;
-}
-function hmDebugClear() {
-  var el = document.getElementById('hmDebug');
-  if (el) { el.textContent = ''; el.style.display = 'block'; }
-}
 function hmHideOv() {
   var ov = document.getElementById('ov');
   if (ov) ov.style.display = 'none';
@@ -8777,47 +8858,30 @@ function hmClearStatBoxes(label) {
   var switchVal = document.getElementById('hmStatSwitchVal'); if (switchVal) switchVal.textContent = '\u2014';
 }
 async function drawHilegaMilega() {
-    hmDebugClear();
     var ov = document.getElementById('ov');
     if (ov) ov.style.display = 'flex';
     var safetyTimer = setTimeout(hmHideOv, 8000);
     var ovTxt = document.getElementById('ovTxt');
     if (ovTxt) { ovTxt.textContent = 'LOADING\u2026'; ovTxt.style.color = ''; }
     try {
-        // ── Check scanner data FIRST, before looking at the dropdown ──
-        // (if this check ran after the "no key selected" check below, an
-        // empty dropdown — the normal state when the Scanner hasn't been
-        // run yet — would make this function exit silently before ever
-        // reaching the helpful on-canvas message, leaving the chart and
-        // all stat boxes blank with no explanation.)
         var sd = window._ldScannerData;
-        hmDebug('1. _ldScannerData exists: ' + !!sd);
-        hmDebug('   dailyMap exists: ' + !!(sd && sd.dailyMap));
-        hmDebug('   dailyMap keys count: ' + (sd && sd.dailyMap ? Object.keys(sd.dailyMap).length : 0));
         if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
           hmShowCanvasMessage('\u26A0 Run the Nifty Index Scanner first', 'Open the Scanner tab (or SCAN ALL), then come back here');
           hmClearStatBoxes('No scanner data yet');
-          hmDebug('   ABORT: no scanner data'); clearTimeout(safetyTimer); hmHideOv(); return;
+          clearTimeout(safetyTimer); hmHideOv(); return;
         }
-        // Dropdown is populated from sd above, so try once more in case it
-        // hadn't been filled in yet (e.g. tab opened before data arrived).
         if (!document.getElementById('hmIndexSelect')?.value) hmPopulateIndexDropdown();
         var key = document.getElementById('hmIndexSelect')?.value;
-        hmDebug('2. Key: ' + (key || '(none)'));
         if (!key) {
           hmShowCanvasMessage('No index available to chart', '(scanner data loaded, but nothing matched)');
           hmClearStatBoxes('No index selected');
-          hmDebug('   ABORT: no key'); clearTimeout(safetyTimer); hmHideOv(); return;
+          clearTimeout(safetyTimer); hmHideOv(); return;
         }
         hmHideNoDataBanner();
         localStorage.setItem('hm_index_key', key);
         var idxSelect = document.getElementById('hmIndexSelect');
         var origName = idxSelect?.options?.[idxSelect.selectedIndex]?.dataset?.name;
-        hmDebug('3. origName="' + (origName || '') + '"');
         var entries = sd.dailyMap[key] || sd.dailyMap[(key || '').toLowerCase()] || (origName ? sd.dailyMap[origName.toLowerCase()] : null);
-        hmDebug('   Entries for "' + key + '": ' + (entries ? entries.length + ' rows' : 'NOT FOUND'));
-        hmDebug('   Lowercase key: "' + (key || '').toLowerCase() + '"');
-        hmDebug('   dailyMap keys (sample): ' + Object.keys(sd.dailyMap).slice(0, 8).join(', '));
         if (!entries || entries.length < 10) {
           hmShowCanvasMessage('No data for ' + (key || 'selected index'), '(' + (entries ? entries.length : 0) + ' entries — try another index)');
           hmClearStatBoxes('No data for this index');
@@ -8829,47 +8893,32 @@ async function drawHilegaMilega() {
           var db = b.substring(4,8) + b.substring(2,4) + b.substring(0,2);
           return da < db ? -1 : da > db ? 1 : 0;
         });
-        hmDebug('4. Sort OK. Sample raw entries:');
-        for (var si3 = 0; si3 < Math.min(3, sorted.length); si3++) { hmDebug('   [' + si3 + '] "' + sorted[si3] + '"'); }
-        hmDebug('   Last 3:');
-        for (var si3 = Math.max(0, sorted.length - 3); si3 < sorted.length; si3++) { hmDebug('   [' + si3 + '] "' + sorted[si3] + '"'); }
         for (var hi = 0; hi < sorted.length; hi++) {
           var parts = sorted[hi].split('|');
           var ds = parts[0];
           var dateStr = ds.substring(0,2) + '/' + ds.substring(2,4) + '/' + ds.substring(4,8);
           hist.push({ nav: parseFloat(parts[4]), date: dateStr });
         }
-        hmDebug('5. Hist parsed: ' + hist.length + ' entries');
-        hmDebug('   First: nav=' + hist[0]?.nav + ' date="' + hist[0]?.date + '"');
-        hmDebug('   Last:  nav=' + hist[hist.length-1]?.nav + ' date="' + hist[hist.length-1]?.date + '"');
-        hmDebug('   Nav type check: ' + typeof hist[0]?.nav + ', isFinite=' + Number.isFinite(hist[0]?.nav));
         window._hmHist = hist;
         window._hmHistCode = key;
+        hmSetDefaultDates();
         var viewData = hist;
         if (window._hmPeriod === 'weekly') viewData = hmAggregateWeeks(hist);
         else if (window._hmPeriod === 'monthly') viewData = hmAggregateMonths(hist);
-        hmDebug('6. Period="' + window._hmPeriod + '" viewData=' + viewData.length + ' rows');
-        hmDebug('   viewData[0]: nav=' + viewData[0]?.nav + ' date="' + viewData[0]?.date + '"');
-        hmDebug('   viewData[last]: nav=' + viewData[viewData.length-1]?.nav + ' date="' + viewData[viewData.length-1]?.date + '"');
         var rsiLen = parseInt(document.getElementById('hmRsiLen').value) || 9;
         var wmaLen = parseInt(document.getElementById('hmWmaLen').value) || 21;
         var emaLen = parseInt(document.getElementById('hmEmaLen').value) || 3;
-        hmDebug('7. Params: RSI=' + rsiLen + ' WMA=' + wmaLen + ' EMA=' + emaLen + ' tfDays=' + window._hmTfDays);
         var midLine = 50;
         var tfDays = window._hmTfDays || 1825;
         var rsi = hmCalcRSI(viewData.map(function(d) { return d.nav; }), rsiLen);
         var wma = hmCalcWMA(rsi, wmaLen);
         var ema = hmCalcEMA(rsi, emaLen);
-        hmDebug('8. RSI computed: len=' + rsi.length + ' sample=[' + rsi.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
-        hmDebug('   WMA sample=[' + wma.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
-        hmDebug('   EMA sample=[' + ema.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
         var now = new Date();
         var cutoffDate = new Date(now.getTime() - tfDays * 86400000);
         var slicedIdx = 0;
         for (var si2 = 0; si2 < viewData.length; si2++) { var dt = hmParseDate(viewData[si2].date); if (!isNaN(dt.getTime()) && dt >= cutoffDate) { slicedIdx = si2; break; } }
         var slicedLen = viewData.length - slicedIdx;
-        hmDebug('9. Sliced: idx=' + slicedIdx + ' len=' + slicedLen + ' cutoff=' + cutoffDate.toISOString().slice(0,10));
-        if (slicedLen < 2) { hmDebug('   ABORT: insufficient data'); clearTimeout(safetyTimer); hmHideOv(); return; }
+        if (slicedLen < 2) { clearTimeout(safetyTimer); hmHideOv(); return; }
         var navs = viewData.slice(slicedIdx).map(function(d) { return d.nav; });
         var dates = viewData.slice(slicedIdx).map(function(d) { return d.date; });
         var n = slicedLen;
@@ -8889,7 +8938,6 @@ async function drawHilegaMilega() {
         var lastR = rsi[lastI] != null ? rsi[lastI] : 50;
         var lastW = wma[lastI] != null ? wma[lastI].toFixed(1) : '\u2014';
         var lastE = ema[lastI] != null ? ema[lastI].toFixed(1) : '\u2014';
-        hmDebug('10. Stats: RSI=' + lastR.toFixed(1) + ' WMA=' + lastW + ' EMA=' + lastE);
         var idxSel = document.getElementById('hmIndexSelect');
         var idxName = idxSel?.options?.[idxSel.selectedIndex]?.textContent || key;
         var periodLabel = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
@@ -8914,13 +8962,10 @@ async function drawHilegaMilega() {
         if (aboveWma && aboveEma) { actionBox.style.background = 'rgba(34,197,94,0.18)'; actionBox.style.borderColor = '#16a34a'; actionVal.textContent = 'BUY'; actionVal.style.color = '#16a34a'; switchBox.style.background = 'rgba(34,197,94,0.18)'; switchBox.style.borderColor = '#16a34a'; switchVal.textContent = 'Add Equity'; switchVal.style.color = '#16a34a'; }
         else if (belowWma && belowEma) { actionBox.style.background = 'rgba(239,68,68,0.18)'; actionBox.style.borderColor = '#ef4444'; actionVal.textContent = 'SELL'; actionVal.style.color = '#ef4444'; switchBox.style.background = 'rgba(239,68,68,0.18)'; switchBox.style.borderColor = '#ef4444'; switchVal.textContent = 'Reduce Equity \u00B7 Increase Debt'; switchVal.style.color = '#ef4444'; }
         else { actionBox.style.background = 'rgba(245,158,11,0.18)'; actionBox.style.borderColor = '#f59e0b'; actionVal.textContent = 'WATCH'; actionVal.style.color = '#f59e0b'; switchBox.style.background = 'rgba(245,158,11,0.18)'; switchBox.style.borderColor = '#f59e0b'; switchVal.textContent = 'Watch Daily for Signals'; switchVal.style.color = '#f59e0b'; }
-        hmDebug('11. Stats updated OK');
         var canvas = document.getElementById('hmCanvas');
-        hmDebug('10. Canvas exists: ' + !!canvas);
-        if (!canvas) { hmDebug('    ABORT: no canvas'); clearTimeout(safetyTimer); hmHideOv(); return; }
+        if (!canvas) { clearTimeout(safetyTimer); hmHideOv(); return; }
         var wrap = canvas.parentElement;
         var rect = wrap.getBoundingClientRect();
-        hmDebug('    Canvas rect: ' + rect.width + 'x' + rect.height);
         var dpr = window.devicePixelRatio || 1;
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
@@ -8951,15 +8996,43 @@ async function drawHilegaMilega() {
         plotLine(wma, '#e11d48', 2);
         plotLine(ema, '#16a34a', 1);
         for (var ci = 1; ci < n; ci++) { var prev = rsi[ci - 1], cur = rsi[ci]; if (prev == null || cur == null) continue; if (prev >= 20 && cur < 20) { var lowest = cur, lowestIdx = ci; for (var lj = ci; lj < Math.min(ci + 5, n); lj++) { if (rsi[lj] != null && rsi[lj] < lowest) { lowest = rsi[lj]; lowestIdx = lj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(34,197,94,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#16a34a'; ctx.fill(); ctx.restore(); } if (prev <= 88 && cur > 88) { var highest = cur, highestIdx = ci; for (var hj = ci; hj < Math.min(ci + 5, n); hj++) { if (rsi[hj] != null && rsi[hj] > highest) { highest = rsi[hj]; highestIdx = hj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(239,68,68,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.restore(); } }
-        window._hmChart = { rsi: rsi, wma: wma, ema: ema, dates: dates, pad: pad, cW: cW, cH: cH, n: n, W: W, H: H, midLine: midLine, xStep: xStep, toX: toX, toY: toY, navs: navs };
+        window._hmChart = { rsi: rsi, wma: wma, ema: ema, dates: dates, pad: pad, cW: cW, cH: cH, n: n, W: W, H: H, midLine: midLine, xStep: xStep, toX: toX, toY: toY, navs: navs, dpr: dpr };
         window._hmCleanCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(pad.l, 2, 180, 18);
         ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#000'; ctx.textAlign = 'left';
         ctx.fillText('RSI: ' + lastR.toFixed(1) + '  WMA: ' + lastW + '  EMA: ' + lastE, pad.l + 4, 14);
-        hmDebug('12. CHART DRAWN OK');
+        // ── Crosshair + HUD ──
+        var hudEl = document.getElementById('hmHud');
+        canvas.onmousemove = function(e) {
+          var chart = window._hmChart;
+          if (!chart || !chart.n) return;
+          var cr = canvas.getBoundingClientRect();
+          var mx = e.clientX - cr.left;
+          var my = e.clientY - cr.top;
+          if (mx < chart.pad.l || mx > chart.W - chart.pad.r) { canvas.style.cursor = 'default'; if (hudEl) hudEl.style.display = 'none'; ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
+          canvas.style.cursor = 'crosshair';
+          var idx = Math.round((mx - chart.pad.l) / chart.xStep);
+          if (idx < 0 || idx >= chart.n) { if (hudEl) hudEl.style.display = 'none'; ctx.putImageData(window._hmCleanCanvas, 0, 0); return; }
+          ctx.putImageData(window._hmCleanCanvas, 0, 0);
+          ctx.save(); ctx.strokeStyle = '#888'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+          ctx.beginPath(); ctx.moveTo(chart.toX(idx), chart.pad.t); ctx.lineTo(chart.toX(idx), chart.H - chart.pad.b); ctx.stroke(); ctx.restore();
+          if (hudEl) {
+            var rv = chart.rsi[idx], wv = chart.wma[idx], ev = chart.ema[idx], nv = chart.navs[idx], dt = chart.dates[idx];
+            hudEl.innerHTML = '<b>' + dt + '</b><br>NAV: ' + (nv != null ? nv.toFixed(2) : '-') + '<br>RSI: ' + (rv != null ? rv.toFixed(1) : '-') + '  WMA: ' + (wv != null ? wv.toFixed(1) : '-') + '  EMA: ' + (ev != null ? ev.toFixed(1) : '-');
+            var hx = mx + 14, hy = my - 10;
+            if (hx + 180 > chart.W) hx = mx - 180;
+            if (hy < 4) hy = 4;
+            if (hy + 80 > chart.H) hy = chart.H - 80;
+            hudEl.style.left = hx + 'px'; hudEl.style.top = hy + 'px'; hudEl.style.display = 'block';
+          }
+        };
+        canvas.onmouseleave = function() {
+          ctx.putImageData(window._hmCleanCanvas, 0, 0);
+          if (hudEl) hudEl.style.display = 'none';
+        };
         clearTimeout(safetyTimer); hmHideOv();
         hmCalcDateRange();
-    } catch (e) { clearTimeout(safetyTimer); hmHideOv(); hmDebug('ERROR: ' + e.message + '\n' + e.stack); }
+    } catch (e) { clearTimeout(safetyTimer); hmHideOv(); }
 }
 function openHilegaTab() {
   hmPopulateIndexDropdown();
@@ -8967,12 +9040,12 @@ function openHilegaTab() {
   var savedPeriod = localStorage.getItem('hm_period');
   window._hmTfDays = savedTf ? parseInt(savedTf) : 99999;
   window._hmPeriod = savedPeriod || 'daily';
-  document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
+  document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
   var tfBtns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
-  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf(String(window._hmTfDays)) !== -1) b.classList.add('active'); });
+  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf(String(window._hmTfDays)) !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
   var perBtns = document.querySelectorAll('.hm-period-btn');
-  perBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + window._hmPeriod + "'") !== -1) b.classList.add('active'); });
+  perBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + window._hmPeriod + "'") !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
   var sel = document.getElementById('hmIndexSelect');
   if (sel && !sel.value && sel.options.length > 0) sel.selectedIndex = 0;
   console.log('[Hilega] dailyMap keys:', window._ldScannerData ? Object.keys(window._ldScannerData.dailyMap || {}).slice(0, 5) : 'no scanner data');
