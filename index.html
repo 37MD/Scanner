@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- ════════════════════════════════════════════ -->
@@ -6544,6 +6544,10 @@ win.rsToggleWL=rsToggleWL;
   <div style="display:flex;flex-direction:column;height:100vh;background:#fff;">
     <div style="width:100%;height:50vh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
       <canvas id="hmCanvas"></canvas>
+      <div id="hmNoDataBanner" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#fff;text-align:center;padding:16px;">
+        <div id="hmNoDataMsg" style="font-size:13px;color:#888;font-family:var(--mono);max-width:280px;white-space:pre-line;">No scanner data yet</div>
+        <button onclick="switchTab('scanner')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:6px 14px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">Go to Scanner tab →</button>
+      </div>
     </div>
     <div style="flex-grow:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;gap:6px;align-items:center;">
@@ -6577,6 +6581,7 @@ win.rsToggleWL=rsToggleWL;
           <button onclick="drawHilegaMilega()" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">GO</button>
         </div>
       </div>
+      <div id="hmDebug" style="background:#fff;color:#000;font-family:monospace;font-size:11px;padding:6px 8px;border-radius:4px;white-space:pre-wrap;max-height:120px;overflow-y:auto;display:none;border:1px solid #ccc;margin-bottom:4px;"></div>
       <div id="hmBtnRow" style="display:flex;justify-content:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;flex-shrink:0;overflow-x:auto;">
         <button class="hm-tf-btn hm-period-btn active" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
         <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
@@ -6600,7 +6605,7 @@ win.rsToggleWL=rsToggleWL;
         </div>
         <div style="font-size:10px;color:#888;" id="hmFundLabel">—</div>
       </div>
-      <div id="hmInfoRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;">
+      <div id="hmInfoRow" style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;">
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
           <div style="font-size:10px;color:#888;text-transform:uppercase;">RSI</div>
           <div style="font-size:14px;font-weight:700;color:#000;margin-top:2px;" id="hmStatRsiVal">—</div>
@@ -8240,9 +8245,6 @@ win.deepLoadCache = deepLoadCache;
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
 <script>
-const { useState, useRef, useMemo } = React;
-</script>
-<script>
 const MF_SCAN_CACHE_KEY = "mf_scan_results_cache";
 const MF_SCAN_DATE_KEY = "mf_scan_results_date";
 const MF_SCAN_ISO_DATE_KEY = "mf_scan_results_isodate";
@@ -8425,11 +8427,16 @@ function MFScanner() {
   const topScrollRef = useRef(null);
   const tableWrapRef = useRef(null);
   useEffect(() => {
-    const tw = tableWrapRef.current;
-    const ts = topScrollRef.current;
-    if (!tw || !ts) return;
-    const inner = ts.firstElementChild;
-    if (inner) inner.style.width = Math.max(tw.scrollWidth, ts.clientWidth + 1) + 'px';
+    requestAnimationFrame(() => {
+      const tw = tableWrapRef.current;
+      const ts = topScrollRef.current;
+      if (!tw || !ts) return;
+      const inner = ts.firstElementChild;
+      if (inner) {
+        var w = Math.max(tw.scrollWidth, tw.clientWidth + 1);
+        inner.style.width = w + 'px';
+      }
+    });
   });
   const sd = window._ldScannerData || {};
   const vix = sd.priceMap?.["indiavix"]?.price ?? results["indiavix"]?.price ?? null;
@@ -8575,7 +8582,7 @@ function MFScanner() {
       hasData ? React.createElement("div", null, React.createElement("div", {
         ref: topScrollRef,
         className: "table-top-scroll",
-        style: { overflowX: "auto", overflowY: "hidden", height: 12, background: surf, border: `1px solid ${bdr2}`, borderBottom: "none" },
+        style: { overflowX: "auto", overflowY: "hidden", height: 12, background: surf, border: `1px solid ${bdr2}`, borderBottom: "none", position: "relative", zIndex: 50 },
         onScroll: function(e) { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }
       }, React.createElement("div", {
         ref: function(el) { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; },
@@ -8590,21 +8597,21 @@ function MFScanner() {
           React.createElement("thead", null, React.createElement("tr", null,
             React.createElement("th", { style: th1S, onClick: () => reqSort("name") }, "Index", si("name")),
             React.createElement("th", { style: thS, onClick: () => reqSort("price") }, "Price", si("price")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("changePct") }, "%Chg", si("changePct")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("dRsi") }, "D-RSI 4\u00B78\u00B714", si("dRsi")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("wRsi") }, "W-RSI 4\u00B78\u00B714", si("wRsi")),
-            React.createElement("th", { style: thS, onClick: () => reqSort("wma20Rsi") }, "WMA20", si("wma20Rsi")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("pvsw") }, "P>20WMA", si("pvsw")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("dTsiCurr") }, "TSI 21D", si("dTsiCurr")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("tsiTrigger") }, "TSI Signal", si("tsiTrigger")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("regime") }, "Regime", si("regime")),
-            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("action") }, "Action", si("action")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 90 }, onClick: () => reqSort("changePct") }, "%Chg", si("changePct")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 110 }, onClick: () => reqSort("dRsi") }, "D-RSI 4\u00B78\u00B714", si("dRsi")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 110 }, onClick: () => reqSort("wRsi") }, "W-RSI 4\u00B78\u00B714", si("wRsi")),
+            React.createElement("th", { style: { ...thS, minWidth: 80 }, onClick: () => reqSort("wma20Rsi") }, "WMA20", si("wma20Rsi")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 80 }, onClick: () => reqSort("pvsw") }, "P>20WMA", si("pvsw")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 80 }, onClick: () => reqSort("dTsiCurr") }, "TSI 21D", si("dTsiCurr")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 90 }, onClick: () => reqSort("tsiTrigger") }, "TSI Signal", si("tsiTrigger")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 70 }, onClick: () => reqSort("regime") }, "Regime", si("regime")),
+            React.createElement("th", { style: { ...thS, textAlign: "center", minWidth: 80 }, onClick: () => reqSort("action") }, "Action", si("action")),
             React.createElement("th", { style: { ...thS, minWidth: 140 }, onClick: () => reqSort("verdict") }, "Verdict", si("verdict")),
             React.createElement("th", { style: { ...thS, minWidth: 180 }, onClick: () => reqSort("detail") }, "Trapdoor Detail", si("detail")),
-            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8" }, onClick: () => reqSort("wHilega") }, "W\u00B7HILEGA", si("wHilega")),
-            React.createElement("th", { style: { ...thS, borderRight: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8" }, onClick: () => reqSort("wTrigger") }, "W\u00B7TRIGGER", si("wTrigger")),
-            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea" }, onClick: () => reqSort("mHilega") }, "M\u00B7HILEGA", si("mHilega")),
-            React.createElement("th", { style: { ...thS, borderRight: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea" }, onClick: () => reqSort("mTrigger") }, "M\u00B7TRIGGER", si("mTrigger")))),
+            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8", minWidth: 100 }, onClick: () => reqSort("wHilega") }, "W\u00B7HILEGA", si("wHilega")),
+            React.createElement("th", { style: { ...thS, borderRight: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8", minWidth: 90 }, onClick: () => reqSort("wTrigger") }, "W\u00B7TRIGGER", si("wTrigger")),
+            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea", minWidth: 100 }, onClick: () => reqSort("mHilega") }, "M\u00B7HILEGA", si("mHilega")),
+            React.createElement("th", { style: { ...thS, borderRight: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea", minWidth: 90 }, onClick: () => reqSort("mTrigger") }, "M\u00B7TRIGGER", si("mTrigger")))),
           React.createElement("tbody", null, rows.map((r, i) => {
             const et = _mfRunET(r, vix);
             const rowBg = i % 2 === 0 ? "#fff" : surf;
@@ -8645,8 +8652,8 @@ window._mfMounted = false;
 <script>
 window._hmHist = null;
 window._hmHistCode = null;
-window._hmTfDays = 365;
-window._hmPeriod = 'weekly';
+window._hmTfDays = 99999;
+window._hmPeriod = 'daily';
 function hmPopulateIndexDropdown() {
   var sel = document.getElementById('hmIndexSelect');
   if (!sel) return;
@@ -8661,6 +8668,7 @@ function hmPopulateIndexDropdown() {
     var opt = document.createElement('option');
     opt.value = idx.key;
     opt.textContent = idx.name;
+    opt.dataset.name = idx.name;
     sel.appendChild(opt);
   });
   var saved = localStorage.getItem('hm_index_key');
@@ -8724,26 +8732,96 @@ function hmCalcRSI(prices, period) {
 }
 function hmCalcWMA(data, period) { var out = new Array(data.length).fill(null); var denom = period * (period + 1) / 2; for (var i = period - 1; i < data.length; i++) { var num = 0; for (var j = 0; j < period; j++) num += data[i - j] * (period - j); out[i] = num / denom; } return out; }
 function hmCalcEMA(data, period) { var out = new Array(data.length).fill(null); var k = 2 / (period + 1); var sum = 0; for (var i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k); return out; }
+function hmDebug(msg) {
+  console.log('[Hilega]', msg);
+  var el = document.getElementById('hmDebug');
+  if (!el) return;
+  el.style.display = 'block';
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function hmDebugClear() {
+  var el = document.getElementById('hmDebug');
+  if (el) { el.textContent = ''; el.style.display = 'block'; }
+}
+function hmHideOv() {
+  var ov = document.getElementById('ov');
+  if (ov) ov.style.display = 'none';
+}
+function hmShowCanvasMessage(line1, line2) {
+  var canvas = document.getElementById('hmCanvas');
+  if (!canvas) return;
+  var wrap = canvas.parentElement;
+  var rect = wrap.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  var banner = document.getElementById('hmNoDataBanner');
+  var bannerMsg = document.getElementById('hmNoDataMsg');
+  if (banner) {
+    banner.style.display = 'flex';
+    if (bannerMsg) bannerMsg.textContent = line1 + (line2 ? '\n' + line2 : '');
+  }
+}
+function hmHideNoDataBanner() {
+  var banner = document.getElementById('hmNoDataBanner');
+  if (banner) banner.style.display = 'none';
+}
+function hmClearStatBoxes(label) {
+  var fl = document.getElementById('hmFundLabel'); if (fl) fl.textContent = label || '\u2014';
+  ['hmStatRsiVal','hmStatWmaVal','hmStatEmaVal','hmStatDeltaVal','hmStatNavVal','hmStatSignalVal'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.textContent = '\u2014';
+  });
+  var actionVal = document.getElementById('hmStatActionVal'); if (actionVal) actionVal.textContent = '\u2014';
+  var switchVal = document.getElementById('hmStatSwitchVal'); if (switchVal) switchVal.textContent = '\u2014';
+}
 async function drawHilegaMilega() {
-    var key = document.getElementById('hmIndexSelect')?.value;
-    if (!key) return;
-    localStorage.setItem('hm_index_key', key);
+    hmDebugClear();
     var ov = document.getElementById('ov');
-    var ovTxt = document.getElementById('ovTxt');
     if (ov) ov.style.display = 'flex';
+    var safetyTimer = setTimeout(hmHideOv, 8000);
+    var ovTxt = document.getElementById('ovTxt');
     if (ovTxt) { ovTxt.textContent = 'LOADING\u2026'; ovTxt.style.color = ''; }
     try {
+        // ── Check scanner data FIRST, before looking at the dropdown ──
+        // (if this check ran after the "no key selected" check below, an
+        // empty dropdown — the normal state when the Scanner hasn't been
+        // run yet — would make this function exit silently before ever
+        // reaching the helpful on-canvas message, leaving the chart and
+        // all stat boxes blank with no explanation.)
         var sd = window._ldScannerData;
+        hmDebug('1. _ldScannerData exists: ' + !!sd);
+        hmDebug('   dailyMap exists: ' + !!(sd && sd.dailyMap));
+        hmDebug('   dailyMap keys count: ' + (sd && sd.dailyMap ? Object.keys(sd.dailyMap).length : 0));
         if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
-          var canvas = document.getElementById('hmCanvas');
-          if (canvas) { var ctx = canvas.getContext('2d'); var wrap = canvas.parentElement; var rect = wrap.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; ctx.clearRect(0, 0, rect.width, rect.height); ctx.fillStyle = '#999'; ctx.font = '14px monospace'; ctx.textAlign = 'center'; ctx.fillText('Run Nifty Index Scanner first', rect.width / 2, rect.height / 2); }
-          if (ov) ov.style.display = 'none'; return;
+          hmShowCanvasMessage('\u26A0 Run the Nifty Index Scanner first', 'Open the Scanner tab (or SCAN ALL), then come back here');
+          hmClearStatBoxes('No scanner data yet');
+          hmDebug('   ABORT: no scanner data'); clearTimeout(safetyTimer); hmHideOv(); return;
         }
-        var entries = sd.dailyMap[key] || sd.dailyMap[(key || '').toLowerCase()];
+        // Dropdown is populated from sd above, so try once more in case it
+        // hadn't been filled in yet (e.g. tab opened before data arrived).
+        if (!document.getElementById('hmIndexSelect')?.value) hmPopulateIndexDropdown();
+        var key = document.getElementById('hmIndexSelect')?.value;
+        hmDebug('2. Key: ' + (key || '(none)'));
+        if (!key) {
+          hmShowCanvasMessage('No index available to chart', '(scanner data loaded, but nothing matched)');
+          hmClearStatBoxes('No index selected');
+          hmDebug('   ABORT: no key'); clearTimeout(safetyTimer); hmHideOv(); return;
+        }
+        hmHideNoDataBanner();
+        localStorage.setItem('hm_index_key', key);
+        var idxSelect = document.getElementById('hmIndexSelect');
+        var origName = idxSelect?.options?.[idxSelect.selectedIndex]?.dataset?.name;
+        hmDebug('3. origName="' + (origName || '') + '"');
+        var entries = sd.dailyMap[key] || sd.dailyMap[(key || '').toLowerCase()] || (origName ? sd.dailyMap[origName.toLowerCase()] : null);
+        hmDebug('   Entries for "' + key + '": ' + (entries ? entries.length + ' rows' : 'NOT FOUND'));
+        hmDebug('   Lowercase key: "' + (key || '').toLowerCase() + '"');
+        hmDebug('   dailyMap keys (sample): ' + Object.keys(sd.dailyMap).slice(0, 8).join(', '));
         if (!entries || entries.length < 10) {
-          var canvas = document.getElementById('hmCanvas');
-          if (canvas) { var ctx = canvas.getContext('2d'); var wrap = canvas.parentElement; var rect = wrap.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; ctx.clearRect(0, 0, rect.width, rect.height); ctx.fillStyle = '#999'; ctx.font = '14px monospace'; ctx.textAlign = 'center'; ctx.fillText('No data for ' + (key || 'selected index') + ' (' + (entries ? entries.length : 0) + ' entries)', rect.width / 2, rect.height / 2); }
-          if (ov) ov.style.display = 'none'; return;
+          hmShowCanvasMessage('No data for ' + (key || 'selected index'), '(' + (entries ? entries.length : 0) + ' entries — try another index)');
+          hmClearStatBoxes('No data for this index');
+          clearTimeout(safetyTimer); hmHideOv(); return;
         }
         var hist = [];
         var sorted = entries.slice().sort(function(a, b) {
@@ -8751,41 +8829,98 @@ async function drawHilegaMilega() {
           var db = b.substring(4,8) + b.substring(2,4) + b.substring(0,2);
           return da < db ? -1 : da > db ? 1 : 0;
         });
+        hmDebug('4. Sort OK. Sample raw entries:');
+        for (var si3 = 0; si3 < Math.min(3, sorted.length); si3++) { hmDebug('   [' + si3 + '] "' + sorted[si3] + '"'); }
+        hmDebug('   Last 3:');
+        for (var si3 = Math.max(0, sorted.length - 3); si3 < sorted.length; si3++) { hmDebug('   [' + si3 + '] "' + sorted[si3] + '"'); }
         for (var hi = 0; hi < sorted.length; hi++) {
           var parts = sorted[hi].split('|');
           var ds = parts[0];
           var dateStr = ds.substring(0,2) + '/' + ds.substring(2,4) + '/' + ds.substring(4,8);
           hist.push({ nav: parseFloat(parts[4]), date: dateStr });
         }
+        hmDebug('5. Hist parsed: ' + hist.length + ' entries');
+        hmDebug('   First: nav=' + hist[0]?.nav + ' date="' + hist[0]?.date + '"');
+        hmDebug('   Last:  nav=' + hist[hist.length-1]?.nav + ' date="' + hist[hist.length-1]?.date + '"');
+        hmDebug('   Nav type check: ' + typeof hist[0]?.nav + ', isFinite=' + Number.isFinite(hist[0]?.nav));
         window._hmHist = hist;
         window._hmHistCode = key;
         var viewData = hist;
         if (window._hmPeriod === 'weekly') viewData = hmAggregateWeeks(hist);
         else if (window._hmPeriod === 'monthly') viewData = hmAggregateMonths(hist);
+        hmDebug('6. Period="' + window._hmPeriod + '" viewData=' + viewData.length + ' rows');
+        hmDebug('   viewData[0]: nav=' + viewData[0]?.nav + ' date="' + viewData[0]?.date + '"');
+        hmDebug('   viewData[last]: nav=' + viewData[viewData.length-1]?.nav + ' date="' + viewData[viewData.length-1]?.date + '"');
         var rsiLen = parseInt(document.getElementById('hmRsiLen').value) || 9;
         var wmaLen = parseInt(document.getElementById('hmWmaLen').value) || 21;
         var emaLen = parseInt(document.getElementById('hmEmaLen').value) || 3;
+        hmDebug('7. Params: RSI=' + rsiLen + ' WMA=' + wmaLen + ' EMA=' + emaLen + ' tfDays=' + window._hmTfDays);
         var midLine = 50;
         var tfDays = window._hmTfDays || 1825;
         var rsi = hmCalcRSI(viewData.map(function(d) { return d.nav; }), rsiLen);
         var wma = hmCalcWMA(rsi, wmaLen);
         var ema = hmCalcEMA(rsi, emaLen);
+        hmDebug('8. RSI computed: len=' + rsi.length + ' sample=[' + rsi.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
+        hmDebug('   WMA sample=[' + wma.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
+        hmDebug('   EMA sample=[' + ema.slice(0,3).map(v => v?.toFixed(1)).join(',') + ']');
         var now = new Date();
         var cutoffDate = new Date(now.getTime() - tfDays * 86400000);
         var slicedIdx = 0;
         for (var si2 = 0; si2 < viewData.length; si2++) { var dt = hmParseDate(viewData[si2].date); if (!isNaN(dt.getTime()) && dt >= cutoffDate) { slicedIdx = si2; break; } }
         var slicedLen = viewData.length - slicedIdx;
-        if (slicedLen < 2) { if (ov) ov.style.display = 'none'; alert('Insufficient data for this timeframe'); return; }
+        hmDebug('9. Sliced: idx=' + slicedIdx + ' len=' + slicedLen + ' cutoff=' + cutoffDate.toISOString().slice(0,10));
+        if (slicedLen < 2) { hmDebug('   ABORT: insufficient data'); clearTimeout(safetyTimer); hmHideOv(); return; }
         var navs = viewData.slice(slicedIdx).map(function(d) { return d.nav; });
         var dates = viewData.slice(slicedIdx).map(function(d) { return d.date; });
         var n = slicedLen;
-        rsi.length = 0; rsi.push.apply(rsi, rsi.slice(slicedIdx));
-        wma.length = 0; wma.push.apply(wma, wma.slice(slicedIdx));
-        ema.length = 0; ema.push.apply(ema, ema.slice(slicedIdx));
+        // Slice into temp vars FIRST — clearing the array before calling
+        // .slice() on it (the previous order here) made .slice() always
+        // operate on an already-emptied array, silently producing [] and
+        // leaving rsi/wma/ema empty for the rest of the function. This is
+        // why the chart drew gridlines but no RSI/WMA/EMA line or fill,
+        // and the stat boxes fell back to defaults (RSI 50.0, WMA/EMA —).
+        var rSliced = rsi.slice(slicedIdx);
+        var wSliced = wma.slice(slicedIdx);
+        var eSliced = ema.slice(slicedIdx);
+        rsi.length = 0; rsi.push.apply(rsi, rSliced);
+        wma.length = 0; wma.push.apply(wma, wSliced);
+        ema.length = 0; ema.push.apply(ema, eSliced);
+        var lastI = n - 1;
+        var lastR = rsi[lastI] != null ? rsi[lastI] : 50;
+        var lastW = wma[lastI] != null ? wma[lastI].toFixed(1) : '\u2014';
+        var lastE = ema[lastI] != null ? ema[lastI].toFixed(1) : '\u2014';
+        hmDebug('10. Stats: RSI=' + lastR.toFixed(1) + ' WMA=' + lastW + ' EMA=' + lastE);
+        var idxSel = document.getElementById('hmIndexSelect');
+        var idxName = idxSel?.options?.[idxSel.selectedIndex]?.textContent || key;
+        var periodLabel = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
+        document.getElementById('hmFundLabel').textContent = idxName + '  \u00B7  ' + periodLabel;
+        document.getElementById('hmStatRsiVal').textContent = lastR.toFixed(1);
+        document.getElementById('hmStatWmaVal').textContent = lastW;
+        document.getElementById('hmStatEmaVal').textContent = lastE;
+        var delta = lastR - midLine;
+        document.getElementById('hmStatDeltaVal').textContent = delta >= 0 ? '+' + delta.toFixed(1) : delta.toFixed(1);
+        document.getElementById('hmStatDeltaVal').style.color = delta >= 0 ? '#16a34a' : '#ef4444';
+        var lastNavVal = navs[navs.length - 1];
+        document.getElementById('hmStatNavVal').textContent = lastNavVal != null ? lastNavVal.toFixed(2) : '\u2014';
+        var signal = lastR >= 88 ? 'OVERBOUGHT' : lastR <= 20 ? 'OVERSOLD' : delta > 15 ? 'Extended Up' : delta < -15 ? 'Extended Down' : lastR >= midLine ? 'Bullish' : 'Bearish';
+        var signalColor = lastR >= 88 ? '#ef4444' : lastR <= 20 ? '#16a34a' : delta > 15 ? '#f59e0b' : delta < -15 ? '#f59e0b' : lastR >= midLine ? '#16a34a' : '#ef4444';
+        document.getElementById('hmStatSignalVal').textContent = signal;
+        document.getElementById('hmStatSignalVal').style.color = signalColor;
+        var rsiN = lastR, wmaN = parseFloat(lastW), emaN = parseFloat(lastE);
+        var aboveWma = !isNaN(wmaN) && rsiN > wmaN, aboveEma = !isNaN(emaN) && rsiN > emaN;
+        var belowWma = !isNaN(wmaN) && rsiN < wmaN, belowEma = !isNaN(emaN) && rsiN < emaN;
+        var actionBox = document.getElementById('hmStatAction'), actionVal = document.getElementById('hmStatActionVal');
+        var switchBox = document.getElementById('hmStatSwitch'), switchVal = document.getElementById('hmStatSwitchVal');
+        if (aboveWma && aboveEma) { actionBox.style.background = 'rgba(34,197,94,0.18)'; actionBox.style.borderColor = '#16a34a'; actionVal.textContent = 'BUY'; actionVal.style.color = '#16a34a'; switchBox.style.background = 'rgba(34,197,94,0.18)'; switchBox.style.borderColor = '#16a34a'; switchVal.textContent = 'Add Equity'; switchVal.style.color = '#16a34a'; }
+        else if (belowWma && belowEma) { actionBox.style.background = 'rgba(239,68,68,0.18)'; actionBox.style.borderColor = '#ef4444'; actionVal.textContent = 'SELL'; actionVal.style.color = '#ef4444'; switchBox.style.background = 'rgba(239,68,68,0.18)'; switchBox.style.borderColor = '#ef4444'; switchVal.textContent = 'Reduce Equity \u00B7 Increase Debt'; switchVal.style.color = '#ef4444'; }
+        else { actionBox.style.background = 'rgba(245,158,11,0.18)'; actionBox.style.borderColor = '#f59e0b'; actionVal.textContent = 'WATCH'; actionVal.style.color = '#f59e0b'; switchBox.style.background = 'rgba(245,158,11,0.18)'; switchBox.style.borderColor = '#f59e0b'; switchVal.textContent = 'Watch Daily for Signals'; switchVal.style.color = '#f59e0b'; }
+        hmDebug('11. Stats updated OK');
         var canvas = document.getElementById('hmCanvas');
-        if (!canvas) { if (ov) ov.style.display = 'none'; return; }
+        hmDebug('10. Canvas exists: ' + !!canvas);
+        if (!canvas) { hmDebug('    ABORT: no canvas'); clearTimeout(safetyTimer); hmHideOv(); return; }
         var wrap = canvas.parentElement;
         var rect = wrap.getBoundingClientRect();
+        hmDebug('    Canvas rect: ' + rect.width + 'x' + rect.height);
         var dpr = window.devicePixelRatio || 1;
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
@@ -8818,47 +8953,20 @@ async function drawHilegaMilega() {
         for (var ci = 1; ci < n; ci++) { var prev = rsi[ci - 1], cur = rsi[ci]; if (prev == null || cur == null) continue; if (prev >= 20 && cur < 20) { var lowest = cur, lowestIdx = ci; for (var lj = ci; lj < Math.min(ci + 5, n); lj++) { if (rsi[lj] != null && rsi[lj] < lowest) { lowest = rsi[lj]; lowestIdx = lj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(34,197,94,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#16a34a'; ctx.fill(); ctx.restore(); } if (prev <= 88 && cur > 88) { var highest = cur, highestIdx = ci; for (var hj = ci; hj < Math.min(ci + 5, n); hj++) { if (rsi[hj] != null && rsi[hj] > highest) { highest = rsi[hj]; highestIdx = hj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(239,68,68,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.restore(); } }
         window._hmChart = { rsi: rsi, wma: wma, ema: ema, dates: dates, pad: pad, cW: cW, cH: cH, n: n, W: W, H: H, midLine: midLine, xStep: xStep, toX: toX, toY: toY, navs: navs };
         window._hmCleanCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        var lastI = n - 1;
-        var lastR = rsi[lastI] != null ? rsi[lastI] : 50;
-        var lastW = wma[lastI] != null ? wma[lastI].toFixed(1) : '\u2014';
-        var lastE = ema[lastI] != null ? ema[lastI].toFixed(1) : '\u2014';
         ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(pad.l, 2, 180, 18);
         ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#000'; ctx.textAlign = 'left';
         ctx.fillText('RSI: ' + lastR.toFixed(1) + '  WMA: ' + lastW + '  EMA: ' + lastE, pad.l + 4, 14);
-        var idxSel = document.getElementById('hmIndexSelect');
-        var idxName = idxSel?.options?.[idxSel.selectedIndex]?.textContent || key;
-        var periodLabel = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
-        document.getElementById('hmFundLabel').textContent = idxName + '  \u00B7  ' + periodLabel;
-        var delta = lastR - midLine;
-        var signal = lastR >= 88 ? 'OVERBOUGHT' : lastR <= 20 ? 'OVERSOLD' : delta > 15 ? 'Extended Up' : delta < -15 ? 'Extended Down' : lastR >= midLine ? 'Bullish' : 'Bearish';
-        var signalColor = lastR >= 88 ? '#ef4444' : lastR <= 20 ? '#16a34a' : delta > 15 ? '#f59e0b' : delta < -15 ? '#f59e0b' : lastR >= midLine ? '#16a34a' : '#ef4444';
-        document.getElementById('hmStatRsiVal').textContent = lastR.toFixed(1);
-        document.getElementById('hmStatWmaVal').textContent = lastW;
-        document.getElementById('hmStatEmaVal').textContent = lastE;
-        document.getElementById('hmStatDeltaVal').textContent = delta >= 0 ? '+' + delta.toFixed(1) : delta.toFixed(1);
-        document.getElementById('hmStatDeltaVal').style.color = delta >= 0 ? '#16a34a' : '#ef4444';
-        var lastNavVal = navs[navs.length - 1];
-        document.getElementById('hmStatNavVal').textContent = lastNavVal != null ? lastNavVal.toFixed(2) : '\u2014';
-        document.getElementById('hmStatSignalVal').textContent = signal;
-        document.getElementById('hmStatSignalVal').style.color = signalColor;
-        var rsiN = lastR, wmaN = parseFloat(lastW), emaN = parseFloat(lastE);
-        var aboveWma = !isNaN(wmaN) && rsiN > wmaN, aboveEma = !isNaN(emaN) && rsiN > emaN;
-        var belowWma = !isNaN(wmaN) && rsiN < wmaN, belowEma = !isNaN(emaN) && rsiN < emaN;
-        var actionBox = document.getElementById('hmStatAction'), actionVal = document.getElementById('hmStatActionVal');
-        var switchBox = document.getElementById('hmStatSwitch'), switchVal = document.getElementById('hmStatSwitchVal');
-        if (aboveWma && aboveEma) { actionBox.style.background = 'rgba(34,197,94,0.18)'; actionBox.style.borderColor = '#16a34a'; actionVal.textContent = 'BUY'; actionVal.style.color = '#16a34a'; switchBox.style.background = 'rgba(34,197,94,0.18)'; switchBox.style.borderColor = '#16a34a'; switchVal.textContent = 'Add Equity'; switchVal.style.color = '#16a34a'; }
-        else if (belowWma && belowEma) { actionBox.style.background = 'rgba(239,68,68,0.18)'; actionBox.style.borderColor = '#ef4444'; actionVal.textContent = 'SELL'; actionVal.style.color = '#ef4444'; switchBox.style.background = 'rgba(239,68,68,0.18)'; switchBox.style.borderColor = '#ef4444'; switchVal.textContent = 'Reduce Equity \u00B7 Increase Debt'; switchVal.style.color = '#ef4444'; }
-        else { actionBox.style.background = 'rgba(245,158,11,0.18)'; actionBox.style.borderColor = '#f59e0b'; actionVal.textContent = 'WATCH'; actionVal.style.color = '#f59e0b'; switchBox.style.background = 'rgba(245,158,11,0.18)'; switchBox.style.borderColor = '#f59e0b'; switchVal.textContent = 'Watch Daily for Signals'; switchVal.style.color = '#f59e0b'; }
-        if (ov) ov.style.display = 'none';
+        hmDebug('12. CHART DRAWN OK');
+        clearTimeout(safetyTimer); hmHideOv();
         hmCalcDateRange();
-    } catch (e) { if (ov) ov.style.display = 'none'; alert('Error: ' + e.message); }
+    } catch (e) { clearTimeout(safetyTimer); hmHideOv(); hmDebug('ERROR: ' + e.message + '\n' + e.stack); }
 }
 function openHilegaTab() {
   hmPopulateIndexDropdown();
   var savedTf = localStorage.getItem('hm_tf_days');
   var savedPeriod = localStorage.getItem('hm_period');
-  window._hmTfDays = savedTf ? parseInt(savedTf) : 365;
-  window._hmPeriod = savedPeriod || 'weekly';
+  window._hmTfDays = savedTf ? parseInt(savedTf) : 99999;
+  window._hmPeriod = savedPeriod || 'daily';
   document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); });
   document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); });
   var tfBtns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
