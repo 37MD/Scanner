@@ -2483,7 +2483,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
         const sharedDailyMap = {};
         if (historicalData) {
-          const tDays = genTradingDays(2520);
+          const tDays = genTradingDays(1000);
           indexList.forEach(idx => {
             const closes = historicalData[idx.key];
             if (!closes || closes.length < 5) return;
@@ -2552,7 +2552,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
         const sharedDailyMap2 = {};
         if (typeof EMBEDDED_HISTORICAL !== 'undefined') {
-          const tDays2 = genTradingDays(2520);
+          const tDays2 = genTradingDays(1000);
           indexList.forEach(idx => {
             const closes = EMBEDDED_HISTORICAL[idx.key];
             if (!closes || closes.length < 5) return;
@@ -4590,7 +4590,7 @@ initBreadthScanner();
     throw lastErr;
   }
   var RSI_PERIODS = [4, 6, 8];
-  var FETCH_DAYS  = 2520; // 10 years of trading data for deep RSI warm-up
+  var FETCH_DAYS  = 1000; // 10 years of trading data for deep RSI warm-up
   var BATCH_SIZE  = 10;
   var BATCH_DELAY = 400;
   var $ = function(id) { return document.getElementById(id); };
@@ -4963,7 +4963,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
       return;
     }
     if (typeof EMBEDDED_NSE_DATA !== 'undefined' && EMBEDDED_NSE_DATA.indices && typeof EMBEDDED_HISTORICAL !== 'undefined') {
-      var tDays = genTradingDays(2520);
+      var tDays = genTradingDays(1000);
       var indexList = [], priceMap = {}, dailyMap = {};
       EMBEDDED_NSE_DATA.indices.forEach(function(idx) {
         var key = normalize(idx.n);
@@ -4982,8 +4982,8 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
         }
         if (entries.length > 0) dailyMap[idx.n.toLowerCase()] = entries;
       });
-      setStatus('<span class="spinner"></span> Using embedded 2520-day data (' + indexList.length + ' indices)...');
-      completeScan(priceMap, indexList, dailyMap, 'embedded 2520-day snapshot');
+      setStatus('<span class="spinner"></span> Using embedded 1000-day data (' + indexList.length + ' indices)...');
+      completeScan(priceMap, indexList, dailyMap, 'embedded 1000-day snapshot');
       return;
     }
     setStatus('<span class="spinner"></span> Fetching NSE index list...');
@@ -7917,7 +7917,7 @@ win.ptReset=ptReset;
 <script>
 /* ================================================================
    SECTION 11: DEEP WEEKLY HISTORY CACHE
-   Fetches 2520 trading days (10 years) of NSE CSV data for RSI(50) convergence.
+   Fetches 1000 trading days of NSE CSV data for RSI(50) convergence.
    First run: downloads all history. Subsequent runs: incremental top-up.
    Data stored in localStorage as "ld_deep_weekly_history".
    Exposes: window.fetchDeepWeeklyHistory(), window.deepLoadCache()
@@ -7928,11 +7928,11 @@ win.ptReset=ptReset;
 // ── Deep weekly history (genuine 50-period weekly RSI needs ~260+ trading
 // days; Scanner's shared dailyMap is only ~92 days deep, enough for the
 // 4/8/14-period weekly RSI used elsewhere but not for period 50). This
-// fetches and persistently caches a 2520-trading-day (10-year) rolling window per
+//    fetches and persistently caches a 1000-trading-day rolling window per
 // index, stored in localStorage, topped up incrementally rather than
 // re-fetched in full each time.
-var DEEP_CACHE_KEY = 'ld_deep_weekly_history_v2'; // v2 → 2520-day window
-var DEEP_WINDOW_DAYS = 2520; // 10 years of trading data for deep RSI(50) and weekly analysis
+var DEEP_CACHE_KEY = 'ld_deep_weekly_history_v3'; // v3 → 1000-day window
+var DEEP_WINDOW_DAYS = 1000; // 1000 trading days for deep RSI(50) and weekly analysis
 var DEEP_BATCH_SIZE = 10, DEEP_BATCH_DELAY = 350;
 var DEEP_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 var DEEP_CSV_URL_LIST = ['https://nsearchives.nseindia.com/content/indices/ind_close_all_','https://archives.nseindia.com/content/indices/ind_close_all_'];
@@ -8209,7 +8209,7 @@ function rsiRunAll(){
   var tb=document.getElementById('rsi-tbody');
   if(!sd||!sd.indexList||!sd.indexList.length){
     if(typeof EMBEDDED_NSE_DATA!=='undefined'&&EMBEDDED_NSE_DATA.indices&&EMBEDDED_HISTORICAL){
-      var tDays=genTradingDays(2520);
+      var tDays=genTradingDays(1000);
       var indexList=[],priceMap={},dailyMap={};
       EMBEDDED_NSE_DATA.indices.forEach(function(idx){
         var key=normalize(idx.n);
@@ -8254,7 +8254,7 @@ function rsiRunAll(){
   // completes. rsiFillWeekly() falls back to Scanner's shallower data (and
   // an honest "NO DATA") if this hasn't finished or fails.
   if (location.protocol === 'file:') {
-    if(st)st.textContent='✅ '+all.length+' indices — W-RSI50 (calendar-week, embedded 2520-day)';
+    if(st)st.textContent='✅ '+all.length+' indices — W-RSI50 (calendar-week, embedded 1000-day)';
     runWeeklyPass();
     return;
   }
@@ -8296,7 +8296,7 @@ function rsiRunAll(){
           var sd=win._ldScannerData;
           var dmKeys=sd&&sd.dailyMap?Object.keys(sd.dailyMap).length:0;
           dg.style.display='block';
-          dg.innerHTML='<b>W-RSI(50) Method:</b> Wilder RMA(50) on calendar-week (Mon-Fri) closes<br><b>Source:</b> EMBEDDED_HISTORICAL 2520-day snapshot | dailyMap='+dmKeys+' indices<br><b>Results:</b> <span style="color:#006600">EXACT='+exactCount+'</span> (TradingView match) | <span style="color:#cc8800">APPROX='+approxCount+'</span> | FAIL='+failCount+' | file://='+('file:'===location.protocol);
+          dg.innerHTML='<b>W-RSI(50) Method:</b> Wilder RMA(50) on calendar-week (Mon-Fri) closes<br><b>Source:</b> EMBEDDED_HISTORICAL 1000-day snapshot | dailyMap='+dmKeys+' indices<br><b>Results:</b> <span style="color:#006600">EXACT='+exactCount+'</span> (TradingView match) | <span style="color:#cc8800">APPROX='+approxCount+'</span> | FAIL='+failCount+' | file://='+('file:'===location.protocol);
         }
       }catch(e){}
     }
