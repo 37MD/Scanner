@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- ════════════════════════════════════════════ -->
@@ -810,15 +810,33 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-ttf .ttf-panel .subtitle { font-size:10px; }
   #tab-ttf .ttf-panel .legend { font-size:9px; gap:4px; }
 }
+/* ── Portrait-only lock for mobile phones ── */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  body::after {
+    content: "Please rotate your device to portrait mode";
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #000;
+    color: #fff;
+    font-size: 16px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+}
 </style>
 </head>
 <body>
 <!-- ================================================================
-   SECTION 3: HTML BODY — 7-TAB SINGLE-PAGE APP
-   Tabs: Breadth | Scanner | TTF | RS | Balanced Allocation | Paper Trade | RSI Bias
+   SECTION 3: HTML BODY — 9-TAB SINGLE-PAGE APP
+   Tabs: Breadth | Scanner | TTF | RS | Balanced Allocation | Paper Trade | RSI Bias | MF Scan | Hilega
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
-<!--  3. HTML: 3-TAB PAGE STRUCTURE             -->
+<!--  3. HTML: 9-TAB PAGE STRUCTURE              -->
 <!-- ════════════════════════════════════════════ -->
 <!-- ── 3.1 Tab Navigation ── -->
 <div class="app-tabs">
@@ -830,6 +848,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
     <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
+    <button class="tab-btn" onclick="switchTab('mfscan')">📡 MF Scan</button>
+    <button class="tab-btn" onclick="switchTab('hilega')">📈 Hilega</button>
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
@@ -2361,14 +2381,23 @@ Reasoning: [One-line explanation tying data to the rule]`;
             const closes = historicalData[idx.key];
             if (!closes || closes.length < 5) return;
             const lcName = idx.name.toLowerCase();
+            const ohlc = historicalOHLC && historicalOHLC[idx.key];
+            const hasOHLC = ohlc && ohlc.opens && ohlc.opens.length === closes.length;
             const entries = [];
             const n = Math.min(closes.length, tDays.length);
             for (let j = 0; j < n; j++) {
               const td = tDays[tDays.length - 1 - j];
-              const c = closes[j];
-              entries.push(fmtDDMMYYYY(td) + '|' + c + '|' + c + '|' + c + '|' + c);
+              if (hasOHLC) {
+                entries.push(fmtDDMMYYYY(td) + '|' + ohlc.opens[j] + '|' + ohlc.highs[j] + '|' + ohlc.lows[j] + '|' + ohlc.closes[j]);
+              } else {
+                const c = closes[j];
+                entries.push(fmtDDMMYYYY(td) + '|' + c + '|' + c + '|' + c + '|' + c);
+              }
             }
-            if (entries.length > 0) sharedDailyMap[lcName] = entries;
+            if (entries.length > 0) {
+              sharedDailyMap[idx.key] = entries;
+              sharedDailyMap[lcName] = entries;
+            }
           });
         }
         const nseRawWith30d = nseRaw.map(idx => {
@@ -2427,7 +2456,10 @@ Reasoning: [One-line explanation tying data to the rule]`;
               const td = tDays2[tDays2.length - 1 - j];
               entries.push(fmtDDMMYYYY(td) + '|' + closes[j] + '|' + closes[j] + '|' + closes[j] + '|' + closes[j]);
             }
-            if (entries.length > 0) sharedDailyMap2[lcName] = entries;
+            if (entries.length > 0) {
+              sharedDailyMap2[idx.key] = entries;
+              sharedDailyMap2[lcName] = entries;
+            }
           });
         }
         const nseRawWith30d2 = nseRaw.map(idx => {
@@ -3863,10 +3895,20 @@ function switchTab(name) {
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
   if (name === 'pt' && typeof window.onPTTabActivated === 'function') { window.onPTTabActivated(); }
   if (name === 'rsi' && typeof window.onRSITabActivated === 'function') { window.onRSITabActivated(); }
+  if (name === 'mfscan') {
+    var root = document.getElementById('mfscan-root');
+    if (root && typeof MFScanner === 'function') {
+      if (!window._mfMounted) {
+        window._mfMounted = true;
+        ReactDOM.createRoot(root).render(React.createElement(MFScanner));
+      }
+    }
+  }
+  if (name === 'hilega' && typeof openHilegaTab === 'function') { openHilegaTab(); }
 }
 
 // ═══ SCAN ALL: Sequential orchestration ═══
-// Steps: Scanner core data → TTF → RS → BA → Paper Trade → RSI Bias
+// Steps: Scanner → Breadth → TTF → RS → BA → Paper Trade → RSI Bias → MF Scan → Hilega (9 steps)
 // Each step waits for the previous tab's onComplete callback.
 function updateScanTimestamp(timeStr) {
   var ts = document.getElementById('scanTimestamp');
@@ -3885,11 +3927,26 @@ function runAllScans() {
     if (done) updateScanTimestamp(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
   }
 
-  setStatus('1/6 Scanner…');
+  function finishScan(msg) {
+    window._runAllActive = false;
+    switchTab('scanner');
+    setStatus(msg, true);
+    if (typeof fetchBpMacroLive === 'function') { fetchBpMacroLive(); }
+    if (typeof updateBpPrices === 'function') { updateBpPrices(); }
+  }
+
+  // BA (Gemini breadth enrichment) keeps running in the background after
+  // core data is ready; track it separately so the final status can say
+  // whether it actually finished, without blocking steps 2-9 on it.
+  var baStillRunning = true;
+  window.onScannerComplete = function() {
+    window.onScannerComplete = null;
+    baStillRunning = false;
+  };
+
+  setStatus('1/9 Scanner…');
   switchTab('scanner');
 
-  // Safety net: if Scanner's own scan throws, don't leave the button stuck
-  // forever — release the lock and let the person try again.
   window.onScannerError = function(e) {
     window.onScannerError = null;
     window.onScannerCoreDataReady = null;
@@ -3898,162 +3955,160 @@ function runAllScans() {
     setStatus('⚠ Scanner failed — see tab for details', true);
   };
 
-  // BA (Gemini breadth enrichment) keeps running in the background after
-  // core data is ready; track it separately so the final status can say
-  // whether it actually finished, without blocking steps 2-6 on it.
-  var baStillRunning = true;
-  window.onScannerComplete = function() {
-    window.onScannerComplete = null;
-    baStillRunning = false;
-  };
-
-  // Step 1: Scanner's price/RSI/regime data is ready (BA/Gemini enrichment
-  // may still be running in the background) → run TTF. TTF/RS/Breadth don't
-  // need BA data, so there's no reason to make them wait for it.
+  // Step 1 done → Step 2 Breadth → Step 3 TTF
   window.onScannerCoreDataReady = function() {
     window.onScannerCoreDataReady = null;
     window.onScannerError = null;
-    setStatus('2/6 TTF RSI…');
-    switchTab('ttf');
-    // Small delay to let tab render before triggering scan
+
+    // Step 2: Breadth (display only — uses scanner data for chart)
+    setStatus('2/9 Breadth…');
+    switchTab('breadth');
+
     setTimeout(function() {
-      if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
-        window.TTFScanner.onComplete = function() {
-          window.TTFScanner.onComplete = null;
-          setStatus('3/6 RS Scanner…');
-          switchTab('rs');
-          setTimeout(function() {
-            if (window.RSScanner && typeof window.RSScanner.run === 'function') {
-              window.RSScanner.onComplete = function() {
-                window.RSScanner.onComplete = null;
-                setStatus('4/6 Balanced Allocation…');
+      // Step 3: TTF RSI Weekly
+      setStatus('3/9 TTF RSI…');
+      switchTab('ttf');
+      setTimeout(function() {
+        if (window.TTFScanner && typeof window.TTFScanner.run === 'function') {
+          window.TTFScanner.onComplete = function() {
+            window.TTFScanner.onComplete = null;
+            // Step 4: RS Scanner
+            setStatus('4/9 RS Scanner…');
+            switchTab('rs');
+            setTimeout(function() {
+              if (window.RSScanner && typeof window.RSScanner.run === 'function') {
+                window.RSScanner.onComplete = function() {
+                  window.RSScanner.onComplete = null;
+                  // Step 5: Balanced Allocation
+                  setStatus('5/9 Balanced Allocation…');
+                  switchTab('ba');
+                  setTimeout(function() {
+                    if (typeof window.runBAsScan === 'function') {
+                      window._baRunAllWaiting = true;
+                      var baPoller = setInterval(function() {
+                        var baStopBtn = document.getElementById('baStopBtn');
+                        if (baStopBtn && baStopBtn.style.display === 'none') {
+                          clearInterval(baPoller);
+                          window._baRunAllWaiting = false;
+                          // Step 6: Paper Trade
+                          setStatus('6/9 Paper Trade…');
+                          switchTab('pt');
+                          setTimeout(function() {
+                            if (typeof window.ptRunScan === 'function') {
+                              window.ptRunScan();
+                              var ptPoller = setInterval(function() {
+                                var ptBody = document.getElementById('pt-tb');
+                                var ptDone = ptBody && ptBody.children.length > 0 && ptBody.children[0].textContent !== 'No data yet — run SCAN ALL';
+                                if (ptDone) {
+                                  clearInterval(ptPoller);
+                                  // Step 7: RSI Bias
+                                  setStatus('7/9 RSI Bias…');
+                                  switchTab('rsi');
+                                  setTimeout(function() {
+                                    if (typeof window.rsiScanAll === 'function') {
+                                      window.rsiScanAll();
+                                      var rsiPoller = setInterval(function() {
+                                        var rsiTbody = document.getElementById('rsi-tbody');
+                                        var rsiDone = rsiTbody && rsiTbody.rows && rsiTbody.rows.length > 0 && rsiTbody.rows[0].cells[7].textContent !== '…';
+                                        if (rsiDone) {
+                                          clearInterval(rsiPoller);
+                                          // Step 8: MF Scan
+                                          setStatus('8/9 MF Scan…');
+                                          switchTab('mfscan');
+                                          setTimeout(function() {
+                                            if (typeof window._mfDoScan === 'function') {
+                                              window._mfDoScan();
+                                            }
+                                            // Step 9: Hilega (reads from scanner data)
+                                            setStatus('9/9 Hilega…');
+                                            switchTab('hilega');
+                                            setTimeout(function() {
+                                              finishScan(baStillRunning ? '✓ 9/9 complete (BA still running in background)' : '✓ All 9 scans complete');
+                                            }, 1500);
+                                          }, 1000);
+                                        }
+                                      }, 500);
+                                      setTimeout(function() {
+                                        if (window._runAllActive) {
+                                          finishScan('✓ 7/9 done (RSI timeout)');
+                                        }
+                                      }, 15000);
+                                    } else {
+                                      finishScan('✓ 7/9 done (RSI not ready)');
+                                    }
+                                  }, 300);
+                                }
+                              }, 500);
+                              setTimeout(function() {
+                                if (window._runAllActive) {
+                                  finishScan('✓ 6/9 done (PT timeout)');
+                                }
+                              }, 20000);
+                            } else {
+                              // PT not ready — skip to RSI
+                              setStatus('7/9 RSI Bias…');
+                              switchTab('rsi');
+                              setTimeout(function() {
+                                if (typeof window.rsiScanAll === 'function') {
+                                  window.rsiScanAll();
+                                  var rsiPoller2 = setInterval(function() {
+                                    var rsiTbody2 = document.getElementById('rsi-tbody');
+                                    var rsiDone2 = rsiTbody2 && rsiTbody2.rows && rsiTbody2.rows.length > 0 && rsiTbody2.rows[0].cells[7].textContent !== '…';
+                                    if (rsiDone2) {
+                                      clearInterval(rsiPoller2);
+                                      setStatus('8/9 MF Scan…');
+                                      switchTab('mfscan');
+                                      setTimeout(function() {
+                                        if (typeof window._mfDoScan === 'function') { window._mfDoScan(); }
+                                        setStatus('9/9 Hilega…');
+                                        switchTab('hilega');
+                                        setTimeout(function() {
+                                          finishScan(baStillRunning ? '✓ 9/9 complete (BA still running)' : '✓ All 9 scans complete');
+                                        }, 1500);
+                                      }, 1000);
+                                    }
+                                  }, 500);
+                                  setTimeout(function() {
+                                    if (window._runAllActive) { finishScan('✓ 7/9 done (RSI timeout)'); }
+                                  }, 15000);
+                                } else {
+                                  finishScan('✓ 7/9 done (RSI not ready)');
+                                }
+                              }, 300);
+                            }
+                          }, 300);
+                        }
+                      }, 800);
+                      window.runBAsScan();
+                    } else {
+                      finishScan('✓ 5/9 done (BA not ready)');
+                    }
+                  }, 300);
+                };
+                window.RSScanner.run();
+              } else {
+                // RS not ready — skip to BA
+                setStatus('5/9 Balanced Allocation…');
                 switchTab('ba');
                 setTimeout(function() {
-                  if (typeof window.runBAsScan === 'function') {
-                    window._baRunAllWaiting = true;
-                    var baPoller = setInterval(function() {
-                      var baStopBtn = document.getElementById('baStopBtn');
-                      if (baStopBtn && baStopBtn.style.display === 'none') {
-                        clearInterval(baPoller);
-                        window._baRunAllWaiting = false;
-                        // Step 5: Paper Trade
-                        setStatus('5/6 Paper Trade…');
-                        switchTab('pt');
-                        setTimeout(function() {
-                          if (typeof window.ptRunScan === 'function') {
-                            window.ptRunScan();
-                            var ptPoller = setInterval(function() {
-                              var ptBody = document.getElementById('pt-tb');
-                              var ptDone = ptBody && ptBody.children.length > 0 && ptBody.children[0].textContent !== 'No data yet — run SCAN ALL';
-                              if (ptDone) {
-                                clearInterval(ptPoller);
-                                // Step 6: RSI Bias
-                                setStatus('6/6 RSI Bias…');
-                                switchTab('rsi');
-                                setTimeout(function() {
-                                  if (typeof window.rsiScanAll === 'function') {
-                                    window.rsiScanAll();
-                                    var rsiPoller = setInterval(function() {
-                                      var rsiTbody = document.getElementById('rsi-tbody');
-                                      var rsiDone = rsiTbody && rsiTbody.rows && rsiTbody.rows.length > 0 && rsiTbody.rows[0].cells[7].textContent !== '…';
-                                      if (rsiDone) {
-                                        clearInterval(rsiPoller);
-                                        window._runAllActive = false;
-                                        switchTab('scanner');
-                                        setStatus(baStillRunning ? '✓ 6/6 complete (BA still running in background)' : '✓ All 6 scans complete', true);
-                                        if (typeof fetchBpMacroLive === 'function') { fetchBpMacroLive(); }
-                                        if (typeof updateBpPrices === 'function') { updateBpPrices(); }
-                                      }
-                                    }, 500);
-                                    setTimeout(function() {
-                                      if (window._runAllActive) {
-                                        window._runAllActive = false;
-                                        switchTab('scanner');
-                                        setStatus('✓ 5/6 done (RSI timeout)', true);
-                                      }
-                                    }, 15000);
-                                  } else {
-                                    window._runAllActive = false;
-                                    switchTab('scanner');
-                                    setStatus('✓ 5/6 done (RSI not ready)', true);
-                                  }
-                                }, 300);
-                              }
-                            }, 500);
-                            setTimeout(function() {
-                              if (window._runAllActive) {
-                                window._runAllActive = false;
-                                switchTab('scanner');
-                                setStatus('✓ 4/6 done (PT timeout)', true);
-                              }
-                            }, 20000);
-                          } else {
-                            setStatus('6/6 RSI Bias…');
-                            switchTab('rsi');
-                            setTimeout(function() {
-                              if (typeof window.rsiScanAll === 'function') {
-                                window.rsiScanAll();
-                                var rsiPoller2 = setInterval(function() {
-                                  var rsiTbody2 = document.getElementById('rsi-tbody');
-                                  var rsiDone2 = rsiTbody2 && rsiTbody2.rows && rsiTbody2.rows.length > 0 && rsiTbody2.rows[0].cells[7].textContent !== '…';
-                                  if (rsiDone2) {
-                                    clearInterval(rsiPoller2);
-                                    window._runAllActive = false;
-                                    switchTab('scanner');
-                                    setStatus(baStillRunning ? '✓ 6/6 complete (BA still running in background)' : '✓ All 6 scans complete', true);
-                                  }
-                                }, 500);
-                                setTimeout(function() {
-                                  if (window._runAllActive) {
-                                    window._runAllActive = false;
-                                    switchTab('scanner');
-                                    setStatus('✓ 5/6 done (RSI timeout)', true);
-                                  }
-                                }, 15000);
-                              } else {
-                                window._runAllActive = false;
-                                switchTab('scanner');
-                                setStatus('✓ 4/6 done (RSI not ready)', true);
-                              }
-                            }, 300);
-                          }
-                        }, 300);
-                      }
-                    }, 800);
-                    window.runBAsScan();
-                  } else {
-                    window._runAllActive = false;
-                    switchTab('scanner');
-                    setStatus('✓ 3/6 done (BA not ready)', true);
-                  }
+                  if (typeof window.runBAsScan === 'function') window.runBAsScan();
+                  finishScan('✓ Done (RS skipped)');
                 }, 300);
-              };
-              window.RSScanner.run();
-            } else {
-              // RS not ready — skip to BA
-              setStatus('4/6 Balanced Allocation…');
-              switchTab('ba');
-              setTimeout(function() {
-                if (typeof window.runBAsScan === 'function') window.runBAsScan();
-                window._runAllActive = false;
-                switchTab('scanner');
-                setStatus('✓ Done (RS skipped)', true);
-              }, 300);
-            }
+              }
+            }, 300);
+          };
+          window.TTFScanner.run();
+        } else {
+          // TTF not ready — skip to RS
+          setStatus('4/9 RS Scanner…');
+          switchTab('rs');
+          setTimeout(function() {
+            if (window.RSScanner) window.RSScanner.run();
+            finishScan('✓ Done (TTF skipped)');
           }, 300);
-        };
-        window.TTFScanner.run();
-      } else {
-        // TTF not ready — skip to RS
-        setStatus('3/6 RS Scanner…');
-        switchTab('rs');
-        setTimeout(function() {
-          if (window.RSScanner) window.RSScanner.run();
-          window._runAllActive = false;
-          setStatus('✓ Done (TTF skipped)', true);
-        }, 300);
-      }
-    }, 300);
+        }
+      }, 300);
+    }, 200);
   };
 
   var scanAttempts = 0;
@@ -4431,8 +4486,8 @@ initBreadthScanner();
   var BATCH_DELAY = 400;
   var $ = function(id) { return document.getElementById(id); };
   var statusEl = $('status'), headEl = $('tableHead'), bodyEl = $('tableBody');
-  var scanBtn = $('scanBtn'), resetBtn = $('resetBtn'), tsEl = $('ts'), rsi8Filter = $('rsi8Filter');
-  var _ttfRunning = false; // replaces scanBtn.disabled since button was removed
+  var tsEl = $('ts'), rsi8Filter = $('rsi8Filter');
+  var _ttfRunning = false;
   var CACHE_KEY = 'ttf_scanner_cache';
   var _lastResults = null, _sortKey = 'name', _sortDir = 'asc', _debugData = {};
   function normalize(n)      { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
@@ -4736,7 +4791,6 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
     tsEl.textContent = new Date().toLocaleString();
     setStatus('Done. <strong>' + results.length + '</strong> indices, ' + sourceLabel + '.', 'success');
     _ttfRunning = false;
-    if (scanBtn) scanBtn.disabled = false;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ results: results, ts: new Date().toISOString() })); } catch(e) {}
     if (typeof TTFScanner.onComplete === 'function') { try { TTFScanner.onComplete(results); } catch(e) {} }
   }
@@ -4745,7 +4799,6 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
   function runScan() {
     if (_ttfRunning) return;
     _ttfRunning = true;
-    if (scanBtn) scanBtn.disabled = true;
     var sd = window._ldScannerData;
     if (sd && sd.dailyMap && Object.keys(sd.dailyMap).length > 10) {
       setStatus('<span class="spinner"></span> Using cached data from Lie Detector (' + Object.keys(sd.dailyMap).length + ' dates)...');
@@ -4799,7 +4852,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
           completeScan(priceMap, indexList, dailyMap, errors + ' failed fetches');
         });
       })
-      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); _ttfRunning = false; if (scanBtn) scanBtn.disabled = false; });
+      .catch(function(err) { setStatus('Error: ' + err.message, 'error'); _ttfRunning = false; });
   }
   // ── 7.10 Cache Restore ──
   function loadFromCache() {
@@ -4864,8 +4917,6 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
   }
   var TTFScanner = { run: runScan, reset: reset, onComplete: null, _results: function() { return _lastResults; }, _loadCache: loadFromCache };
   win.TTFScanner = TTFScanner;
-  if (scanBtn) scanBtn.addEventListener('click', runScan);
-  if (resetBtn) resetBtn.addEventListener('click', reset);
   rsi8Filter.addEventListener('change', function() { if (_lastResults) render(_lastResults); });
   headEl.addEventListener('click', function(e) {
     var th = e.target.closest('th[data-sort]');
@@ -6480,6 +6531,113 @@ win.rsToggleWL=rsToggleWL;
 </div>
 </div><!-- #tab-rsi -->
 
+<!-- ── 3.5 MF Scan Panel (LD Scanner) ── -->
+<div id="tab-mfscan" class="tab-panel">
+  <div id="mfscan-root" style="min-height:100vh;"></div>
+</div>
+
+<!-- ── 3.6 Hilega Panel (NSE Index RSI·WMA·EMA) ── -->
+<div id="tab-hilega" class="tab-panel">
+  <div id="ov" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+    <div id="ovTxt" style="background:#fff;padding:16px 28px;border-radius:8px;font-size:14px;font-weight:700;color:#000;box-shadow:0 4px 24px rgba(0,0,0,0.18);">LOADING…</div>
+  </div>
+  <div style="display:flex;flex-direction:column;height:100vh;background:#fff;">
+    <div style="width:100%;height:50vh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
+      <canvas id="hmCanvas"></canvas>
+    </div>
+    <div style="flex-grow:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="hmIndexSelect" onchange="hmOnIndexChange()" style="flex:1;padding:6px 8px;font-size:12px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;"></select>
+      </div>
+      <div id="hmDateRange" style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap;">
+        <span style="font-size:11px;color:#888;white-space:nowrap;">From</span>
+        <input type="date" id="hmDateFrom" onchange="hmCalcDateRange()" style="padding:3px 4px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);flex:1;">
+        <span style="font-size:11px;color:#888;white-space:nowrap;">To</span>
+        <input type="date" id="hmDateTo" onchange="hmCalcDateRange()" style="padding:3px 4px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);flex:1;">
+        <div id="hmRangeResult" style="display:none;gap:4px;align-items:center;white-space:nowrap;flex-shrink:0;">
+          <span style="font-size:11px;color:#888;">NAV:<strong id="hmRangeNavA" style="color:#000;">—</strong>→<strong id="hmRangeNavB" style="color:#000;">—</strong></span>
+          <span style="font-size:11px;color:#888;">D:<strong id="hmRangeDays" style="color:#1d4ed8;">—</strong></span>
+          <span style="font-size:12px;font-weight:700;">R:<strong id="hmRangeReturn">—</strong></span>
+        </div>
+      </div>
+      <div class="hm-input-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;min-width:70px;">
+          <label style="font-size:11px;color:#888;text-transform:uppercase;">RSI Length</label>
+          <input type="number" id="hmRsiLen" value="9" min="2" max="50" onchange="drawHilegaMilega()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:center;">
+        </div>
+        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;min-width:70px;">
+          <label style="font-size:11px;color:#888;text-transform:uppercase;">WMA Length</label>
+          <input type="number" id="hmWmaLen" value="21" min="2" max="100" onchange="drawHilegaMilega()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:center;">
+        </div>
+        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;min-width:70px;">
+          <label style="font-size:11px;color:#888;text-transform:uppercase;">EMA Length</label>
+          <input type="number" id="hmEmaLen" value="3" min="2" max="50" onchange="drawHilegaMilega()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:center;">
+        </div>
+        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;min-width:70px;justify-content:flex-end;">
+          <button onclick="drawHilegaMilega()" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">GO</button>
+        </div>
+      </div>
+      <div id="hmBtnRow" style="display:flex;justify-content:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;flex-shrink:0;overflow-x:auto;">
+        <button class="hm-tf-btn hm-period-btn active" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
+        <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
+        <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'monthly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">MONTHLY</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,14)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2W</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,30)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1M</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,90)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3M</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,180)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">6M</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,365)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1Y</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,730)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2Y</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,1095)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3Y</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,1825)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">5Y</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,3650)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">10Y</button>
+        <button class="hm-tf-btn" onclick="setHmTf(this,99999)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">ALL</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+        <div style="display:flex;gap:12px;font-size:11px;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#000;border-radius:1px;display:inline-block;"></span><span style="font-size:10px;color:#888;">RSI</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#e11d48;border-radius:1px;display:inline-block;"></span><span style="font-size:10px;color:#888;">WMA</span></span>
+          <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#16a34a;border-radius:1px;display:inline-block;"></span><span style="font-size:10px;color:#888;">EMA</span></span>
+        </div>
+        <div style="font-size:10px;color:#888;" id="hmFundLabel">—</div>
+      </div>
+      <div id="hmInfoRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">RSI</div>
+          <div style="font-size:14px;font-weight:700;color:#000;margin-top:2px;" id="hmStatRsiVal">—</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">WMA</div>
+          <div style="font-size:14px;font-weight:700;color:#e11d48;margin-top:2px;" id="hmStatWmaVal">—</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">EMA</div>
+          <div style="font-size:14px;font-weight:700;color:#16a34a;margin-top:2px;" id="hmStatEmaVal">—</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">DELTA</div>
+          <div style="font-size:14px;font-weight:700;color:#000;margin-top:2px;" id="hmStatDeltaVal">—</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">NAV</div>
+          <div style="font-size:14px;font-weight:700;color:#1d4ed8;margin-top:2px;" id="hmStatNavVal">—</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">SIGNAL</div>
+          <div style="font-size:12px;font-weight:600;margin-top:2px;" id="hmStatSignalVal">—</div>
+        </div>
+        <div id="hmStatAction" style="border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;grid-column:span 2;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">BUY / SELL ACTION</div>
+          <div style="font-size:12px;font-weight:700;margin-top:3px;" id="hmStatActionVal">—</div>
+        </div>
+        <div id="hmStatSwitch" style="border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;grid-column:span 2;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">SWITCH</div>
+          <div style="font-size:12px;font-weight:700;margin-top:3px;" id="hmStatSwitchVal">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 9.2 BA CSS -->
 <style>
 .ba-wrap{max-width:1400px;margin:0 auto;padding:10px 20px;font-family:var(--sans);}
@@ -8073,6 +8231,646 @@ win.rsiScanAll=rsiRunAll;
 win.fetchDeepWeeklyHistory = fetchDeepWeeklyHistory;
 win.deepLoadCache = deepLoadCache;
 })(window);
+</script>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- ================================================================
+   SECTION 10: MF SCAN (LD Scanner React Component)
+   Scans NSE indices with RSI/regime/TSI
+   ============================================================ -->
+<!-- ════════════════════════════════════════════ -->
+<script>
+const { useState, useRef, useMemo } = React;
+</script>
+<script>
+const MF_SCAN_CACHE_KEY = "mf_scan_results_cache";
+const MF_SCAN_DATE_KEY = "mf_scan_results_date";
+const MF_SCAN_ISO_DATE_KEY = "mf_scan_results_isodate";
+const MF_SCAN_CACHE_VER = "mf_scan_cache_ver";
+const MF_SCAN_VER = 2; // bump to invalidate old cache when schema changes
+function _mfIstTodayStr() {
+  return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
+}
+function _mfLoadCache() {
+  try {
+    const date = localStorage.getItem(MF_SCAN_DATE_KEY);
+    const raw = localStorage.getItem(MF_SCAN_CACHE_KEY);
+    if (!date || !raw) return { results: {}, date: null };
+    const savedIso = localStorage.getItem(MF_SCAN_ISO_DATE_KEY) || null;
+    const todayIso = _mfIstTodayStr();
+    if (savedIso !== todayIso) return { results: {}, date: null };
+    const savedVer = parseInt(localStorage.getItem(MF_SCAN_CACHE_VER) || '0', 10);
+    if (savedVer < MF_SCAN_VER) return { results: {}, date: null };
+    return { results: JSON.parse(raw), date };
+  } catch (e) { return { results: {}, date: null }; }
+}
+function _mfSaveCache(results) {
+  try {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) + " " + now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    localStorage.setItem(MF_SCAN_CACHE_KEY, JSON.stringify(results));
+    localStorage.setItem(MF_SCAN_DATE_KEY, dateStr);
+    localStorage.setItem(MF_SCAN_ISO_DATE_KEY, _mfIstTodayStr());
+    localStorage.setItem(MF_SCAN_CACHE_VER, String(MF_SCAN_VER));
+    return dateStr;
+  } catch (e) { return null; }
+}
+function _mfCalcRSI(closes, period) {
+  const v = closes.filter(x => x != null && !isNaN(x));
+  if (v.length < period + 1) return [];
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) { const d = v[i] - v[i - 1]; if (d > 0) gains += d; else losses -= d; }
+  let ag = gains / period, al = losses / period;
+  const rsiOf = (g, l) => (g === 0 && l === 0) ? 50 : (l === 0 ? 100 : parseFloat((100 - 100 / (1 + g / l)).toFixed(2)));
+  const out = [rsiOf(ag, al)];
+  for (let i = period + 1; i < v.length; i++) {
+    const d = v[i] - v[i - 1];
+    ag = (ag * (period - 1) + Math.max(d, 0)) / period;
+    al = (al * (period - 1) + Math.abs(Math.min(d, 0))) / period;
+    out.push(rsiOf(ag, al));
+  }
+  return out;
+}
+function _mfCalcWMA(data, period) {
+  const v = data.filter(x => x != null && !isNaN(x));
+  if (v.length < period) return null;
+  let sum = 0, ws = period * (period + 1) / 2;
+  const sl = v.slice(-period);
+  for (let i = 0; i < period; i++) sum += sl[i] * (i + 1);
+  return parseFloat((sum / ws).toFixed(2));
+}
+function _mfCalcEMA(data, period) {
+  var out = new Array(data.length).fill(null);
+  var k = 2 / (period + 1);
+  var sum = 0;
+  for (var i = 0; i < period; i++) sum += data[i];
+  out[period - 1] = sum / period;
+  for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k);
+  return out;
+}
+function _mfCalcTSI(closes, period = 21) {
+  const v = closes.filter(x => x != null && !isNaN(x));
+  if (v.length < period) return [];
+  const mx = (period - 1) / 2;
+  let ssX = 0;
+  for (let j = 0; j < period; j++) ssX += Math.pow(j - mx, 2);
+  const out = [];
+  for (let i = 0; i < v.length; i++) {
+    if (i < period - 1) { out.push(null); continue; }
+    let sy = 0;
+    for (let j = 0; j < period; j++) sy += v[i - period + 1 + j];
+    const my = sy / period;
+    let sxy = 0, ssy = 0;
+    for (let j = 0; j < period; j++) { sxy += (j - mx) * (v[i - period + 1 + j] - my); ssy += Math.pow(v[i - period + 1 + j] - my, 2); }
+    out.push(ssy === 0 ? 0 : parseFloat((sxy / Math.sqrt(ssX * ssy)).toFixed(2)));
+  }
+  return out;
+}
+function _mfParseDailyMap(entries) {
+  var closes = [], dates = [];
+  for (var i = 0; i < entries.length; i++) {
+    var parts = entries[i].split("|");
+    var dd = parseInt(parts[0].substring(0, 2), 10);
+    var mm = parseInt(parts[0].substring(2, 4), 10) - 1;
+    var yy = parseInt(parts[0].substring(4, 8), 10);
+    var d = new Date(yy, mm, dd);
+    var c = parseFloat(parts[4]);
+    if (!isNaN(c) && d.getTime()) { dates.push(d); closes.push(c); }
+  }
+  var idx = Array.from({length: dates.length}, (_, i) => i);
+  idx.sort((a, b) => dates[a] - dates[b]);
+  return { closes: idx.map(i => closes[i]), dates: idx.map(i => dates[i]) };
+}
+function _mfBuildWeeklyCloses(closes, dates) {
+  var wkMap = {};
+  for (var i = 0; i < dates.length; i++) {
+    var d = dates[i], day = d.getDay();
+    var mon = new Date(d);
+    mon.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+    var key = mon.getFullYear() + String(mon.getMonth()+1).padStart(2,'0') + String(mon.getDate()).padStart(2,'0');
+    wkMap[key] = closes[i];
+  }
+  var keys = Object.keys(wkMap).sort();
+  return keys.map(function(k) { return wkMap[k]; });
+}
+function _mfBuildMonthlyCloses(closes, dates) {
+  var moMap = {};
+  for (var i = 0; i < dates.length; i++) {
+    var d = dates[i];
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    moMap[key] = closes[i];
+  }
+  var keys = Object.keys(moMap).sort();
+  return keys.map(function(k) { return moMap[k]; });
+}
+function _mfActionComment(rsiArr, wmaArr, emaArr) {
+  if (!rsiArr || !rsiArr.length) return { text: 'Insufficient Data', color: '#999' };
+  var i = rsiArr.length - 1;
+  var r = rsiArr[i], w = wmaArr ? wmaArr[i] : null, e = emaArr ? emaArr[i] : null;
+  if (r == null) return { text: 'Insufficient Data', color: '#999' };
+  var aboveWma = w != null && r > w, aboveEma = e != null && r > e;
+  var belowWma = w != null && r < w, belowEma = e != null && r < e;
+  if (aboveWma && aboveEma) return { text: 'BUY \u00B7 Add Equity', color: '#16a34a' };
+  if (belowWma && belowEma) return { text: 'SELL \u00B7 Reduce Equity', color: '#ef4444' };
+  return { text: 'WATCH \u00B7 Hold', color: '#f59e0b' };
+}
+function _mfTriggerStatus(rsiArr) {
+  if (!rsiArr || rsiArr.length < 2) return { label: '\u2014', color: '#999', rank: 4 };
+  var cur = rsiArr[rsiArr.length - 1], prev = rsiArr[rsiArr.length - 2];
+  if (cur == null || prev == null) return { label: '\u2014', color: '#999', rank: 4 };
+  var curUp = cur >= 50, prevUp = prev >= 50;
+  if (curUp && !prevUp) return { label: '\u2197 Crossover', color: '#16a34a', rank: 0 };
+  if (!curUp && prevUp) return { label: '\u2198 Crossunder', color: '#ef4444', rank: 1 };
+  if (curUp) return { label: '\u25B2 Above', color: '#059669', rank: 2 };
+  return { label: '\u25BC Below', color: '#dc2626', rank: 3 };
+}
+function _mfTriggerBg(rank) {
+  if (rank === 0) return '#d4edda';
+  if (rank === 1) return '#fde8e8';
+  if (rank === 2) return '#d4edda';
+  if (rank === 3) return '#f8d7da';
+  return 'transparent';
+}
+function _mfRunET(r, vix) {
+  if (!r || !r.wRsi14) return null;
+  if (!(r.wRsi14 >= 50 && r.wma20Price && r.price > r.wma20Price)) return { verdict: "ABORT", label: "\uD83D\uDC80 ABORT", detail: "P1: W-RSI14<50 or Price<20WMA", color: "#fde8e8", bdr: "#c8102e" };
+  if (!r.dRsi4 || !r.dRsi8 || !r.dRsi14) return { verdict: "NO DATA", label: "\u26A0 NO DATA", detail: "Daily RSI unavailable", color: "#e4eaf2", bdr: "#7090b0" };
+  const iz = v => v >= 40 && v <= 50, d4 = iz(r.dRsi4), d8 = iz(r.dRsi8), d14 = iz(r.dRsi14);
+  if (!d4 || !d8 || !d14) { const cnt = [d4, d8, d14].filter(Boolean).length; const det = `D-RSI 4:${r.dRsi4} 8:${r.dRsi8} 14:${r.dRsi14} \u2014 ${cnt}/3 in zone`; if (cnt >= 1) return { verdict: "NEAR MISS", label: "\uD83D\uDFE1 NEAR MISS", detail: det, color: "#fff3cd", bdr: "#c97a00" }; return { verdict: "NOT READY", label: "\u23F3 NOT READY", detail: "Not in zone. " + det, color: "#e4eaf2", bdr: "#7090b0" }; }
+  const td = [];
+  if (r.wRsi14 >= 50 && r.wRsi14 <= 52) td.push("TD1: W-RSI14 barely holding (" + r.wRsi14 + ")");
+  if (r.wma20Price && r.price < r.wma20Price) td.push("TD2: Price<20WMA");
+  if (r.divergence) td.push("TD3: RSI4 rising but Price<20WMA");
+  if (vix && vix > 20) td.push("TD4: VIX>20 (" + vix.toFixed(1) + ")");
+  if (td.length > 0) return { verdict: "FAKE SUPPORT", label: "\uD83D\uDD34 FAKE SUPPORT", detail: td.join(" | "), color: "#fde8e8", bdr: "#c8102e" };
+  return { verdict: "VERIFIED STRIKE", label: "\uD83D\uDC8E VERIFIED STRIKE", detail: "All 3 D-RSI in zone. Clean.", color: "#d4edda", bdr: "#009e70" };
+}
+function _mfRsiCls(v) {
+  if (v == null) return { background: "transparent" };
+  if (v >= 50) return { background: "#d4edda", color: "#000" };
+  if (v >= 40) return { background: "#fff3cd", color: "#000" };
+  return { background: "#fde8e8", color: "#000" };
+}
+function MFScanner() {
+  const cached = _mfLoadCache();
+  const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState(Object.keys(cached.results).length > 0);
+  const [progress, setProgress] = useState({ done: 0, total: 0, label: "" });
+  const [results, setResults] = useState(cached.results);
+  const [cacheDate, setCacheDate] = useState(cached.date);
+  const [regF, setRegF] = useState("ALL");
+  const [phaseF, setPhaseF] = useState("ALL");
+  const [sortCfg, setSortCfg] = useState({ key: null, dir: "asc" });
+  const stopRef = useRef(false);
+  const topScrollRef = useRef(null);
+  const tableWrapRef = useRef(null);
+  useEffect(() => {
+    const tw = tableWrapRef.current;
+    const ts = topScrollRef.current;
+    if (!tw || !ts) return;
+    const inner = ts.firstElementChild;
+    if (inner) inner.style.width = Math.max(tw.scrollWidth, ts.clientWidth + 1) + 'px';
+  });
+  const sd = window._ldScannerData || {};
+  const vix = sd.priceMap?.["indiavix"]?.price ?? results["indiavix"]?.price ?? null;
+  const F = { fontFamily: "'Space Mono','Courier New',monospace", color: "#000" };
+  const accent = "#009e70", accent2 = "#c97a00", red = "#c8102e";
+  const surf = "#f2f5f9", surf2 = "#e4eaf2", bdr = "#b0bece", bdr2 = "#7090b0";
+  function doScan() {
+    stopRef.current = false;
+    const sd = window._ldScannerData;
+    if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
+      setProgress({ done: 0, total: 0, label: "No data \u2014 run Nifty Index Scanner first" });
+      setScanning(false);
+      return;
+    }
+    window._mfScanStopRef = stopRef;
+    setScanning(true);
+    const idxList = sd.indexList || [];
+    const dailyMap = sd.dailyMap || {};
+    const priceMap = sd.priceMap || {};
+    let tmp = {};
+    for (let i = 0; i < idxList.length; i++) {
+      if (stopRef.current) break;
+      const idx = idxList[i];
+      setProgress({ done: i + 1, total: idxList.length, label: "Computing " + idx.name + "..." });
+      const entries = dailyMap[idx.key] || dailyMap[idx.name.toLowerCase()];
+      if (!entries || entries.length < 10) continue;
+      const parsed = _mfParseDailyMap(entries);
+      if (parsed.closes.length < 10) continue;
+      const d4 = _mfCalcRSI(parsed.closes, 4), d8 = _mfCalcRSI(parsed.closes, 8), d14 = _mfCalcRSI(parsed.closes, 14);
+      const dRsi4 = d4.length ? d4[d4.length - 1] : null;
+      const dRsi8 = d8.length ? d8[d8.length - 1] : null;
+      const dRsi14 = d14.length ? d14[d14.length - 1] : null;
+      const wkCloses = _mfBuildWeeklyCloses(parsed.closes, parsed.dates);
+      const w4 = _mfCalcRSI(wkCloses, 4), w8 = _mfCalcRSI(wkCloses, 8), w14 = _mfCalcRSI(wkCloses, 14);
+      const wRsi4 = w4.length ? w4[w4.length - 1] : null;
+      const wRsi8 = w8.length ? w8[w8.length - 1] : null;
+      const wRsi14 = w14.length ? w14[w14.length - 1] : null;
+      const wRsi = wRsi4;
+      const wma20Price = _mfCalcWMA(wkCloses, 20);
+      const wma20Rsi = _mfCalcWMA(w4, 20);
+      const moCloses = _mfBuildMonthlyCloses(parsed.closes, parsed.dates);
+      const mo9 = _mfCalcRSI(moCloses, 9);
+      const moWma = _mfCalcWMA(mo9, 21);
+      const moEma = _mfCalcEMA(mo9, 3);
+      const wHilega = _mfActionComment(w4, _mfCalcWMA(w4, 21), _mfCalcEMA(w4, 3));
+      const wTrigger = _mfTriggerStatus(w4);
+      const mHilega = mo9.length >= 10 ? _mfActionComment(mo9, moWma, moEma) : { text: 'Insufficient Data', color: '#999' };
+      const mTrigger = mo9.length >= 10 ? _mfTriggerStatus(mo9) : { label: '\u2014', color: '#999', rank: 4 };
+      const tsiArr = _mfCalcTSI(parsed.closes, 21);
+      const dTsiCurr = tsiArr.length > 0 ? tsiArr[tsiArr.length - 1] : null;
+      const dTsiPrev = tsiArr.length > 1 ? tsiArr[tsiArr.length - 2] : null;
+      const pm = priceMap[idx.key] || priceMap[idx.name.toLowerCase()] || {};
+      const price = pm.price ?? (parsed.closes.length ? parsed.closes[parsed.closes.length - 1] : null);
+      const vd = parsed.closes.filter(function(x) { return x != null && !isNaN(x); });
+      const changePct = vd.length >= 2 ? parseFloat(((vd[vd.length - 1] - vd[vd.length - 2]) / vd[vd.length - 2] * 100).toFixed(2)) : null;
+      var regime = "C";
+      if (wRsi >= 50 && wma20Price && price > wma20Price) regime = "A";
+      else if (wRsi >= 40 && wRsi < 50) regime = "B";
+      var prevD4 = d4.length > 2 ? d4[d4.length - 2] : null;
+      var divergence = prevD4 !== null && dRsi4 > prevD4 && wma20Price && price < wma20Price;
+      var tsiTrigger = "\u2014", tsiColor = "transparent", tsiBorder = "transparent";
+      if (regime === "A") {
+        if (dTsiPrev !== null && dTsiCurr !== null && dTsiPrev < 0 && dTsiCurr >= 0) { tsiTrigger = "\uD83D\uDE80 RESUMPTION"; tsiColor = "#d4edda"; tsiBorder = "#009e70"; }
+        else if (dTsiCurr !== null && dTsiCurr < 0) { tsiTrigger = "\uD83C\uDFAF DIP ZONE"; tsiColor = "#fff3cd"; tsiBorder = "#c97a00"; }
+        else if (dTsiCurr !== null && dTsiCurr > 0.85) { tsiTrigger = "\uD83D\uDD25 OVERHEATED"; tsiColor = "#fde8e8"; tsiBorder = "#c8102e"; }
+        else if (dTsiCurr !== null && dTsiCurr >= 0) { tsiTrigger = "\u2705 TRENDING"; tsiColor = "#e4eaf2"; tsiBorder = "#7090b0"; }
+      } else if (regime === "B" && dTsiPrev !== null && dTsiCurr !== null && dTsiPrev > 0 && dTsiCurr < 0) {
+        tsiTrigger = "\u26A0\uFE0F BEAR CROSS"; tsiColor = "#fde8e8"; tsiBorder = "#c8102e";
+      }
+      var action = "HOLD";
+      if (regime === "A" && dRsi14 >= 40 && dRsi14 <= 50) action = "BUY";
+      else if (regime === "A" && dRsi14 > 70) action = "HOLD";
+      else if (regime === "B") action = "REDUCE";
+      else if (regime === "C") action = "SELL";
+      tmp[idx.key] = {
+        name: idx.name, symbol: idx.key, exchange: 'NSE',
+        price: price, changePct: changePct, wRsi: wRsi, wRsi4: wRsi4, wRsi8: wRsi8, wRsi14: wRsi14,
+        dRsi: dRsi14, dRsi4: dRsi4, dRsi8: dRsi8, dRsi14: dRsi14,
+        wma20Price: wma20Price, wma20Rsi: wma20Rsi, regime: regime, action: action, divergence: divergence,
+        dTsiCurr: dTsiCurr, tsiTrigger: tsiTrigger, tsiColor: tsiColor, tsiBorder: tsiBorder,
+        wHilega: wHilega, wTrigger: wTrigger, mHilega: mHilega, mTrigger: mTrigger
+      };
+      setResults(Object.assign({}, tmp));
+    }
+    var savedDate = _mfSaveCache(tmp);
+    setCacheDate(savedDate);
+    setProgress({ done: idxList.length, total: idxList.length, label: "Done \u2014 " + (savedDate || "") });
+    setScanned(true);
+    setScanning(false);
+  }
+  window._mfDoScan = doScan;
+  function reqSort(k) { setSortCfg(p => ({ key: k, dir: p.key === k && p.dir === "asc" ? "desc" : "asc" })); }
+  function si(k) { return sortCfg.key !== k ? "" : sortCfg.dir === "asc" ? " \u25B2" : " \u25BC"; }
+  const rows = useMemo(() => {
+    let list = Object.values(results).filter(r => r && r.name);
+    if (regF !== "ALL") list = list.filter(r => r.regime === regF);
+    if (phaseF !== "ALL") list = list.filter(r => { const et = _mfRunET(r, vix); return et && et.verdict === phaseF; });
+    if (sortCfg.key) {
+      list.sort((a, b) => {
+        let av, bv;
+        if (sortCfg.key === "pvsw") { av = a.price && a.wma20Price ? a.price > a.wma20Price ? 1 : -1 : 0; bv = b.price && b.wma20Price ? b.price > b.wma20Price ? 1 : -1 : 0; }
+        else if (sortCfg.key === "verdict") { const ea = _mfRunET(a, vix), eb = _mfRunET(b, vix); av = ea ? ea.label : ""; bv = eb ? eb.label : ""; }
+        else if (sortCfg.key === "detail") { const ea = _mfRunET(a, vix), eb = _mfRunET(b, vix); av = ea ? ea.detail : ""; bv = eb ? eb.detail : ""; }
+        else if (sortCfg.key === "wHilega") { av = a.wHilega?.text || ""; bv = b.wHilega?.text || ""; }
+        else if (sortCfg.key === "wTrigger") { av = a.wTrigger?.rank ?? 4; bv = b.wTrigger?.rank ?? 4; }
+        else if (sortCfg.key === "mHilega") { av = a.mHilega?.text || ""; bv = b.mHilega?.text || ""; }
+        else if (sortCfg.key === "mTrigger") { av = a.mTrigger?.rank ?? 4; bv = b.mTrigger?.rank ?? 4; }
+        else { av = a[sortCfg.key]; bv = b[sortCfg.key]; }
+        if (av == null) return 1; if (bv == null) return -1;
+        if (av < bv) return sortCfg.dir === "asc" ? -1 : 1;
+        if (av > bv) return sortCfg.dir === "asc" ? 1 : -1;
+        return 0;
+      });
+      return list;
+    }
+    return list.sort((a, b) => { const o = { A: 1, B: 2, C: 3 }; const ra = o[a.regime] || 4, rb = o[b.regime] || 4; if (ra !== rb) return ra - rb; return (b.wRsi ?? -Infinity) - (a.wRsi ?? -Infinity); });
+  }, [results, regF, phaseF, vix, sortCfg]);
+  const pct = progress.total > 0 ? Math.round(progress.done / progress.total * 100) : 0;
+  const hasData = rows.length > 0;
+  const scannerDataExists = sd.indexList && sd.indexList.length > 0;
+  const thS = { position: "sticky", top: 0, background: surf2, padding: "7px 9px", fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", borderBottom: `2px solid ${bdr2}`, borderRight: `1px solid ${bdr}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", fontFamily: "'Space Mono','Courier New',monospace", color: "#000", zIndex: 10 };
+  const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2 };
+  const tdS = { padding: "6px 9px", borderBottom: `1px solid ${surf2}`, borderRight: `1px solid ${surf2}`, whiteSpace: "nowrap", fontFamily: "'Space Mono','Courier New',monospace", fontSize: 11, color: "#000" };
+  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, minWidth: 165, zIndex: 5 };
+  return React.createElement("div", { style: { background: "#fff", minHeight: "100vh", ...F } },
+    React.createElement("div", { style: { background: surf, borderBottom: `1px solid ${bdr}`, padding: "3px 6px", position: "sticky", top: 0, zIndex: 99, display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" } },
+      React.createElement("select", { style: { fontSize: 9, padding: "2px 3px", background: "#fff", border: `1px solid ${bdr}`, fontFamily: "'Space Mono','Courier New',monospace", flexShrink: 0, maxWidth: 80 }, value: regF, onChange: e => setRegF(e.target.value) },
+        React.createElement("option", { value: "ALL" }, "Regime"),
+        React.createElement("option", { value: "A" }, "A \u2014 Hope"),
+        React.createElement("option", { value: "B" }, "B \u2014 Watch"),
+        React.createElement("option", { value: "C" }, "C \u2014 Fear")),
+      React.createElement("select", { style: { fontSize: 9, padding: "2px 3px", background: "#fff", border: `1px solid ${bdr}`, fontFamily: "'Space Mono','Courier New',monospace", flexShrink: 0, maxWidth: 80 }, value: phaseF, onChange: e => setPhaseF(e.target.value) },
+        React.createElement("option", { value: "ALL" }, "Verdict"),
+        React.createElement("option", { value: "VERIFIED STRIKE" }, "\uD83D\uDC8E Strike"),
+        React.createElement("option", { value: "NEAR MISS" }, "\uD83D\uDFE1 Near Miss"),
+        React.createElement("option", { value: "FAKE SUPPORT" }, "\uD83D\uDD34 Fake"),
+        React.createElement("option", { value: "ABORT" }, "\uD83D\uDC80 Abort")),
+      scanning ? React.createElement("button", { style: { background: "#fde8e8", border: `1px solid ${red}`, padding: "3px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer", color: red, flexShrink: 0, whiteSpace: "nowrap" }, onClick: () => { stopRef.current = true; } }, "\u25A0 ", pct, "%") : null,
+      React.createElement("span", { style: { fontSize: 9, fontWeight: 700, padding: "2px 5px", background: Object.keys(results).length > 0 ? "#d4edda" : surf2, border: `1px solid ${Object.keys(results).length > 0 ? accent : bdr}`, whiteSpace: "nowrap", flexShrink: 0, fontFamily: "'Space Mono','Courier New',monospace", color: "#000", lineHeight: 1.5 } }, Object.keys(results).length, "/", (sd.indexList?.length || 0)),
+      React.createElement("div", { style: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 } }, vix != null && React.createElement("span", { style: { fontSize: 10, fontWeight: 700, padding: "3px 8px", background: vix > 20 ? "#fde8e8" : "#d4edda", border: `1px solid ${vix > 20 ? red : accent}`, ...F, whiteSpace: "nowrap" } }, "VIX ", vix.toFixed(1), " ", vix > 20 ? "\u26A0" : "\u2713"))),
+    scanning && React.createElement("div", { style: { height: 2, background: surf2 } }, React.createElement("div", { style: { height: "100%", background: `linear-gradient(90deg,${accent},#66ccaa)`, width: pct + "%", transition: "width 0.3s" } })),
+    React.createElement("div", { style: { padding: "4px 6px" } },
+      hasData ? React.createElement("div", null, React.createElement("div", {
+        ref: topScrollRef,
+        className: "table-top-scroll",
+        style: { overflowX: "auto", overflowY: "hidden", height: 12, background: surf, border: `1px solid ${bdr2}`, borderBottom: "none" },
+        onScroll: function(e) { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }
+      }, React.createElement("div", {
+        ref: function(el) { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; },
+        style: { height: 1 }
+      })), React.createElement("div", {
+        ref: tableWrapRef,
+        className: "table-wrap",
+        style: { border: `1px solid ${bdr}`, overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 60px)" },
+        onScroll: function(e) { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; }
+      },
+        React.createElement("table", { style: { borderCollapse: "separate", borderSpacing: 0, fontSize: 11 } },
+          React.createElement("thead", null, React.createElement("tr", null,
+            React.createElement("th", { style: th1S, onClick: () => reqSort("name") }, "Index", si("name")),
+            React.createElement("th", { style: thS, onClick: () => reqSort("price") }, "Price", si("price")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("changePct") }, "%Chg", si("changePct")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("dRsi") }, "D-RSI 4\u00B78\u00B714", si("dRsi")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("wRsi") }, "W-RSI 4\u00B78\u00B714", si("wRsi")),
+            React.createElement("th", { style: thS, onClick: () => reqSort("wma20Rsi") }, "WMA20", si("wma20Rsi")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("pvsw") }, "P>20WMA", si("pvsw")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("dTsiCurr") }, "TSI 21D", si("dTsiCurr")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("tsiTrigger") }, "TSI Signal", si("tsiTrigger")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("regime") }, "Regime", si("regime")),
+            React.createElement("th", { style: { ...thS, textAlign: "center" }, onClick: () => reqSort("action") }, "Action", si("action")),
+            React.createElement("th", { style: { ...thS, minWidth: 140 }, onClick: () => reqSort("verdict") }, "Verdict", si("verdict")),
+            React.createElement("th", { style: { ...thS, minWidth: 180 }, onClick: () => reqSort("detail") }, "Trapdoor Detail", si("detail")),
+            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8" }, onClick: () => reqSort("wHilega") }, "W\u00B7HILEGA", si("wHilega")),
+            React.createElement("th", { style: { ...thS, borderRight: "3px solid #1d4ed8", borderTop: "3px solid #1d4ed8", background: "rgba(29,78,216,0.07)", color: "#1d4ed8" }, onClick: () => reqSort("wTrigger") }, "W\u00B7TRIGGER", si("wTrigger")),
+            React.createElement("th", { style: { ...thS, borderLeft: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea" }, onClick: () => reqSort("mHilega") }, "M\u00B7HILEGA", si("mHilega")),
+            React.createElement("th", { style: { ...thS, borderRight: "3px solid #9333ea", borderTop: "3px solid #9333ea", background: "rgba(147,51,234,0.07)", color: "#9333ea" }, onClick: () => reqSort("mTrigger") }, "M\u00B7TRIGGER", si("mTrigger")))),
+          React.createElement("tbody", null, rows.map((r, i) => {
+            const et = _mfRunET(r, vix);
+            const rowBg = i % 2 === 0 ? "#fff" : surf;
+            const wmaOk = r.price && r.wma20Price ? r.price > r.wma20Price : null;
+            return React.createElement("tr", { key: i, style: { background: rowBg } },
+              React.createElement("td", { style: { ...td1S, background: rowBg } }, r.name),
+              React.createElement("td", { style: tdS }, r.price?.toFixed(2) ?? "-"),
+              React.createElement("td", { style: { ...tdS, textAlign: "center", fontWeight: 600, background: r.changePct > 0 ? "#d4edda" : r.changePct < 0 ? "#fde8e8" : "transparent" } }, r.changePct == null ? "-" : (r.changePct > 0 ? "\u25B2" : r.changePct < 0 ? "\u25BC" : "") + r.changePct.toFixed(2) + "%"),
+              React.createElement("td", { style: { ...tdS, textAlign: "center" } }, React.createElement("div", { style: { display: "flex", gap: 2, justifyContent: "center" } }, [r.dRsi4, r.dRsi8, r.dRsi14].map((v, j) => React.createElement("span", { key: j, style: { padding: "1px 4px", fontSize: 10, ..._mfRsiCls(v), ...F } }, v ?? "-")))),
+              React.createElement("td", { style: { ...tdS, textAlign: "center" } }, React.createElement("div", { style: { display: "flex", gap: 2, justifyContent: "center" } }, [r.wRsi4, r.wRsi8, r.wRsi14].map((v, j) => React.createElement("span", { key: j, style: { padding: "1px 4px", fontSize: 10, ..._mfRsiCls(v), ...F } }, v ?? "-")))),
+              React.createElement("td", { style: tdS }, r.wma20Rsi ?? "-"),
+              React.createElement("td", { style: { ...tdS, textAlign: "center", fontWeight: 600, background: wmaOk === true ? "#d4edda" : wmaOk === false ? "#fde8e8" : "transparent", color: wmaOk === true ? accent : wmaOk === false ? red : "#000" } }, wmaOk === null ? "-" : wmaOk ? "YES" : "NO"),
+              React.createElement("td", { style: { ...tdS, textAlign: "center", fontWeight: 600, background: r.dTsiCurr > 0 ? "#d4edda" : r.dTsiCurr < 0 ? "#fde8e8" : "transparent" } }, r.dTsiCurr != null ? r.dTsiCurr.toFixed(2) : "-"),
+              React.createElement("td", { style: { ...tdS, textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 600, padding: "1px 5px", background: r.tsiColor, border: `1px solid ${r.tsiBorder}`, ...F } }, r.tsiTrigger)),
+              React.createElement("td", { style: { ...tdS, textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 700, padding: "2px 6px", background: r.regime === "A" ? "#d4edda" : r.regime === "B" ? "#fff3cd" : "#fde8e8", border: `1px solid ${r.regime === "A" ? accent : r.regime === "B" ? accent2 : red}`, ...F } }, r.regime ?? "-")),
+              React.createElement("td", { style: { ...tdS, textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 700, padding: "2px 6px", background: r.action === "BUY" ? "#d4edda" : r.action === "SELL" ? "#fde8e8" : r.action === "REDUCE" ? "#fff3cd" : "#e4eaf2", border: `1px solid ${r.action === "BUY" ? accent : r.action === "SELL" ? red : r.action === "REDUCE" ? accent2 : bdr}`, ...F } }, r.action ?? "-")),
+              React.createElement("td", { style: { ...tdS, textAlign: "center", whiteSpace: "nowrap" } }, et ? React.createElement("span", { style: { fontSize: 10, fontWeight: 700, padding: "2px 6px", background: et.color, border: `1px solid ${et.bdr}`, ...F } }, et.label) : "-"),
+              React.createElement("td", { style: { ...tdS, fontSize: 10, minWidth: 180 } }, et?.detail ?? "-"),
+              React.createElement("td", { style: { ...tdS, borderLeft: "3px solid #1d4ed8", background: "rgba(29,78,216,0.04)", textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 600, color: r.wHilega?.color || "#999", ...F } }, r.wHilega?.text ?? "-")),
+              React.createElement("td", { style: { ...tdS, borderRight: "3px solid #1d4ed8", background: _mfTriggerBg(r.wTrigger?.rank ?? 4), textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: r.wTrigger?.color || "#999", ...F } }, r.wTrigger?.label ?? "-")),
+              React.createElement("td", { style: { ...tdS, borderLeft: "3px solid #9333ea", background: "rgba(147,51,234,0.04)", textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 600, color: r.mHilega?.color || "#999", ...F } }, r.mHilega?.text ?? "-")),
+              React.createElement("td", { style: { ...tdS, borderRight: "3px solid #9333ea", background: _mfTriggerBg(r.mTrigger?.rank ?? 4), textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: r.mTrigger?.color || "#999", ...F } }, r.mTrigger?.label ?? "-")));
+             }))))) : !scanning && React.createElement("div", { style: { padding: 50, textAlign: "center" } },
+        React.createElement("div", { style: { fontSize: 34, marginBottom: 6 } }, "\uD83D\uDCE1"),
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 700, marginBottom: 4, ...F } }, scannerDataExists ? "Tap \u26A1 to compute RSI/TSI for " + sd.indexList.length + " NSE indices" : "Run \u26A1 Nifty Index Scanner first to load data"),
+        React.createElement("div", { style: { fontSize: 10, color: "#888", ...F } }, scannerDataExists ? "Index data ready \u00B7 " + sd.indexList.length + " NSE indices" : "The Nifty Index Scanner tab must be run first to populate scanner data"))));
+}
+window._mfMounted = false;
+</script>
+
+
+<!-- ════════════════════════════════════════════ -->
+<!-- ================================================================
+   SECTION 11: HILEGA-MILEGA — NSE Index RSI·WMA·EMA Indicator
+   RSI(9) vs WMA(21) vs EMA(3) with volume overlay
+   ============================================================ -->
+<!-- ════════════════════════════════════════════ -->
+<script>
+window._hmHist = null;
+window._hmHistCode = null;
+window._hmTfDays = 365;
+window._hmPeriod = 'weekly';
+function hmPopulateIndexDropdown() {
+  var sel = document.getElementById('hmIndexSelect');
+  if (!sel) return;
+  var sd = window._ldScannerData;
+  if (!sd || !sd.indexList) return;
+  var dm = sd.dailyMap || {};
+  var prevVal = sel.value;
+  sel.innerHTML = '';
+  sd.indexList.forEach(function(idx) {
+    var d = dm[idx.key] || dm[idx.name.toLowerCase()];
+    if (!d || d.length < 10) return;
+    var opt = document.createElement('option');
+    opt.value = idx.key;
+    opt.textContent = idx.name;
+    sel.appendChild(opt);
+  });
+  var saved = localStorage.getItem('hm_index_key');
+  if (saved && sel.querySelector('option[value="' + saved + '"]')) sel.value = saved;
+  else if (prevVal && sel.querySelector('option[value="' + prevVal + '"]')) sel.value = prevVal;
+}
+function hmOnIndexChange() { var sel = document.getElementById('hmIndexSelect'); localStorage.setItem('hm_index_key', sel.value); window._hmHist = null; window._hmHistCode = null; drawHilegaMilega(); }
+function hmCalcDateRange() {
+    var fromStr = document.getElementById('hmDateFrom').value;
+    var toStr = document.getElementById('hmDateTo').value;
+    var res = document.getElementById('hmRangeResult');
+    if (!fromStr || !toStr || !window._hmHist) { res.style.display = 'none'; return; }
+    var hist = window._hmHist;
+    var findNav = function(target) { var best = null, bestDiff = Infinity; for (var di = 0; di < hist.length; di++) { var dt = hmParseDate(hist[di].date); if (isNaN(dt.getTime())) continue; var iso = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0'); var diff = Math.abs(new Date(iso).getTime() - new Date(target).getTime()); if (diff < bestDiff) { bestDiff = diff; best = hist[di]; } } return best; };
+    var navA = findNav(fromStr), navB = findNav(toStr);
+    if (!navA || !navB) { res.style.display = 'none'; return; }
+    var a = parseFloat(navA.nav), b = parseFloat(navB.nav);
+    var retPct = ((b - a) / a * 100);
+    var dA = hmParseDate(navA.date), dB = hmParseDate(navB.date);
+    var days = Math.round(Math.abs(dB.getTime() - dA.getTime()) / 86400000);
+    document.getElementById('hmRangeNavA').textContent = a.toFixed(2);
+    document.getElementById('hmRangeNavB').textContent = b.toFixed(2);
+    document.getElementById('hmRangeDays').textContent = days;
+    var retEl = document.getElementById('hmRangeReturn');
+    retEl.textContent = (retPct >= 0 ? '+' : '') + retPct.toFixed(2) + '%';
+    retEl.style.color = retPct >= 0 ? '#16a34a' : '#ef4444';
+    res.style.display = 'flex';
+}
+function setHmTf(btn, days) {
+    var period = window._hmPeriod || 'daily';
+    if (period === 'weekly' && days < 90) days = 90;
+    if (period === 'monthly' && days < 365) days = 365;
+    window._hmTfDays = days;
+    localStorage.setItem('hm_tf_days', days);
+    document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    drawHilegaMilega();
+}
+function setHmPeriod(btn, period) {
+    window._hmPeriod = period;
+    localStorage.setItem('hm_period', period);
+    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var curTf = window._hmTfDays || 99999;
+    if (period === 'weekly' && curTf < 90) { window._hmTfDays = 90; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(7)').classList.add('active'); }
+    else if (period === 'monthly' && curTf < 365) { window._hmTfDays = 365; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(9)').classList.add('active'); }
+    drawHilegaMilega();
+}
+function hmParseDate(dateStr) { var sep = dateStr.includes('/') ? '/' : '-'; var p = dateStr.split(sep); if (p.length === 3 && p[0].length === 2 && p[2].length === 4) return new Date(p[2] + '-' + p[1] + '-' + p[0]); return new Date(dateStr); }
+function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var day = (dt.getDay() + 6) % 7; var refMonday = new Date(dt); refMonday.setDate(dt.getDate() - day); var wid = refMonday.toISOString().slice(0, 10); if (!cur || cur.wid !== wid) { if (cur) weeks.push(cur); cur = { wid: wid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; } } if (cur) weeks.push(cur); return weeks; }
+function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; } } if (cur) months.push(cur); return months; }
+function hmCalcRSI(prices, period) {
+    var rsi = new Array(prices.length).fill(50);
+    if (prices.length < period + 1) return rsi;
+    var ag = 0, al = 0;
+    for (var i = 1; i <= period; i++) { var d = prices[i] - prices[i - 1]; ag += d > 0 ? d : 0; al += d < 0 ? -d : 0; }
+    ag /= period; al /= period;
+    rsi[period] = al === 0 ? 100 : ag === 0 ? 0 : 100 - (100 / (1 + ag / al));
+    for (var i = period + 1; i < prices.length; i++) { var d = prices[i] - prices[i - 1]; ag = (ag * (period - 1) + (d > 0 ? d : 0)) / period; al = (al * (period - 1) + (d < 0 ? -d : 0)) / period; rsi[i] = ag === 0 && al === 0 ? 50 : al === 0 ? 100 : ag === 0 ? 0 : 100 - (100 / (1 + ag / al)); }
+    return rsi;
+}
+function hmCalcWMA(data, period) { var out = new Array(data.length).fill(null); var denom = period * (period + 1) / 2; for (var i = period - 1; i < data.length; i++) { var num = 0; for (var j = 0; j < period; j++) num += data[i - j] * (period - j); out[i] = num / denom; } return out; }
+function hmCalcEMA(data, period) { var out = new Array(data.length).fill(null); var k = 2 / (period + 1); var sum = 0; for (var i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k); return out; }
+async function drawHilegaMilega() {
+    var key = document.getElementById('hmIndexSelect')?.value;
+    if (!key) return;
+    localStorage.setItem('hm_index_key', key);
+    var ov = document.getElementById('ov');
+    var ovTxt = document.getElementById('ovTxt');
+    if (ov) ov.style.display = 'flex';
+    if (ovTxt) { ovTxt.textContent = 'LOADING\u2026'; ovTxt.style.color = ''; }
+    try {
+        var sd = window._ldScannerData;
+        if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
+          var canvas = document.getElementById('hmCanvas');
+          if (canvas) { var ctx = canvas.getContext('2d'); var wrap = canvas.parentElement; var rect = wrap.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; ctx.clearRect(0, 0, rect.width, rect.height); ctx.fillStyle = '#999'; ctx.font = '14px monospace'; ctx.textAlign = 'center'; ctx.fillText('Run Nifty Index Scanner first', rect.width / 2, rect.height / 2); }
+          if (ov) ov.style.display = 'none'; return;
+        }
+        var entries = sd.dailyMap[key] || sd.dailyMap[(key || '').toLowerCase()];
+        if (!entries || entries.length < 10) {
+          var canvas = document.getElementById('hmCanvas');
+          if (canvas) { var ctx = canvas.getContext('2d'); var wrap = canvas.parentElement; var rect = wrap.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; ctx.clearRect(0, 0, rect.width, rect.height); ctx.fillStyle = '#999'; ctx.font = '14px monospace'; ctx.textAlign = 'center'; ctx.fillText('No data for ' + (key || 'selected index') + ' (' + (entries ? entries.length : 0) + ' entries)', rect.width / 2, rect.height / 2); }
+          if (ov) ov.style.display = 'none'; return;
+        }
+        var hist = [];
+        var sorted = entries.slice().sort(function(a, b) {
+          var da = a.substring(4,8) + a.substring(2,4) + a.substring(0,2);
+          var db = b.substring(4,8) + b.substring(2,4) + b.substring(0,2);
+          return da < db ? -1 : da > db ? 1 : 0;
+        });
+        for (var hi = 0; hi < sorted.length; hi++) {
+          var parts = sorted[hi].split('|');
+          var ds = parts[0];
+          var dateStr = ds.substring(0,2) + '/' + ds.substring(2,4) + '/' + ds.substring(4,8);
+          hist.push({ nav: parseFloat(parts[4]), date: dateStr });
+        }
+        window._hmHist = hist;
+        window._hmHistCode = key;
+        var viewData = hist;
+        if (window._hmPeriod === 'weekly') viewData = hmAggregateWeeks(hist);
+        else if (window._hmPeriod === 'monthly') viewData = hmAggregateMonths(hist);
+        var rsiLen = parseInt(document.getElementById('hmRsiLen').value) || 9;
+        var wmaLen = parseInt(document.getElementById('hmWmaLen').value) || 21;
+        var emaLen = parseInt(document.getElementById('hmEmaLen').value) || 3;
+        var midLine = 50;
+        var tfDays = window._hmTfDays || 1825;
+        var rsi = hmCalcRSI(viewData.map(function(d) { return d.nav; }), rsiLen);
+        var wma = hmCalcWMA(rsi, wmaLen);
+        var ema = hmCalcEMA(rsi, emaLen);
+        var now = new Date();
+        var cutoffDate = new Date(now.getTime() - tfDays * 86400000);
+        var slicedIdx = 0;
+        for (var si2 = 0; si2 < viewData.length; si2++) { var dt = hmParseDate(viewData[si2].date); if (!isNaN(dt.getTime()) && dt >= cutoffDate) { slicedIdx = si2; break; } }
+        var slicedLen = viewData.length - slicedIdx;
+        if (slicedLen < 2) { if (ov) ov.style.display = 'none'; alert('Insufficient data for this timeframe'); return; }
+        var navs = viewData.slice(slicedIdx).map(function(d) { return d.nav; });
+        var dates = viewData.slice(slicedIdx).map(function(d) { return d.date; });
+        var n = slicedLen;
+        rsi.length = 0; rsi.push.apply(rsi, rsi.slice(slicedIdx));
+        wma.length = 0; wma.push.apply(wma, wma.slice(slicedIdx));
+        ema.length = 0; ema.push.apply(ema, ema.slice(slicedIdx));
+        var canvas = document.getElementById('hmCanvas');
+        if (!canvas) { if (ov) ov.style.display = 'none'; return; }
+        var wrap = canvas.parentElement;
+        var rect = wrap.getBoundingClientRect();
+        var dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        var ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        var W = rect.width, H = rect.height;
+        ctx.clearRect(0, 0, W, H);
+        var pad = { t: 24, b: 20, l: 36, r: 8 };
+        var cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+        var minY = 0, maxY = 100;
+        var xStep = cW / Math.max(n - 1, 1);
+        var toX = function(i) { return pad.l + i * xStep; };
+        var toY = function(v) { return pad.t + cH - ((v - minY) / (maxY - minY)) * cH; };
+        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
+        for (var v = 0; v <= 100; v += 10) { ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke(); ctx.fillStyle = '#9ca3af'; ctx.font = '9px monospace'; ctx.textAlign = 'right'; ctx.fillText(v, pad.l - 4, toY(v) + 3); }
+        var drawHLine = function(val, color, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(pad.l, toY(val)); ctx.lineTo(W - pad.r, toY(val)); ctx.stroke(); ctx.restore(); };
+        drawHLine(20, '#16a34a', [4, 3]);
+        drawHLine(88, '#ef4444', [4, 3]);
+        drawHLine(50, '#000004', []);
+        var fillSeries = function(seriesA, seriesB, color) { ctx.fillStyle = color; for (var fi = 1; fi < n; fi++) { var a1 = seriesA[fi - 1] != null ? seriesA[fi - 1] : 50, a2 = seriesA[fi] != null ? seriesA[fi] : 50; var b1 = seriesB[fi - 1] != null ? seriesB[fi - 1] : midLine, b2 = seriesB[fi] != null ? seriesB[fi] : midLine; ctx.beginPath(); ctx.moveTo(toX(fi - 1), toY(a1)); ctx.lineTo(toX(fi), toY(a2)); ctx.lineTo(toX(fi), toY(b2)); ctx.lineTo(toX(fi - 1), toY(b1)); ctx.closePath(); ctx.fill(); } };
+        var midArr = new Array(n).fill(midLine);
+        fillSeries(rsi.map(function(v) { return v > midLine ? midLine : v; }), midArr, 'rgba(241,24,24,0.35)');
+        fillSeries(rsi.map(function(v) { return v < midLine ? midLine : v; }), midArr, 'rgba(47,231,63,0.35)');
+        var plotLine = function(data, color, width) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.beginPath(); var started = false; for (var pi = 0; pi < n; pi++) { if (data[pi] == null) continue; var x = toX(pi), y = toY(data[pi]); if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y); } ctx.stroke(); };
+        plotLine(rsi, '#000000', 1);
+        plotLine(wma, '#e11d48', 2);
+        plotLine(ema, '#16a34a', 1);
+        for (var ci = 1; ci < n; ci++) { var prev = rsi[ci - 1], cur = rsi[ci]; if (prev == null || cur == null) continue; if (prev >= 20 && cur < 20) { var lowest = cur, lowestIdx = ci; for (var lj = ci; lj < Math.min(ci + 5, n); lj++) { if (rsi[lj] != null && rsi[lj] < lowest) { lowest = rsi[lj]; lowestIdx = lj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(34,197,94,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(lowestIdx), toY(lowest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#16a34a'; ctx.fill(); ctx.restore(); } if (prev <= 88 && cur > 88) { var highest = cur, highestIdx = ci; for (var hj = ci; hj < Math.min(ci + 5, n); hj++) { if (rsi[hj] != null && rsi[hj] > highest) { highest = rsi[hj]; highestIdx = hj; } } ctx.save(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 7, 0, Math.PI * 2); ctx.fillStyle = 'rgba(239,68,68,0.25)'; ctx.fill(); ctx.beginPath(); ctx.arc(toX(highestIdx), toY(highest), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.restore(); } }
+        window._hmChart = { rsi: rsi, wma: wma, ema: ema, dates: dates, pad: pad, cW: cW, cH: cH, n: n, W: W, H: H, midLine: midLine, xStep: xStep, toX: toX, toY: toY, navs: navs };
+        window._hmCleanCanvas = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var lastI = n - 1;
+        var lastR = rsi[lastI] != null ? rsi[lastI] : 50;
+        var lastW = wma[lastI] != null ? wma[lastI].toFixed(1) : '\u2014';
+        var lastE = ema[lastI] != null ? ema[lastI].toFixed(1) : '\u2014';
+        ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(pad.l, 2, 180, 18);
+        ctx.font = 'bold 10px monospace'; ctx.fillStyle = '#000'; ctx.textAlign = 'left';
+        ctx.fillText('RSI: ' + lastR.toFixed(1) + '  WMA: ' + lastW + '  EMA: ' + lastE, pad.l + 4, 14);
+        var idxSel = document.getElementById('hmIndexSelect');
+        var idxName = idxSel?.options?.[idxSel.selectedIndex]?.textContent || key;
+        var periodLabel = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
+        document.getElementById('hmFundLabel').textContent = idxName + '  \u00B7  ' + periodLabel;
+        var delta = lastR - midLine;
+        var signal = lastR >= 88 ? 'OVERBOUGHT' : lastR <= 20 ? 'OVERSOLD' : delta > 15 ? 'Extended Up' : delta < -15 ? 'Extended Down' : lastR >= midLine ? 'Bullish' : 'Bearish';
+        var signalColor = lastR >= 88 ? '#ef4444' : lastR <= 20 ? '#16a34a' : delta > 15 ? '#f59e0b' : delta < -15 ? '#f59e0b' : lastR >= midLine ? '#16a34a' : '#ef4444';
+        document.getElementById('hmStatRsiVal').textContent = lastR.toFixed(1);
+        document.getElementById('hmStatWmaVal').textContent = lastW;
+        document.getElementById('hmStatEmaVal').textContent = lastE;
+        document.getElementById('hmStatDeltaVal').textContent = delta >= 0 ? '+' + delta.toFixed(1) : delta.toFixed(1);
+        document.getElementById('hmStatDeltaVal').style.color = delta >= 0 ? '#16a34a' : '#ef4444';
+        var lastNavVal = navs[navs.length - 1];
+        document.getElementById('hmStatNavVal').textContent = lastNavVal != null ? lastNavVal.toFixed(2) : '\u2014';
+        document.getElementById('hmStatSignalVal').textContent = signal;
+        document.getElementById('hmStatSignalVal').style.color = signalColor;
+        var rsiN = lastR, wmaN = parseFloat(lastW), emaN = parseFloat(lastE);
+        var aboveWma = !isNaN(wmaN) && rsiN > wmaN, aboveEma = !isNaN(emaN) && rsiN > emaN;
+        var belowWma = !isNaN(wmaN) && rsiN < wmaN, belowEma = !isNaN(emaN) && rsiN < emaN;
+        var actionBox = document.getElementById('hmStatAction'), actionVal = document.getElementById('hmStatActionVal');
+        var switchBox = document.getElementById('hmStatSwitch'), switchVal = document.getElementById('hmStatSwitchVal');
+        if (aboveWma && aboveEma) { actionBox.style.background = 'rgba(34,197,94,0.18)'; actionBox.style.borderColor = '#16a34a'; actionVal.textContent = 'BUY'; actionVal.style.color = '#16a34a'; switchBox.style.background = 'rgba(34,197,94,0.18)'; switchBox.style.borderColor = '#16a34a'; switchVal.textContent = 'Add Equity'; switchVal.style.color = '#16a34a'; }
+        else if (belowWma && belowEma) { actionBox.style.background = 'rgba(239,68,68,0.18)'; actionBox.style.borderColor = '#ef4444'; actionVal.textContent = 'SELL'; actionVal.style.color = '#ef4444'; switchBox.style.background = 'rgba(239,68,68,0.18)'; switchBox.style.borderColor = '#ef4444'; switchVal.textContent = 'Reduce Equity \u00B7 Increase Debt'; switchVal.style.color = '#ef4444'; }
+        else { actionBox.style.background = 'rgba(245,158,11,0.18)'; actionBox.style.borderColor = '#f59e0b'; actionVal.textContent = 'WATCH'; actionVal.style.color = '#f59e0b'; switchBox.style.background = 'rgba(245,158,11,0.18)'; switchBox.style.borderColor = '#f59e0b'; switchVal.textContent = 'Watch Daily for Signals'; switchVal.style.color = '#f59e0b'; }
+        if (ov) ov.style.display = 'none';
+        hmCalcDateRange();
+    } catch (e) { if (ov) ov.style.display = 'none'; alert('Error: ' + e.message); }
+}
+function openHilegaTab() {
+  hmPopulateIndexDropdown();
+  var savedTf = localStorage.getItem('hm_tf_days');
+  var savedPeriod = localStorage.getItem('hm_period');
+  window._hmTfDays = savedTf ? parseInt(savedTf) : 365;
+  window._hmPeriod = savedPeriod || 'weekly';
+  document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); });
+  var tfBtns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
+  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf(String(window._hmTfDays)) !== -1) b.classList.add('active'); });
+  var perBtns = document.querySelectorAll('.hm-period-btn');
+  perBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + window._hmPeriod + "'") !== -1) b.classList.add('active'); });
+  var sel = document.getElementById('hmIndexSelect');
+  if (sel && !sel.value && sel.options.length > 0) sel.selectedIndex = 0;
+  console.log('[Hilega] dailyMap keys:', window._ldScannerData ? Object.keys(window._ldScannerData.dailyMap || {}).slice(0, 5) : 'no scanner data');
+  console.log('[Hilega] dropdown options:', sel ? sel.options.length : 0, 'selected:', sel ? sel.value : 'none');
+  requestAnimationFrame(function() { drawHilegaMilega(); });
+}
 </script>
 
 </body>
