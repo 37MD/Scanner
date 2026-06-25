@@ -814,6 +814,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:600px){
   #tab-hilega .hm-input-row { flex-direction:column; }
   #tab-hilega .hm-input-group { min-width:100% !important; }
+  #tab-hilega #hmCatSelect { flex:1 1 100% !important; }
   #tab-hilega #hmDateRange { flex-wrap:wrap; }
   #tab-hilega #hmDateRange input[type="date"] { flex:1 1 100%; }
   #tab-hilega #hmRangeResult { flex-wrap:wrap; }
@@ -6633,8 +6634,13 @@ win.rsToggleWL=rsToggleWL;
       </div>
     </div>
     <div style="flex-grow:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;gap:6px;align-items:center;">
-        <select id="hmIndexSelect" onchange="hmOnIndexChange()" style="flex:1;padding:6px 8px;font-size:12px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;"></select>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <select id="hmCatSelect" onchange="hmOnCatChange()" style="flex:0 0 180px;padding:6px 8px;font-size:12px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;">
+          <option value="">Select Category…</option>
+        </select>
+        <select id="hmIndexSelect" onchange="hmOnIndexChange()" style="flex:1;padding:6px 8px;font-size:12px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;">
+          <option value="">Select Index…</option>
+        </select>
       </div>
       <div id="hmDateRange" style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap;">
         <span style="font-size:11px;color:#888;white-space:nowrap;">From</span>
@@ -8734,25 +8740,96 @@ window._hmHistCode = null;
 window._hmTfDays = 99999;
 window._hmPeriod = 'daily';
 function hmPopulateIndexDropdown() {
-  var sel = document.getElementById('hmIndexSelect');
-  if (!sel) return;
+  var catSel = document.getElementById('hmCatSelect');
+  var idxSel = document.getElementById('hmIndexSelect');
+  if (!catSel || !idxSel) return;
   var sd = window._ldScannerData;
   if (!sd || !sd.indexList) return;
   var dm = sd.dailyMap || {};
-  var prevVal = sel.value;
-  sel.innerHTML = '';
+  var prevCat = catSel.value;
+  var prevIdx = idxSel.value;
+  // Build category→indices map
+  var groups = {};
   sd.indexList.forEach(function(idx) {
     var d = dm[idx.key] || dm[idx.name.toLowerCase()];
     if (!d || d.length < 10) return;
+    var cat = idx.nseKey || 'Other';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(idx);
+  });
+  // Populate category dropdown
+  catSel.innerHTML = '<option value="">Select Category…</option>';
+  var catOrder = ['Broad Market','Broad Market - Size','Sectoral','Sectoral - Financial','Sectoral - Healthcare','Thematic','Strategy','Dividend','Fixed Income','Real Estate','Volatility'];
+  var defaultCat = 'Broad Market';
+  catOrder.forEach(function(cat) {
+    if (!groups[cat]) return;
+    var opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat + ' (' + groups[cat].length + ')';
+    if (cat === prevCat || (!prevCat && cat === defaultCat)) opt.selected = true;
+    catSel.appendChild(opt);
+    delete groups[cat];
+  });
+  Object.keys(groups).sort().forEach(function(cat) {
+    var opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat + ' (' + groups[cat].length + ')';
+    if (cat === prevCat || (!prevCat && cat === defaultCat)) opt.selected = true;
+    catSel.appendChild(opt);
+  });
+  // Populate index dropdown based on selected category
+  hmUpdateIdxDropdown();
+  var saved = localStorage.getItem('hm_index_key');
+  if (saved && idxSel.querySelector('option[value="' + saved + '"]')) idxSel.value = saved;
+  else if (prevIdx && idxSel.querySelector('option[value="' + prevIdx + '"]')) idxSel.value = prevIdx;
+  else {
+    // Default: select Nifty 50
+    var n50 = idxSel.querySelector('option[value="nifty50"]');
+    if (n50) idxSel.value = 'nifty50';
+  }
+}
+function hmUpdateIdxDropdown() {
+  var catSel = document.getElementById('hmCatSelect');
+  var idxSel = document.getElementById('hmIndexSelect');
+  if (!catSel || !idxSel) return;
+  var sd = window._ldScannerData;
+  if (!sd || !sd.indexList) return;
+  var dm = sd.dailyMap || {};
+  var cat = catSel.value;
+  var prevVal = idxSel.value;
+  idxSel.innerHTML = '<option value="">' + (cat ? 'Select ' + cat + ' Index…' : 'Select Index…') + '</option>';
+  if (!cat) return;
+  var matched = [];
+  sd.indexList.forEach(function(idx) {
+    if ((idx.nseKey || 'Other') !== cat) return;
+    var d = dm[idx.key] || dm[idx.name.toLowerCase()];
+    if (!d || d.length < 10) return;
+    matched.push(idx);
+  });
+  matched.sort(function(a,b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
+  matched.forEach(function(idx) {
     var opt = document.createElement('option');
     opt.value = idx.key;
     opt.textContent = idx.name;
     opt.dataset.name = idx.name;
-    sel.appendChild(opt);
+    if (idx.key === prevVal) opt.selected = true;
+    idxSel.appendChild(opt);
   });
-  var saved = localStorage.getItem('hm_index_key');
-  if (saved && sel.querySelector('option[value="' + saved + '"]')) sel.value = saved;
-  else if (prevVal && sel.querySelector('option[value="' + prevVal + '"]')) sel.value = prevVal;
+}
+function hmOnCatChange() {
+  hmUpdateIdxDropdown();
+  // Reset hist so draw picks up new index
+  window._hmHist = null;
+  window._hmHistCode = null;
+  var idxSel = document.getElementById('hmIndexSelect');
+  if (idxSel && idxSel.value) {
+    hmOnIndexChange();
+  } else {
+    // No index selected — redraw canvas with message or clear
+    var canvas = document.getElementById('hmCanvas');
+    if (canvas) { var ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+    hmClearStatBoxes('Select an index');
+  }
 }
 function hmOnIndexChange() { var sel = document.getElementById('hmIndexSelect'); localStorage.setItem('hm_index_key', sel.value); window._hmHist = null; window._hmHistCode = null; drawHilegaMilega(); }
 function hmSetDefaultDates() {
@@ -8795,14 +8872,14 @@ function setHmTf(btn, days) {
     if (period === 'weekly' && days < 90) days = 90;
     if (period === 'monthly' && days < 365) days = 365;
     window._hmTfDays = days;
-    localStorage.setItem('hm_tf_days', days);
+    localStorage.setItem('hm_tf_days_v2', days);
     document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
     btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
     drawHilegaMilega();
 }
 function setHmPeriod(btn, period) {
     window._hmPeriod = period;
-    localStorage.setItem('hm_period', period);
+    localStorage.setItem('hm_period_v2', period);
     document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
     btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
     var curTf = window._hmTfDays || 99999;
@@ -9036,20 +9113,36 @@ async function drawHilegaMilega() {
 }
 function openHilegaTab() {
   hmPopulateIndexDropdown();
-  var savedTf = localStorage.getItem('hm_tf_days');
-  var savedPeriod = localStorage.getItem('hm_period');
-  window._hmTfDays = savedTf ? parseInt(savedTf) : 99999;
-  window._hmPeriod = savedPeriod || 'daily';
+  window._hmTfDays = parseInt(localStorage.getItem('hm_tf_days_v2')) || 365;
+  window._hmPeriod = localStorage.getItem('hm_period_v2') || 'weekly';
   document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
   document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
   var tfBtns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
-  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf(String(window._hmTfDays)) !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
+  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf('setHmTf(this,' + window._hmTfDays + ')') !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
   var perBtns = document.querySelectorAll('.hm-period-btn');
   perBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + window._hmPeriod + "'") !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
-  var sel = document.getElementById('hmIndexSelect');
-  if (sel && !sel.value && sel.options.length > 0) sel.selectedIndex = 0;
-  console.log('[Hilega] dailyMap keys:', window._ldScannerData ? Object.keys(window._ldScannerData.dailyMap || {}).slice(0, 5) : 'no scanner data');
-  console.log('[Hilega] dropdown options:', sel ? sel.options.length : 0, 'selected:', sel ? sel.value : 'none');
+  var savedKey = localStorage.getItem('hm_index_key');
+  if (savedKey) {
+    var idxSel = document.getElementById('hmIndexSelect');
+    var opt = idxSel && idxSel.querySelector('option[value="' + savedKey + '"]');
+    if (opt) {
+      idxSel.value = savedKey;
+      // Also set the category dropdown to match
+      var sd = window._ldScannerData;
+      if (sd && sd.indexList) {
+        for (var hi = 0; hi < sd.indexList.length; hi++) {
+          if (sd.indexList[hi].key === savedKey) {
+            var catSel = document.getElementById('hmCatSelect');
+            if (catSel) catSel.value = sd.indexList[hi].nseKey || '';
+            break;
+          }
+        }
+      }
+      // Rebuild index dropdown for the selected category
+      hmUpdateIdxDropdown();
+      if (idxSel) idxSel.value = savedKey;
+    }
+  }
   requestAnimationFrame(function() { drawHilegaMilega(); });
 }
 </script>
