@@ -1029,7 +1029,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!--  4. LIE DETECTOR V7 (REACT SCANNER)       -->
 <!-- ════════════════════════════════════════════ -->
 
-<!-- Inlined: NSE historical daily closes (147 indices, ~92 trading days each) -->
+<!-- 4.1 Embedded Historical Data (147 indices) -->
 <script>
 const EMBEDDED_HISTORICAL = {
   "indiavix":[14.77,16.01,15.08,14.81,14.49,15.24,15.45,15.1,13.63,12.94,12.59,12.41,11.8,12.27,11.98,12.27,11.91,12.27,12.08,12.15,11.94,11.63,11.67,11.52,11.65,11.43,10.95,11.9,11.84,11.73,12.3,12.64,12.68,13.08,13.22,12.85,13.17,13.29,13.11,12.8,12.3,12.57,12.61,13.11,12.52,11.9,12.3,12.01,11.97,11.6,11.13,11.14,11.38,11.44,11.26,11.12,11.25,11.11,11.16,11.08,10.84,11.23,11.13,11.29,11.55,11.24,11.4,10.78,10.89,10.8,11.54,11.7,11.88,11.84,11.53,11.46,11.01,10.94,10.94,10.68,11.32,11.71,11.6,11.79,11.49,11.65,10.24,10.46,10.51,10.14,10.41,10.28,11.28,11.19,10.57,11.1,11.33,11.14,11.4,11.52,12.0,12.13,12.24,12.14,11.96,11.75,11.73,11.7,12.08,12.4,12.23,11.8,12.06,11.37,10.96,10.82,10.68,10.87,10.78,11.35,11.69,11.83,11.32,10.9,10.84,11.13,10.82,10.66,10.9,11.19,11.59,12.82,11.45,11.79,11.66,10.94,10.3,11.4,11.27,10.99,10.62,10.62,11.07,10.7,10.97,10.9,10.82,10.91,11.31,11.73,10.91,11.49,11.83,12.05,11.08,10.88,11.11,11.19,11.04,10.98,11.11,11.19,11.14,11.65,11.83,12.15,12.23,11.87,11.32,11.33,12.18,12.71,12.69,12.38,12.99,13.46,13.74,12.67,12.47,12.76,12.71,12.07,12.32,13.13,13.9,13.87,14.45,13.76,13.71,14.68,15.56,15.14,14.5,14.68,14.58,14.1,13.33,12.63,13.46,13.26,12.97,12.77,13.1,13.79,13.57,15.08,14.07,13.88,14.85,14.38,13.87,15.68,16.1,16.05,14.46,14.7,15.62,15.79,15.51,15.83,15.45,16.06,15.81,15.44,15.23,15.22,16.02,16.07,15.93,15.2,14.97,15.6,15.73,16.33,15.57,15.24,14.92,14.38,14.3,13.61,14.0,13.64,14.43,13.62,13.69,13.9,14.11,13.47,12.51,12.22,12.82,12.7,12.83,12.08,11.65,11.37,11.22,11.34,11.61,11.36,11.11,11.53,12.47,12.62,13.04,13.46,12.7,10.2,10.28,10.73,10.93,12.24,12.87,13.45,14.62,16.6,17.01,17.08,18.2,18.47,20.6,20.2,20.27,20.0,19.8,21.81,21.47,21.38,21.71,23.19,24.2,24.18,24.18,24.6,20.94,26.75,18.89,16.8,16.88,16.4,14.77,14.39,13.49,12.82,12.97,13.71,13.35,13.18,14.06,14.31,14.05,14.15,13.8,13.83,13.64,13.21,12.86,12.7,13.6,14.28,14.43,14.0,13.73,14.19,14.22,14.51,14.83,15.44,12.75,11.76,12.62,12.25,12.95,12.88,13.25,12.93,14.32,20.37,18.74,16.17,16.6,15.34,15.87,16.17,15.44,14.4,14.32,13.82,13.33,13.0,13.55,13.8,13.63,13.95,13.79,13.39,14.06,13.84,14.38,14.21,15.22,14.24,13.36,13.63,13.18,12.55,12.46,12.59,13.37,12.47,12.79,13.79,13.39,12.74,12.0,11.96,12.79,11.99,13.17,14.13,15.08,14.59,14.12,13.5,13.22,13.0,13.0,13.05,13.39,13.04,13.76,14.4,14.62,13.97,14.63,14.29,14.52,15.51,15.55,15.9,16.69,16.12,14.87,14.94,14.47,14.27,14.59,15.44,14.78,15.17,15.66,15.99,16.1,15.3,15.31,14.63,15.21,14.43,14.7,14.37,14.45,14.53,14.14,14.11,13.78,13.27,13.19,13.05,14.02,14.49,14.37,14.51,15.07,13.52,13.18,14.04,13.24,13.97,14.45,14.51,13.74,13.54,15.65,14.66,14.47,14.66,14.92,16.0,15.47,15.26,15.47,15.75,16.42,17.06,16.77,16.7,16.75,18.13,18.2,18.64,17.39,16.25,14.35,14.02,14.08,14.18,13.69,14.45,14.87,14.9,14.96,15.02,15.72,15.67,15.42,14.68,14.53,14.44,13.72,13.31,13.91,13.76,13.83,13.67,13.73,13.47,13.99,14.07,13.69,13.28,13.42,13.21,13.3,12.6,12.58,13.7,13.64,13.47,13.3,12.72,13.78,13.72,13.6,13.76,22.79,20.44,21.43,20.11,16.13,15.87,15.47,15.52,15.23,15.96,16.25,17.16,16.94,17.37,18.22,18.26,18.34,19.0,19.06,21.01,21.63,18.39,18.2,17.23,16.89,16.55,17.36,17.39,17.55,17.26,17.28,18.02,18.54,18.02,16.42,16.08,17.16,16.56,15.75,15.08,14.63,14.69,14.02,13.67,14.02,15.08,14.84,14.4,14.28,14.26,13.67,14.05,13.64,12.96,12.59,12.39,12.79,12.53,12.45,12.39,12.32,12.56,12.2,11.94,11.67,11.82,11.98,11.48,11.24,11.24,11.39,11.2,10.75,10.52,10.72,11.28,12.06,11.53,11.21,11.54,11.98,11.97,11.71,11.96,11.69,12.03,12.22,12.23,12.14,12.36,12.34,11.79,11.79,11.37,11.73,11.76,12.19,12.18,11.75,11.29,11.4,10.93,10.85,10.78,10.84,10.69,10.54,10.36,10.12,10.4,10.27,10.25,9.89,9.97,10.56,10.63,10.52,10.78,11.43,11.37,11.07,10.29,10.06,10.19,10.05,10.31,10.12,10.1,11.01,11.16,10.53,10.87,11.63,11.36,11.3,11.73,11.59,11.86,11.95,11.97,12.07,12.15,12.67,12.65,12.41,12.56,12.3,12.49,12.11,12.16,11.94,11.79,12.1,11.97,12.14,13.63,13.24,12.24,11.97,11.79,11.62,11.63,11.23,11.21,10.82,10.32,11.13,10.95,10.91,10.4,10.11,10.25,10.06,9.84,9.71,9.52,9.68,9.38,9.19,9.15,9.72,9.68,9.48,9.19,9.45,10.02,10.02,9.95,10.6,10.93,11.37,11.2,11.32,11.37,11.83,12.73,13.78,13.35,14.19,14.45,13.53,13.37,13.63,13.87,12.9,12.25,12.17,11.94,12.19,11.67,11.55,11.73,13.29,13.33,12.67,12.22,13.46,14.36,14.17,14.15,13.49,13.06,13.7,17.13,21.14,17.86,19.88,23.36,18.91,21.06,21.52,22.65,21.6,19.79,18.72,22.8,22.81,26.73,24.74,24.64,26.8,27.89,25.01,25.52,25.47,24.7,19.7,20.43,18.85,20.5,18.67,18.09,17.21,18.79,17.53,18.3,18.59,19.71,18.38,18.05,17.44,18.46,18.3,17.91,16.68,16.62,16.84,18.55,19.28,19.43,18.61,18.79,19.63,18.68,18.44,17.82,17.91,16.7,16.13,14.98,16.19,16.54,15.36,16.28,15.89,15.79,17.03,15.58,15.63,15.61,14.72,14.35,13.36,13.19,12.67,12.97],
@@ -1383,6 +1383,7 @@ const EMBEDDED_NSE_DATA = {
 </script>
 
 <script>
+// ── 4.2 React App Setup & Utilities ──
 const {
   useState,
   useRef,
@@ -1751,6 +1752,7 @@ var GEMINI_MODEL_CASCADE = [{
   key: 2,
   model: 'gemini-3.1-pro'
 }];
+// ── 4.4 Scanner React Component ──
 const Scanner = () => {
   const [phase, setPhase] = useState('init');
   const [progress, setProgress] = useState({
@@ -3825,6 +3827,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     }
   }, auditModal.result))));
 };
+// ── 4.5 React Render ──
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(Scanner, null));
 </script>
 
@@ -4452,6 +4455,7 @@ function renderBpRecommendations() {
   }
 }
 
+// ── 6.2 Breadth Scanner ──
 function initBreadthScanner() {
   updateBpPrices();
   fetchBpMacroLive();
@@ -4528,7 +4532,8 @@ function classifyIndex(n)  { var s=n.toLowerCase(); if (/g[- ]?sec|bond|aaa|t[- 
 function genTradingDays(n) { var a=[],d=new Date(); while(a.length<n){if(d.getDay()!==0&&d.getDay()!==6)a.push(new Date(d));d.setDate(d.getDate()-1);} return a; }
   // Wilder RSI: first value = SMA of first N gains/losses, then smoothed
   // ── 7.2 RSI Calculation (Wilder) ──
-  function calcRSI(closes, period) {
+// ── 4.3 RSI Calculation & Signal Analysis ──
+function calcRSI(closes, period) {
     var v = closes.filter(function(x) { return x != null && !isNaN(x); });
     if (v.length < period + 1) return [];
     var rsis = []; var gains = 0, losses = 0;
@@ -5041,6 +5046,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
 <!-- ════════════════════════════════════════════════════════════════ -->
 
 <!-- 8.1 RS HTML Panel -->
+<!-- ── 3.5 RS Scanner Panel ── -->
 <div id="tab-rs" class="tab-panel">
 <div class="rs-wrap">
 
@@ -5589,6 +5595,7 @@ function appendTodayIfMissing(dailyMap, indexList, priceMap) {
 (function(win){
 'use strict';
 
+// ── 8.4 RS Helpers & Close Data ──
 // Strip non-alphanumeric for key matching
 function rsNormalize(n) { return (n||'').replace(/[^a-z0-9]/gi,'').toLowerCase(); }
 // Genuine N-trading-day-ago close from the embedded historical dataset
@@ -5618,7 +5625,7 @@ function rsRealReturn(name, tradingDaysAgo) {
   return (cur / old - 1) * 100;
 }
 
-// ── Constants (same sources as core scanner) ──
+// ── 8.5 RS Config, State & DOM Setup ──
 var CORS_LIST_RS = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 var NSE_URL= 'https://www.nseindia.com/api/allIndices';
 async function fetchProxyRS(url, opts) {
@@ -5812,6 +5819,7 @@ function filterLeaders(rows){
   return rows;
 }
 
+// ── 8.6 RS Gemini AMC Check ──
 // ════════════════════════════════════════════
 // STEP 4: AMC Check — Gemini, cached monthly
 // Cache key: ld_rs_amc_cache  → { month:"2025-06", data:{...} }
@@ -5924,6 +5932,7 @@ async function checkAMC(rows){
   }
 }
 
+// ── 8.7 RS Rendering ──
 // ════════════════════════════════════════════
 // STEP 5: Render table
 // ════════════════════════════════════════════
@@ -6422,6 +6431,7 @@ win.rsToggleWL=rsToggleWL;
 <!--  Gold: Nippon Gold ETF (GOLDBEES)                             -->
 <!-- ════════════════════════════════════════════════════════════════ -->
 
+<!-- ── 3.6 BA Trendmap Panel ── -->
 <!-- 9.1 BA HTML Panel -->
 <div id="tab-ba" class="tab-panel">
 <div class="ba-wrap">
@@ -6495,7 +6505,7 @@ win.rsToggleWL=rsToggleWL;
 </div><!-- .ba-wrap -->
 </div><!-- #tab-ba -->
 
-<!-- ── Paper Trade Tab Panel ── -->
+<!-- ── 3.7 Paper Trade Tab Panel ── -->
 <div id="tab-pt" class="tab-panel">
 <div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
@@ -6546,7 +6556,7 @@ win.rsToggleWL=rsToggleWL;
 </div>
 </div><!-- #tab-pt -->
 
-<!-- ── RSI Buy/Sell Signal Tab (v3 — progressive) ── -->
+<!-- ── 3.8 RSI Buy/Sell Signal Tab (v3 — progressive) ── -->
 <div id="tab-rsi" class="tab-panel">
 <div id="rsi-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;padding:10px;background:#fff;color:#111;min-height:100vh">
 
@@ -6614,12 +6624,12 @@ win.rsToggleWL=rsToggleWL;
 </div>
 </div><!-- #tab-rsi -->
 
-<!-- ── 3.5 MF Scan Panel (LD Scanner) ── -->
+<!-- ── 3.9 MF Scan Panel (LD Scanner) ── -->
 <div id="tab-mfscan" class="tab-panel">
   <div id="mfscan-root" style="min-height:100vh;"></div>
 </div>
 
-<!-- ── 3.6 Hilega Panel (NSE Index RSI·WMA·EMA) ── -->
+<!-- ── 3.10 Hilega Panel (NSE Index RSI·WMA·EMA) ── -->
 <div id="tab-hilega" class="tab-panel">
   <div id="ov" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
     <div id="ovTxt" style="background:#fff;padding:16px 28px;border-radius:8px;font-size:14px;font-weight:700;color:#000;box-shadow:0 4px 24px rgba(0,0,0,0.18);">LOADING…</div>
@@ -6834,7 +6844,7 @@ win.rsToggleWL=rsToggleWL;
 .ba-period-block:first-child .ba-period-head .ba-period-label{color:var(--green);}
 </style>
 
-<!-- 9.3 BA Grid CSS -->
+<!-- 9.3 BA Grid & Trend CSS -->
 <style>
 .ba-grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .ba-grid-hdr{display:flex;min-width:580px;background:var(--surface2);border:1px solid var(--border2);border-bottom:none;}
@@ -6876,11 +6886,12 @@ win.rsToggleWL=rsToggleWL;
 .ba-data-src{font-family:var(--mono);font-size:9px;color:#000000;margin-top:6px;padding:4px 6px;border-top:1px solid var(--border);}
 </style>
 
-<!-- 9.3 BA JavaScript -->
+<!-- 9.4 BA JavaScript -->
 <script>
 (function(win){
 'use strict';
 
+// ── 9.5 BA Config, CORS Proxy & Helpers ──
 // ── Shared CORS proxy (same as TTF and RS tabs) ──
 var BA_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
 async function fetchProxyBA(url, opts) {
@@ -6934,6 +6945,7 @@ function pad2(n){return String(n).padStart(2,'0');}
 function fmtDDMMYYYY(d){return pad2(d.getDate())+pad2(d.getMonth()+1)+d.getFullYear();}
 function mName(m){return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];}
 
+// ── 9.6 BA Data Pipeline (Month-Ends, Periods, CSV Fetch) ──
 // BA uses 6 half-year periods; need 7 month-end boundary closes
 // ── Build list of month-end dates we need (prev month of period start + period end) ──
 // For 6 half-year periods, we need 7 month-end closes
@@ -7141,6 +7153,7 @@ function fmtPct(v){
 }
 
 // ── Render ET Wealth style grid ──
+// ── 9.7 BA Rendering ──
 function renderBAGrid(periods, data, debtLabel){
   var N=periods.length;
   var MEDALS=['🥇','🥈','🥉','4','5','6','7'];
@@ -8326,7 +8339,7 @@ win.deepLoadCache = deepLoadCache;
 
 <!-- ════════════════════════════════════════════ -->
 <!-- ================================================================
-   SECTION 10: MF SCAN (LD Scanner React Component)
+   SECTION 12: MF SCAN (LD Scanner React Component)
    Scans NSE indices with RSI/regime/TSI
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
@@ -8731,7 +8744,7 @@ window._mfMounted = false;
 
 <!-- ════════════════════════════════════════════ -->
 <!-- ================================================================
-   SECTION 11: HILEGA-MILEGA — NSE Index RSI·WMA·EMA Indicator
+   SECTION 13: HILEGA-MILEGA — NSE Index RSI·WMA·EMA Indicator
    RSI(9) vs WMA(21) vs EMA(3) with volume overlay
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
