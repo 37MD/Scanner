@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- ════════════════════════════════════════════ -->
@@ -812,22 +812,30 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 /* ── Hilega Tab Mobile ── */
 @media(max-width:600px){
-  #tab-hilega .hm-input-row { flex-direction:column; }
-  #tab-hilega .hm-input-group { min-width:100% !important; }
-  #tab-hilega #hmCatSelect { flex:1 1 100% !important; }
-  #tab-hilega #hmDateRange { flex-wrap:wrap !important; }
-  #tab-hilega #hmDateRange input[type="date"] { flex:1 1 100%; }
-  #tab-hilega #hmRangeResult { flex-wrap:wrap; }
-  #tab-hilega #hmInfoRow { grid-template-columns:repeat(3,1fr) !important; }
-  #tab-hilega #hmStatAction { grid-column:span 3 !important; }
-  #tab-hilega #hmStatSwitch { grid-column:span 3 !important; }
-  #tab-hilega #hmBtnRow { flex-wrap:wrap; justify-content:flex-start; gap:2px; }
-  #tab-hilega #hmBtnRow button { font-size:10px !important; padding:3px 5px !important; }
-}
-@media(max-width:480px){
-  #tab-hilega #hmInfoRow { grid-template-columns:repeat(2,1fr) !important; }
+  #tab-hilega #hmCatSelect { flex:0 1 42% !important; min-width:0; }
+  #tab-hilega #hmIndexSelect { flex:1 1 54% !important; min-width:0; }
+  #tab-hilega #hmDateRange { flex-wrap:nowrap !important; gap:2px !important; }
+  #tab-hilega #hmDateRange span { font-size:9px !important; }
+  #tab-hilega #hmDateRange input[type="date"] { flex:1 1 0 !important; min-width:0; font-size:11px; padding:2px 2px; }
+  #tab-hilega #hmRangeResult { flex-wrap:nowrap; font-size:9px !important; gap:2px !important; }
+  #tab-hilega #hmRangeResult span { font-size:9px !important; }
+  #tab-hilega #hmRangeResult strong { font-size:9px !important; }
+  #tab-hilega .hm-input-row { flex-wrap:nowrap !important; gap:4px !important; }
+  #tab-hilega .hm-input-group { min-width:0 !important; flex:1 1 0 !important; }
+  #tab-hilega .hm-input-group label { font-size:9px !important; }
+  #tab-hilega .hm-input-group input[type="number"] { font-size:11px !important; padding:4px 2px !important; }
+  #tab-hilega .hm-input-group:last-child { flex:0 0 auto !important; }
+  #tab-hilega .hm-input-group:last-child button { padding:5px 10px !important; font-size:11px !important; }
+  #tab-hilega #hmInfoRow { grid-template-columns:repeat(5,1fr) !important; gap:3px !important; }
+  #tab-hilega #hmInfoRow > div { padding:4px 2px !important; }
+  #tab-hilega #hmInfoRow > div > div:first-child { font-size:8px !important; }
+  #tab-hilega #hmInfoRow > div > div:last-child { font-size:11px !important; }
   #tab-hilega #hmStatAction { grid-column:span 2 !important; }
   #tab-hilega #hmStatSwitch { grid-column:span 2 !important; }
+  #tab-hilega #hmStatAction > div:last-child,
+  #tab-hilega #hmStatSwitch > div:last-child { font-size:10px !important; }
+  #tab-hilega #hmBtnRow { flex-wrap:nowrap; justify-content:flex-start; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #tab-hilega #hmBtnRow button { font-size:10px !important; padding:3px 5px !important; white-space:nowrap !important; }
 }
 /* ── Portrait-only lock for mobile phones ── */
 @media screen and (orientation: landscape) and (max-height: 500px) {
