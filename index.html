@@ -812,8 +812,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 /* ── Hilega Tab Mobile ── */
 @media(max-width:600px){
-  #tab-hilega #hmCatSelect { flex:0 1 42% !important; min-width:0; }
-  #tab-hilega #hmIndexSelect { flex:1 1 54% !important; min-width:0; }
+  #tab-hilega #hmCatSelect { flex:0 1 17% !important; min-width:0; font-size:10px !important; padding:4px 2px !important; }
+  #tab-hilega #hmIndexSelect { flex:0 1 40% !important; min-width:0; font-size:10px !important; padding:4px 2px !important; }
   #tab-hilega #hmDateRange { flex-wrap:nowrap !important; gap:2px !important; }
   #tab-hilega #hmDateRange span { font-size:9px !important; }
   #tab-hilega #hmDateRange input[type="date"] { flex:1 1 0 !important; min-width:0; font-size:11px; padding:2px 2px; }
@@ -821,19 +821,21 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-hilega #hmRangeResult span { font-size:9px !important; }
   #tab-hilega #hmRangeResult strong { font-size:9px !important; }
   #tab-hilega .hm-input-row { flex-wrap:nowrap !important; gap:4px !important; }
-  #tab-hilega .hm-input-group { min-width:0 !important; flex:1 1 0 !important; }
-  #tab-hilega .hm-input-group label { font-size:9px !important; }
-  #tab-hilega .hm-input-group input[type="number"] { font-size:11px !important; padding:4px 2px !important; }
-  #tab-hilega .hm-input-group:last-child { flex:0 0 auto !important; }
-  #tab-hilega .hm-input-group:last-child button { padding:5px 10px !important; font-size:11px !important; }
-  #tab-hilega #hmInfoRow { grid-template-columns:repeat(5,1fr) !important; gap:3px !important; }
-  #tab-hilega #hmInfoRow > div { padding:4px 2px !important; }
-  #tab-hilega #hmInfoRow > div > div:first-child { font-size:8px !important; }
-  #tab-hilega #hmInfoRow > div > div:last-child { font-size:11px !important; }
-  #tab-hilega #hmStatAction { grid-column:span 2 !important; }
-  #tab-hilega #hmStatSwitch { grid-column:span 2 !important; }
+  #tab-hilega .hm-input-group { min-width:0 !important; flex:0 0 22% !important; }
+  #tab-hilega .hm-input-group label { font-size:8px !important; }
+  #tab-hilega .hm-input-group input[type="number"] { font-size:10px !important; padding:3px 2px !important; }
+  #tab-hilega .hm-input-group:last-child { flex:0 0 10% !important; }
+  #tab-hilega .hm-input-group:last-child button { padding:3px 4px !important; font-size:9px !important; }
+  #tab-hilega #hmInfoRow { grid-template-columns:repeat(5,1fr) !important; gap:2px !important; }
+  #tab-hilega #hmInfoRow > div { padding:2px 1px !important; max-width:60px !important; margin:0 auto; }
+  #tab-hilega #hmInfoRow > div > div:first-child { font-size:7px !important; }
+  #tab-hilega #hmInfoRow > div > div:last-child { font-size:9px !important; }
+  #tab-hilega #hmInfoRow > div:nth-child(6) { max-width:30px !important; }
+  #tab-hilega #hmInfoRow > div:nth-child(6) > div:last-child { font-size:7px !important; }
+  #tab-hilega #hmStatAction { grid-column:span 2 !important; max-width:48px !important; }
+  #tab-hilega #hmStatSwitch { grid-column:span 2 !important; max-width:48px !important; }
   #tab-hilega #hmStatAction > div:last-child,
-  #tab-hilega #hmStatSwitch > div:last-child { font-size:10px !important; }
+  #tab-hilega #hmStatSwitch > div:last-child { font-size:7px !important; }
   #tab-hilega #hmBtnRow { flex-wrap:nowrap; justify-content:flex-start; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #tab-hilega #hmBtnRow button { font-size:10px !important; padding:3px 5px !important; white-space:nowrap !important; }
 }
@@ -9030,9 +9032,6 @@ function hmCalcDateRange() {
     res.style.display = 'flex';
 }
 function setHmTf(btn, days) {
-    var period = window._hmPeriod || 'daily';
-    if (period === 'weekly' && days < 90) days = 90;
-    if (period === 'monthly' && days < 365) days = 365;
     window._hmTfDays = days;
     localStorage.setItem('hm_tf_days_v2', days);
     document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
