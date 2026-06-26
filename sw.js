@@ -1,5 +1,5 @@
 // Lie Detector Scanner — Service Worker
-const CACHE_NAME = 'ld-scanner-cache-v4';
+const CACHE_NAME = 'ld-scanner-cache-v5';
 
 // Install: pre-cache shell assets
 self.addEventListener('install', event => {
