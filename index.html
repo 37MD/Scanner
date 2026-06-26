@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- ════════════════════════════════════════════ -->
@@ -940,15 +940,15 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ── 3.1 Tab Navigation ── -->
 <div class="app-tabs">
   <div class="app-tabs-btns">
-    <button class="tab-btn active" onclick="switchTab('scanner')">⚡ Nifty Index Scanner</button>
     <button class="tab-btn" onclick="switchTab('breadth')">📊 Market Breadth</button>
+    <button class="tab-btn active" onclick="switchTab('scanner')">⚡ Nifty Index Scanner</button>
+    <button class="tab-btn" onclick="switchTab('mfscan')">📡 MF Scan</button>
     <button class="tab-btn" onclick="switchTab('ttf')">🔍 TTF RSI Weekly</button>
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
     <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
+    <button class="tab-btn" onclick="switchTab('hilega')">📈 Hilega</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
     <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
-    <button class="tab-btn" onclick="switchTab('mfscan')">📡 MF Scan</button>
-    <button class="tab-btn" onclick="switchTab('hilega')">📈 Hilega</button>
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
@@ -6714,8 +6714,8 @@ win.rsToggleWL=rsToggleWL;
   <div id="ov" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
     <div id="ovTxt" style="background:#fff;padding:16px 28px;border-radius:8px;font-size:14px;font-weight:700;color:#000;box-shadow:0 4px 24px rgba(0,0,0,0.18);">LOADING…</div>
   </div>
-  <div style="display:flex;flex-direction:column;height:100vh;background:#fff;">
-    <div style="width:100%;height:50vh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
+  <div style="display:flex;flex-direction:column;height:100vh;height:100dvh;background:#fff;">
+    <div id="hmCanvasWrap" style="width:100%;height:50vh;height:50dvh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
       <canvas id="hmCanvas"></canvas>
       <div id="hmHud" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:nowrap;top:2px;"></div>
       <div id="hmHudRight" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:nowrap;top:2px;right:2px;text-align:right;"></div>
@@ -6757,6 +6757,9 @@ win.rsToggleWL=rsToggleWL;
           <label style="font-size:11px;color:#888;text-transform:uppercase;">EMA Length</label>
           <input type="number" id="hmEmaLen" value="3" min="2" max="50" onchange="drawHilegaMilega()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);text-align:center;">
         </div>
+        <div class="hm-input-group" style="display:flex;flex-direction:column;gap:2px;justify-content:flex-end;">
+          <button onclick="drawHilegaMilega()" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:7px 14px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.06em;">GO</button>
+        </div>
       </div>
       <div id="hmBtnRow" style="display:flex;justify-content:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;flex-shrink:0;overflow-x:auto;">
         <button class="hm-tf-btn hm-period-btn active" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
@@ -6781,7 +6784,7 @@ win.rsToggleWL=rsToggleWL;
         </div>
         <div style="font-size:10px;color:#888;" id="hmFundLabel">—</div>
       </div>
-      <div id="hmInfoRow" style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;">
+      <div id="hmInfoRow" style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;">
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;text-align:center;">
           <div style="font-size:10px;color:#888;text-transform:uppercase;">RSI</div>
           <div style="font-size:14px;font-weight:700;color:#000;margin-top:2px;" id="hmStatRsiVal">—</div>
@@ -8604,18 +8607,33 @@ function MFScanner() {
   const [sortCfg, setSortCfg] = useState({ key: null, dir: "asc" });
   const stopRef = useRef(false);
   const topScrollRef = useRef(null);
+  const thumbRef = useRef(null);
   const tableWrapRef = useRef(null);
   useEffect(() => {
-    requestAnimationFrame(() => {
-      const tw = tableWrapRef.current;
-      const ts = topScrollRef.current;
-      if (!tw || !ts) return;
-      const inner = ts.firstElementChild;
-      if (inner) {
-        var w = Math.max(tw.scrollWidth, tw.clientWidth + 1);
-        inner.style.width = w + 'px';
+    function syncThumb() {
+      const track = topScrollRef.current, thumb = thumbRef.current, tw = tableWrapRef.current;
+      if (!track || !thumb || !tw) return;
+      const trackWidth = track.clientWidth;
+      const visible = tw.clientWidth, total = tw.scrollWidth;
+      if (total <= visible + 1 || total === 0) {
+        thumb.style.width = Math.max(trackWidth, 1) + 'px';
+        thumb.style.left = '0px';
+        track.style.opacity = '0.3';
+        track.style.pointerEvents = 'none';
+        return;
       }
-    });
+      track.style.opacity = '1';
+      track.style.pointerEvents = 'auto';
+      const thumbWidth = Math.max(30, trackWidth * (visible / total));
+      thumb.style.width = thumbWidth + 'px';
+      const maxScroll = total - visible;
+      const maxThumbLeft = trackWidth - thumbWidth;
+      const frac = maxScroll > 0 ? tw.scrollLeft / maxScroll : 0;
+      thumb.style.left = (frac * maxThumbLeft) + 'px';
+    }
+    requestAnimationFrame(syncThumb);
+    window.addEventListener('resize', syncThumb);
+    return () => window.removeEventListener('resize', syncThumb);
   });
   const sd = window._ldScannerData || {};
   const vix = sd.priceMap?.["indiavix"]?.price ?? results["indiavix"]?.price ?? null;
@@ -8760,17 +8778,59 @@ function MFScanner() {
     React.createElement("div", { style: { padding: "4px 6px" } },
       hasData ? React.createElement("div", null, React.createElement("div", {
         ref: topScrollRef,
-        className: "table-top-scroll",
-        style: { overflowX: "auto", overflowY: "hidden", height: 12, background: surf, border: `1px solid ${bdr2}`, borderBottom: "none", position: "relative", zIndex: 50 },
-        onScroll: function(e) { if (tableWrapRef.current) tableWrapRef.current.scrollLeft = e.target.scrollLeft; }
+        className: "table-top-track",
+        style: { position: "relative", height: 20, background: surf, border: `1px solid ${bdr2}`, borderBottom: "none", zIndex: 50, touchAction: "none", userSelect: "none" },
+        onPointerDown: function(e) {
+          if (e.target === thumbRef.current) return;
+          var track = topScrollRef.current, thumb = thumbRef.current, tw = tableWrapRef.current;
+          if (!track || !thumb || !tw) return;
+          var rect = track.getBoundingClientRect();
+          var clickX = e.clientX - rect.left;
+          var thumbWidth = thumb.offsetWidth;
+          var maxThumbLeft = track.clientWidth - thumbWidth;
+          var newLeft = Math.min(maxThumbLeft, Math.max(0, clickX - thumbWidth / 2));
+          thumb.style.left = newLeft + 'px';
+          var maxScroll = tw.scrollWidth - tw.clientWidth;
+          tw.scrollLeft = maxThumbLeft > 0 ? (newLeft / maxThumbLeft) * maxScroll : 0;
+        }
       }, React.createElement("div", {
-        ref: function(el) { if (el && tableWrapRef.current) el.style.width = tableWrapRef.current.scrollWidth + 'px'; },
-        style: { height: 1 }
+        ref: thumbRef,
+        style: { position: "absolute", top: 3, left: 0, height: 14, width: 40, background: accent, borderRadius: 7, cursor: "grab", touchAction: "none" },
+        onPointerDown: function(e) {
+          e.stopPropagation();
+          var track = topScrollRef.current, thumb = thumbRef.current, tw = tableWrapRef.current;
+          if (!track || !thumb || !tw) return;
+          var startX = e.clientX;
+          var startLeft = thumb.offsetLeft;
+          var trackWidth = track.clientWidth, thumbWidth = thumb.offsetWidth;
+          var maxThumbLeft = trackWidth - thumbWidth;
+          var maxScroll = tw.scrollWidth - tw.clientWidth;
+          function onMove(ev) {
+            var dx = ev.clientX - startX;
+            var newLeft = Math.min(maxThumbLeft, Math.max(0, startLeft + dx));
+            thumb.style.left = newLeft + 'px';
+            tw.scrollLeft = maxThumbLeft > 0 ? (newLeft / maxThumbLeft) * maxScroll : 0;
+          }
+          function onUp() {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+          }
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+        }
       })), React.createElement("div", {
         ref: tableWrapRef,
         className: "table-wrap",
         style: { border: `1px solid ${bdr}`, overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 60px)" },
-        onScroll: function(e) { if (topScrollRef.current) topScrollRef.current.scrollLeft = e.target.scrollLeft; }
+        onScroll: function(e) {
+          var thumb = thumbRef.current, track = topScrollRef.current, tw = e.target;
+          if (!thumb || !track) return;
+          var trackWidth = track.clientWidth, thumbWidth = thumb.offsetWidth;
+          var maxScroll = tw.scrollWidth - tw.clientWidth;
+          var maxThumbLeft = trackWidth - thumbWidth;
+          var frac = maxScroll > 0 ? tw.scrollLeft / maxScroll : 0;
+          thumb.style.left = (frac * maxThumbLeft) + 'px';
+        }
       },
         React.createElement("table", { style: { borderCollapse: "separate", borderSpacing: 0, fontSize: 11 } },
           React.createElement("thead", null, React.createElement("tr", null,
@@ -9240,6 +9300,36 @@ function openHilegaTab() {
   }
   requestAnimationFrame(function() { drawHilegaMilega(); });
 }
+// ── Hilega Tab: redraw on viewport size changes ──
+// Mobile browsers resize the visible viewport (address bar show/hide on
+// scroll, rotation) without firing anything that would otherwise tell this
+// canvas to re-measure itself. drawHilegaMilega() only reads the wrapper's
+// size once when called, so without this listener the chart silently keeps
+// whatever size it had when the tab was opened — appearing blank, cut off,
+// or stretched after the viewport changes. Only redraw while the tab is
+// actually visible, and only if its size really changed (avoids redraw
+// loops and unnecessary work on other tabs).
+(function() {
+  var hmResizeTimer = null;
+  var hmLastW = 0, hmLastH = 0;
+  function hmMaybeRedraw() {
+    var panel = document.getElementById('tab-hilega');
+    if (!panel || !panel.classList.contains('active')) return;
+    var wrap = document.getElementById('hmCanvasWrap');
+    if (!wrap) return;
+    var rect = wrap.getBoundingClientRect();
+    if (Math.abs(rect.width - hmLastW) < 1 && Math.abs(rect.height - hmLastH) < 1) return;
+    hmLastW = rect.width; hmLastH = rect.height;
+    if (typeof drawHilegaMilega === 'function') drawHilegaMilega();
+  }
+  function hmOnResize() {
+    clearTimeout(hmResizeTimer);
+    hmResizeTimer = setTimeout(hmMaybeRedraw, 150);
+  }
+  window.addEventListener('resize', hmOnResize);
+  window.addEventListener('orientationchange', hmOnResize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', hmOnResize);
+})();
 </script>
 
 </body>
