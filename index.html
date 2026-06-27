@@ -352,9 +352,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
 .live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
 .live-dot.active::before{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
-.ld-backup-btn{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
-.ld-backup-btn:active{opacity:.65}
-.ld-backup-msg{font-family:var(--mono);font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;white-space:nowrap}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* ── 2.3 Layout ── */
 .main-wrap{max-width:1500px;margin:0 auto;padding:10px 20px}
@@ -467,7 +464,7 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
 @media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px}}
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}.table-wrap{max-height:calc(100vh - 130px)}}
-@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app-header .ld-backup-btn{font-size:9px;padding:4px 6px;gap:2px}.app-header .ld-backup-btn .ld-backup-label{display:none}}
+@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 
 /* ── 2.8 Column Group Backgrounds ── */
 th[data-group="1"], td[data-group="1"]{background:rgba(180,180,180,0.08)}
@@ -1505,99 +1502,6 @@ function ldStorageSet(key, value) {
     }
     return false;
   }
-}
-
-// ── Full App Backup: Save Data / Restore Data ──
-// Mobile browsers can silently evict localStorage (inactivity, low storage,
-// or simply updating to a new version/file of this app), wiping every
-// scanner cache, the watchlist, the paper-trade portfolio, and saved
-// settings. These two functions dump *all* localStorage keys verbatim
-// (no truncation — full multi-year price history included) into one JSON
-// file the user downloads to their device, and read that file back in.
-// Capacity is effectively unlimited (a single JSON file on disk easily
-// holds 10 years / ~2520 trading days of history per index), unlike
-// localStorage's ~5-10MB per-origin cap.
-function ldExportAllData() {
-  try {
-    const dump = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k == null) continue;
-      dump[k] = localStorage.getItem(k);
-    }
-    const keyCount = Object.keys(dump).length;
-    const payload = {
-      __ldBackup: true,
-      app: 'Nifty Index Scanner',
-      version: 'Scanner_D5',
-      savedAt: new Date().toISOString(),
-      keyCount: keyCount,
-      data: dump
-    };
-    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
-    a.href = url;
-    a.download = `nifty-scanner-backup-${stamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-    ldShowBackupMsg(`✓ Saved ${keyCount} keys to file`);
-  } catch (e) {
-    console.error('[LD] backup export failed', e);
-    ldShowBackupMsg('⚠ Save failed — see console', true);
-  }
-}
-
-function ldImportAllData(file) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const parsed = JSON.parse(e.target.result);
-      const data = (parsed && typeof parsed === 'object' && parsed.data) ? parsed.data : parsed;
-      if (!data || typeof data !== 'object' || Array.isArray(data)) {
-        throw new Error('Not a valid backup file');
-      }
-      let restored = 0;
-      Object.keys(data).forEach(k => {
-        try { localStorage.setItem(k, data[k]); restored++; } catch (err) { /* quota — skip key */ }
-      });
-      ldShowBackupMsg(`✓ Restored ${restored} keys — reloading…`);
-      setTimeout(() => window.location.reload(), 900);
-    } catch (err) {
-      console.error('[LD] backup restore failed', err);
-      ldShowBackupMsg('⚠ Invalid backup file', true);
-    }
-  };
-  reader.onerror = function() { ldShowBackupMsg('⚠ Could not read file', true); };
-  reader.readAsText(file);
-}
-
-function ldShowBackupMsg(msg, isError) {
-  const els = document.querySelectorAll('.ld-backup-msg');
-  els.forEach(el => {
-    el.textContent = msg;
-    el.style.color = isError ? 'var(--red)' : 'var(--green)';
-    el.style.opacity = '1';
-  });
-  clearTimeout(window._ldBackupMsgTimer);
-  window._ldBackupMsgTimer = setTimeout(() => {
-    els.forEach(el => { el.style.opacity = '0'; });
-  }, 5000);
-}
-
-function ldOnRestoreFileChosen(e) {
-  const input = e.target;
-  const file = input.files && input.files[0];
-  if (!file) return;
-  if (!window.confirm('Restore from this backup file? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.')) {
-    input.value = '';
-    return;
-  }
-  ldImportAllData(file);
-  input.value = '';
 }
 
 function calcRSI(closes, period) {
@@ -3017,23 +2921,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "header-right"
   }, React.createElement("span", {
     className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
-  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'), React.createElement("button", {
-    className: "ld-backup-btn",
-    type: "button",
-    title: "Download a backup of all scanner data (cache, watchlist, paper trade, settings) to your device",
-    onClick: ldExportAllData
-  }, "💾", React.createElement("span", { className: "ld-backup-label" }, " Save Data")), React.createElement("button", {
-    className: "ld-backup-btn",
-    type: "button",
-    title: "Restore scanner data from a previously saved backup file",
-    onClick: function() { document.getElementById('ld-restore-input').click(); }
-  }, "📂", React.createElement("span", { className: "ld-backup-label" }, " Restore Data")), React.createElement("input", {
-    type: "file",
-    id: "ld-restore-input",
-    accept: "application/json,.json",
-    style: { display: "none" },
-    onChange: ldOnRestoreFileChosen
-  }), React.createElement("span", { className: "ld-backup-msg" }))), React.createElement("div", {
+  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
     className: "main-wrap"
   }, phase === 'done' && liveDetail && React.createElement("div", {
     style: {
@@ -9120,14 +9008,27 @@ function hmSetDefaultDates() {
     if (!hist || hist.length < 2) return;
     var fromEl = document.getElementById('hmDateFrom'), toEl = document.getElementById('hmDateTo');
     if (!fromEl || !toEl) return;
-    if (!fromEl.value) {
+    // Re-seed From/To whenever the selected INDEX changes, not just when the
+    // boxes happen to be empty. The old "only fill in if empty" check meant
+    // these boxes were set ONCE per page session from whichever index was
+    // loaded first, then never touched again — so switching from a young
+    // index (say, history starting 2023) to a much older one (history back
+    // to 2016) left "From" stuck on 2023, even though the chart itself and
+    // the underlying data correctly went all the way back to 2016. The
+    // canvas chart is unaffected by this (it reads window._hmTfDays
+    // independently), but this date-range box looked like the index had
+    // far less history than it actually does.
+    var key = window._hmHistCode;
+    var isNewIndex = window._hmDefaultDatesKey !== key;
+    if (isNewIndex || !fromEl.value) {
       var first = hmParseDate(hist[0].date);
       if (!isNaN(first.getTime())) fromEl.value = first.getFullYear() + '-' + String(first.getMonth()+1).padStart(2,'0') + '-' + String(first.getDate()).padStart(2,'0');
     }
-    if (!toEl.value) {
+    if (isNewIndex || !toEl.value) {
       var last = hmParseDate(hist[hist.length-1].date);
       if (!isNaN(last.getTime())) toEl.value = last.getFullYear() + '-' + String(last.getMonth()+1).padStart(2,'0') + '-' + String(last.getDate()).padStart(2,'0');
     }
+    window._hmDefaultDatesKey = key;
 }
 function hmCalcDateRange() {
     var fromStr = document.getElementById('hmDateFrom').value;
