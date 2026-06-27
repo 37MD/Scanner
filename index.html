@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <!-- ════════════════════════════════════════════ -->
@@ -352,6 +352,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
 .live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
 .live-dot.active::before{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+.ld-backup-btn{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.ld-backup-btn:active{opacity:.65}
+.ld-backup-msg{font-family:var(--mono);font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;white-space:nowrap}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* ── 2.3 Layout ── */
 .main-wrap{max-width:1500px;margin:0 auto;padding:10px 20px}
@@ -464,7 +467,7 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
 @media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px}}
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}.table-wrap{max-height:calc(100vh - 130px)}}
-@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app-header .ld-backup-btn{font-size:9px;padding:4px 6px;gap:2px}.app-header .ld-backup-btn .ld-backup-label{display:none}}
 
 /* ── 2.8 Column Group Backgrounds ── */
 th[data-group="1"], td[data-group="1"]{background:rgba(180,180,180,0.08)}
@@ -1502,6 +1505,99 @@ function ldStorageSet(key, value) {
     }
     return false;
   }
+}
+
+// ── Full App Backup: Save Data / Restore Data ──
+// Mobile browsers can silently evict localStorage (inactivity, low storage,
+// or simply updating to a new version/file of this app), wiping every
+// scanner cache, the watchlist, the paper-trade portfolio, and saved
+// settings. These two functions dump *all* localStorage keys verbatim
+// (no truncation — full multi-year price history included) into one JSON
+// file the user downloads to their device, and read that file back in.
+// Capacity is effectively unlimited (a single JSON file on disk easily
+// holds 10 years / ~2520 trading days of history per index), unlike
+// localStorage's ~5-10MB per-origin cap.
+function ldExportAllData() {
+  try {
+    const dump = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k == null) continue;
+      dump[k] = localStorage.getItem(k);
+    }
+    const keyCount = Object.keys(dump).length;
+    const payload = {
+      __ldBackup: true,
+      app: 'Nifty Index Scanner',
+      version: 'Scanner_D5',
+      savedAt: new Date().toISOString(),
+      keyCount: keyCount,
+      data: dump
+    };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = `nifty-scanner-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    ldShowBackupMsg(`✓ Saved ${keyCount} keys to file`);
+  } catch (e) {
+    console.error('[LD] backup export failed', e);
+    ldShowBackupMsg('⚠ Save failed — see console', true);
+  }
+}
+
+function ldImportAllData(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const data = (parsed && typeof parsed === 'object' && parsed.data) ? parsed.data : parsed;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Not a valid backup file');
+      }
+      let restored = 0;
+      Object.keys(data).forEach(k => {
+        try { localStorage.setItem(k, data[k]); restored++; } catch (err) { /* quota — skip key */ }
+      });
+      ldShowBackupMsg(`✓ Restored ${restored} keys — reloading…`);
+      setTimeout(() => window.location.reload(), 900);
+    } catch (err) {
+      console.error('[LD] backup restore failed', err);
+      ldShowBackupMsg('⚠ Invalid backup file', true);
+    }
+  };
+  reader.onerror = function() { ldShowBackupMsg('⚠ Could not read file', true); };
+  reader.readAsText(file);
+}
+
+function ldShowBackupMsg(msg, isError) {
+  const els = document.querySelectorAll('.ld-backup-msg');
+  els.forEach(el => {
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--red)' : 'var(--green)';
+    el.style.opacity = '1';
+  });
+  clearTimeout(window._ldBackupMsgTimer);
+  window._ldBackupMsgTimer = setTimeout(() => {
+    els.forEach(el => { el.style.opacity = '0'; });
+  }, 5000);
+}
+
+function ldOnRestoreFileChosen(e) {
+  const input = e.target;
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!window.confirm('Restore from this backup file? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.')) {
+    input.value = '';
+    return;
+  }
+  ldImportAllData(file);
+  input.value = '';
 }
 
 function calcRSI(closes, period) {
@@ -2921,7 +3017,23 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "header-right"
   }, React.createElement("span", {
     className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
-  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
+  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'), React.createElement("button", {
+    className: "ld-backup-btn",
+    type: "button",
+    title: "Download a backup of all scanner data (cache, watchlist, paper trade, settings) to your device",
+    onClick: ldExportAllData
+  }, "💾", React.createElement("span", { className: "ld-backup-label" }, " Save Data")), React.createElement("button", {
+    className: "ld-backup-btn",
+    type: "button",
+    title: "Restore scanner data from a previously saved backup file",
+    onClick: function() { document.getElementById('ld-restore-input').click(); }
+  }, "📂", React.createElement("span", { className: "ld-backup-label" }, " Restore Data")), React.createElement("input", {
+    type: "file",
+    id: "ld-restore-input",
+    accept: "application/json,.json",
+    style: { display: "none" },
+    onChange: ldOnRestoreFileChosen
+  }), React.createElement("span", { className: "ld-backup-msg" }))), React.createElement("div", {
     className: "main-wrap"
   }, phase === 'done' && liveDetail && React.createElement("div", {
     style: {
@@ -6770,20 +6882,21 @@ win.rsToggleWL=rsToggleWL;
         </div>
       </div>
       <div id="hmBtnRow" style="display:flex;justify-content:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:3px 4px;flex-shrink:0;overflow-x:auto;">
-        <button class="hm-tf-btn hm-period-btn active" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
-        <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
-        <button class="hm-tf-btn hm-period-btn" onclick="setHmPeriod(this,'monthly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">MONTHLY</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,14)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2W</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,30)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1M</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,90)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3M</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,180)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">6M</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,365)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1Y</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,730)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2Y</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,1095)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3Y</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,1825)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">5Y</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,3650)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">10Y</button>
-        <button class="hm-tf-btn" onclick="setHmTf(this,99999)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">ALL</button>
+        <button class="hm-tf-btn hm-period-btn active" data-period="daily" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
+        <button class="hm-tf-btn hm-period-btn" data-period="weekly" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
+        <button class="hm-tf-btn hm-period-btn" data-period="monthly" onclick="setHmPeriod(this,'monthly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">MONTHLY</button>
+        <button class="hm-tf-btn" data-days="14" onclick="setHmTf(this,14)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2W</button>
+        <button class="hm-tf-btn" data-days="30" onclick="setHmTf(this,30)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1M</button>
+        <button class="hm-tf-btn" data-days="90" onclick="setHmTf(this,90)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3M</button>
+        <button class="hm-tf-btn" data-days="180" onclick="setHmTf(this,180)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">6M</button>
+        <button class="hm-tf-btn" data-days="365" onclick="setHmTf(this,365)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1Y</button>
+        <button class="hm-tf-btn" data-days="730" onclick="setHmTf(this,730)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2Y</button>
+        <button class="hm-tf-btn" data-days="1095" onclick="setHmTf(this,1095)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3Y</button>
+        <button class="hm-tf-btn" data-days="1825" onclick="setHmTf(this,1825)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">5Y</button>
+        <button class="hm-tf-btn" data-days="3650" onclick="setHmTf(this,3650)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">10Y</button>
+        <button class="hm-tf-btn" data-days="99999" onclick="setHmTf(this,99999)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">ALL</button>
       </div>
+      <div id="hmBtnHint" style="display:none;font-size:9px;color:#aaa;text-align:center;margin-top:-2px;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
         <div style="display:flex;gap:12px;font-size:11px;flex-wrap:wrap;">
           <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#000;border-radius:1px;display:inline-block;"></span><span style="font-size:10px;color:#888;">RSI</span></span>
@@ -8763,9 +8876,17 @@ function MFScanner() {
   const hasData = rows.length > 0;
   const scannerDataExists = sd.indexList && sd.indexList.length > 0;
   const thS = { position: "sticky", top: 0, background: surf2, padding: "7px 9px", fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", borderBottom: `2px solid ${bdr2}`, borderRight: `1px solid ${bdr}`, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", fontFamily: "'Space Mono','Courier New',monospace", color: "#000", zIndex: 10 };
-  const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2 };
+  // Fixed, capped width on the frozen first column (Index name) — without
+  // this, a long fund/index name under whiteSpace:"nowrap" stretches the
+  // column to fit on one line, and since this column is sticky/frozen, that
+  // could mean the frozen column alone fills the whole viewport, leaving no
+  // room to scroll the rest of the columns into view. Capping the width and
+  // letting the name wrap onto 2 lines instead keeps it readable while
+  // leaving the remaining columns reachable.
+  const FROZEN_COL_W = 112;
+  const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W };
   const tdS = { padding: "6px 9px", borderBottom: `1px solid ${surf2}`, borderRight: `1px solid ${surf2}`, whiteSpace: "nowrap", fontFamily: "'Space Mono','Courier New',monospace", fontSize: 11, color: "#000" };
-  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, minWidth: 165, zIndex: 5 };
+  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.25, zIndex: 5 };
   return React.createElement("div", { style: { background: "#fff", minHeight: "100vh", ...F } },
     React.createElement("div", { style: { background: surf, borderBottom: `1px solid ${bdr}`, padding: "3px 6px", position: "sticky", top: 0, zIndex: 99, display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" } },
       React.createElement("select", { style: { fontSize: 9, padding: "2px 3px", background: "#fff", border: `1px solid ${bdr}`, fontFamily: "'Space Mono','Courier New',monospace", flexShrink: 0, maxWidth: 80 }, value: regF, onChange: e => setRegF(e.target.value) },
@@ -9029,24 +9150,114 @@ function hmCalcDateRange() {
     retEl.style.color = retPct >= 0 ? '#16a34a' : '#ef4444';
     res.style.display = 'flex';
 }
+// ── Hilega: Period/Timeframe data-availability helpers ──
+// Weekly/Monthly candles need a minimum span of underlying daily data to be
+// meaningful (a handful of weekly or monthly bars is not a usable chart).
+// hmPeriodFloor() is that minimum, expressed in the same "days" unit the
+// timeframe (2W/1M/.../ALL) buttons use, so a short timeframe button can be
+// transparently raised to the nearest sensible value instead of silently
+// producing 0-1 data points.
+function hmPeriodFloor(period) { return period === 'weekly' ? 90 : period === 'monthly' ? 365 : 0; }
+// Highlights whichever timeframe button's data-days value matches the
+// EFFECTIVE day count actually being charted (post period-floor adjustment),
+// rather than whichever button was literally clicked. This is what used to
+// be wrong: clicking 2W while on Monthly silently rendered ~365 days of data
+// but kept "2W" looking active, so the next click (say 1M, also forced to
+//365) drew an identical chart while the highlight moved — looking exactly
+// like "the chart isn't responding to the buttons".
+function hmHighlightTfButton(days) {
+    var btns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
+    var best = null, bestDiff = Infinity;
+    btns.forEach(function(b) {
+      b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888';
+      var bd = parseInt(b.dataset.days, 10);
+      var diff = Math.abs(bd - days);
+      if (diff < bestDiff) { bestDiff = diff; best = b; }
+    });
+    if (best) { best.classList.add('active'); best.style.background = '#d4880f'; best.style.color = '#000'; }
+}
+function hmHighlightPeriodButton(period) {
+    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) {
+      var match = b.dataset.period === period;
+      b.classList.toggle('active', match);
+      b.style.background = match ? '#d4880f' : 'transparent';
+      b.style.color = match ? '#000' : '#888';
+    });
+}
+// Total day-span actually available for the selected index's full daily
+// history (used to grey out timeframe buttons that would just repeat the
+// same "everything we have" chart as a shorter one).
+function hmAvailDaysFromHist(hist) {
+    if (!hist || hist.length < 2) return null;
+    var d0 = hmParseDate(hist[0].date), d1 = hmParseDate(hist[hist.length - 1].date);
+    if (isNaN(d0.getTime()) || isNaN(d1.getTime())) return null;
+    return Math.abs(d1.getTime() - d0.getTime()) / 86400000;
+}
+// Greys out DAILY/WEEKLY/MONTHLY itself when this index doesn't have enough
+// history to build at least 2 candles at that resolution (e.g. a brand new
+// index only has a couple of months of daily data — Monthly would be 1 bar).
+function hmRefreshPeriodButtonStates(hist) {
+    if (!hist) return;
+    var lens = { daily: hist.length, weekly: hmAggregateWeeks(hist).length, monthly: hmAggregateMonths(hist).length };
+    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) {
+      var per = b.dataset.period, len = lens[per] || 0;
+      if (len < 2) { b.style.opacity = '0.4'; b.title = 'Only ' + len + ' ' + per + ' point' + (len === 1 ? '' : 's') + ' available for this index'; }
+      else { b.style.opacity = '1'; b.title = ''; }
+    });
+}
+// Greys out timeframe buttons that can't add anything for the current
+// period: either (a) below the period's floor, so they get silently merged
+// into the floor value, or (b) beyond this index's actual history, so they'd
+// just repeat the same full-history chart as a shorter, already-available
+// button. Floor-disabled buttons are also made unclickable, since tapping
+// them changes nothing — that's clearer on mobile than a tap that silently
+// does nothing.
+function hmRefreshTfButtonStates(availDays) {
+    var floor = hmPeriodFloor(window._hmPeriod || 'daily');
+    var btns = Array.prototype.slice.call(document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)'));
+    var sorted = btns.slice().sort(function(a, b) { return parseInt(a.dataset.days, 10) - parseInt(b.dataset.days, 10); });
+    var coveredFull = false, anyFloor = false, anyRange = false;
+    sorted.forEach(function(b) {
+      var bd = parseInt(b.dataset.days, 10);
+      if (bd < floor) {
+        b.style.opacity = '0.35'; b.style.pointerEvents = 'none';
+        b.title = 'Merges into the ' + window._hmPeriod + ' minimum range (' + floor + ' days)';
+        anyFloor = true;
+        return;
+      }
+      b.style.pointerEvents = '';
+      if (availDays != null && coveredFull) {
+        b.style.opacity = '0.55';
+        b.title = 'Same chart as a shorter range \u2014 only ~' + Math.round(availDays) + ' days of history for this index';
+        anyRange = true;
+      } else {
+        b.style.opacity = '1'; b.title = '';
+        if (availDays != null && Math.max(bd, floor) >= availDays) coveredFull = true;
+      }
+    });
+    var hint = document.getElementById('hmBtnHint');
+    if (!hint) return;
+    if (anyFloor && anyRange) { hint.textContent = 'Greyed: too short for this period, or beyond this index\u2019s history'; hint.style.display = 'block'; }
+    else if (anyFloor) { hint.textContent = 'Greyed buttons are too short a range for ' + window._hmPeriod + ' view'; hint.style.display = 'block'; }
+    else if (anyRange) { hint.textContent = 'Greyed buttons repeat this index\u2019s full available history'; hint.style.display = 'block'; }
+    else { hint.style.display = 'none'; }
+}
 function setHmTf(btn, days) {
-    var period = window._hmPeriod || 'daily';
-    if (period === 'weekly' && days < 90) days = 90;
-    if (period === 'monthly' && days < 365) days = 365;
-    window._hmTfDays = days;
-    localStorage.setItem('hm_tf_days_v2', days);
-    document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
-    btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
+    var effDays = Math.max(days, hmPeriodFloor(window._hmPeriod || 'daily'));
+    window._hmTfDays = effDays;
+    localStorage.setItem('hm_tf_days_v2', effDays);
+    hmHighlightTfButton(effDays);
     drawHilegaMilega();
 }
 function setHmPeriod(btn, period) {
     window._hmPeriod = period;
     localStorage.setItem('hm_period_v2', period);
-    document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
-    btn.classList.add('active'); btn.style.background = '#d4880f'; btn.style.color = '#000';
-    var curTf = window._hmTfDays || 99999;
-    if (period === 'weekly' && curTf < 90) { window._hmTfDays = 90; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(7)').classList.add('active'); }
-    else if (period === 'monthly' && curTf < 365) { window._hmTfDays = 365; document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)').forEach(function(b) { b.classList.remove('active'); }); document.querySelector('#hmBtnRow .hm-tf-btn:nth-child(9)').classList.add('active'); }
+    hmHighlightPeriodButton(period);
+    var effDays = Math.max(window._hmTfDays || 99999, hmPeriodFloor(period));
+    window._hmTfDays = effDays;
+    localStorage.setItem('hm_tf_days_v2', effDays);
+    hmHighlightTfButton(effDays);
+    hmRefreshTfButtonStates(hmAvailDaysFromHist(window._hmHist));
     drawHilegaMilega();
 }
 function hmParseDate(dateStr) { var sep = dateStr.includes('/') ? '/' : '-'; var p = dateStr.split(sep); if (p.length === 3 && p[0].length === 2 && p[2].length === 4) return new Date(p[2] + '-' + p[1] + '-' + p[0]); return new Date(dateStr); }
@@ -9142,6 +9353,8 @@ async function drawHilegaMilega() {
         }
         window._hmHist = hist;
         window._hmHistCode = key;
+        hmRefreshPeriodButtonStates(hist);
+        hmRefreshTfButtonStates(hmAvailDaysFromHist(hist));
         hmSetDefaultDates();
         var viewData = hist;
         if (window._hmPeriod === 'weekly') viewData = hmAggregateWeeks(hist);
@@ -9159,7 +9372,12 @@ async function drawHilegaMilega() {
         var slicedIdx = 0;
         for (var si2 = 0; si2 < viewData.length; si2++) { var dt = hmParseDate(viewData[si2].date); if (!isNaN(dt.getTime()) && dt >= cutoffDate) { slicedIdx = si2; break; } }
         var slicedLen = viewData.length - slicedIdx;
-        if (slicedLen < 2) { clearTimeout(safetyTimer); hmHideOv(); return; }
+        if (slicedLen < 2) {
+          var periodLabelInsuff = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
+          hmShowCanvasMessage('Not enough ' + periodLabelInsuff + ' data points in this range', 'Try a longer timeframe button, or switch to Daily/Weekly period');
+          hmClearStatBoxes('Insufficient data for ' + periodLabelInsuff + ' view');
+          clearTimeout(safetyTimer); hmHideOv(); return;
+        }
         var navs = viewData.slice(slicedIdx).map(function(d) { return d.nav; });
         var dates = viewData.slice(slicedIdx).map(function(d) { return d.date; });
         var n = slicedLen;
@@ -9278,12 +9496,15 @@ function openHilegaTab() {
   hmPopulateIndexDropdown();
   window._hmTfDays = parseInt(localStorage.getItem('hm_tf_days_v2')) || 365;
   window._hmPeriod = localStorage.getItem('hm_period_v2') || 'weekly';
-  document.querySelectorAll('.hm-tf-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
-  document.querySelectorAll('.hm-period-btn').forEach(function(b) { b.classList.remove('active'); b.style.background = 'transparent'; b.style.color = '#888'; });
-  var tfBtns = document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)');
-  tfBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf('setHmTf(this,' + window._hmTfDays + ')') !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
-  var perBtns = document.querySelectorAll('.hm-period-btn');
-  perBtns.forEach(function(b) { if (b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'" + window._hmPeriod + "'") !== -1) { b.classList.add('active'); b.style.background = '#d4880f'; b.style.color = '#000'; } });
+  // Re-apply the period floor on every tab open too — the two values are
+  // stored independently, so a saved combo like period=monthly + tf=14
+  // (from an earlier session, or a manual localStorage edit) would otherwise
+  // sail straight into the "fewer than 2 data points" wall as soon as the
+  // chart draws.
+  window._hmTfDays = Math.max(window._hmTfDays, hmPeriodFloor(window._hmPeriod));
+  localStorage.setItem('hm_tf_days_v2', window._hmTfDays);
+  hmHighlightPeriodButton(window._hmPeriod);
+  hmHighlightTfButton(window._hmTfDays);
   var savedKey = localStorage.getItem('hm_index_key');
   if (savedKey) {
     var idxSel = document.getElementById('hmIndexSelect');
