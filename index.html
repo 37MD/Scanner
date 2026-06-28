@@ -352,6 +352,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .live-dot{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text-dim)}
 .live-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
 .live-dot.active::before{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+.ld-backup-btn{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.ld-backup-btn:active{opacity:.65}
+.ld-backup-msg{font-family:var(--mono);font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;white-space:nowrap}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* ── 2.3 Layout ── */
 .main-wrap{max-width:1500px;margin:0 auto;padding:10px 20px}
@@ -464,7 +467,7 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
 @media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px}}
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}.table-wrap{max-height:calc(100vh - 130px)}}
-@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app-header .ld-backup-btn{font-size:9px;padding:4px 6px;gap:2px}.app-header .ld-backup-btn .ld-backup-label{display:none}}
 
 /* ── 2.8 Column Group Backgrounds ── */
 th[data-group="1"], td[data-group="1"]{background:rgba(180,180,180,0.08)}
@@ -1503,6 +1506,247 @@ function ldStorageSet(key, value) {
     return false;
   }
 }
+
+// ── Full App Backup: Save Data / Restore Data ──
+// Mobile browsers can silently evict localStorage (inactivity, low storage,
+// or simply updating to a new version/file of this app), wiping every
+// scanner cache, the watchlist, the paper-trade portfolio, and saved
+// settings. These functions dump *all* localStorage keys verbatim (no
+// truncation — full multi-year price history included) to a single file
+// named "Scanner data.json".
+//
+// On Chromium browsers (Chrome/Brave on Android included) the File System
+// Access API is used: the first Save prompts once for where to create
+// "Scanner data.json" and keeps a handle to it (persisted in IndexedDB so
+// it survives reloads); every Save after that writes straight to the same
+// handle — no picker, no new file each time, just an overwrite. Restore
+// reads from that same linked file first if one exists, falling back to a
+// picker. Browsers without File System Access (Firefox/Safari) fall back
+// to a normal named download / file-input picker.
+const LD_BACKUP_FILENAME = 'Scanner data.json';
+const LD_BACKUP_LAST_DATE_KEY = 'ld_backup_last_date';
+
+function ldTodayIstStr() {
+  return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
+}
+
+function ldBuildBackupPayload() {
+  const dump = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k == null) continue;
+    dump[k] = localStorage.getItem(k);
+  }
+  return {
+    __ldBackup: true,
+    app: 'Nifty Index Scanner',
+    version: 'Scanner_D7',
+    savedAt: new Date().toISOString(),
+    keyCount: Object.keys(dump).length,
+    data: dump
+  };
+}
+
+// ── Tiny IndexedDB wrapper to persist the linked FileSystemFileHandle ──
+function ldOpenHandleDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('ld_backup_db', 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore('handles'); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+async function ldSaveHandle(handle) {
+  try {
+    const db = await ldOpenHandleDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(handle, 'scannerDataFile');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { console.warn('[LD] could not persist file handle', e); }
+}
+async function ldLoadHandle() {
+  try {
+    const db = await ldOpenHandleDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction('handles', 'readonly');
+      const req = tx.objectStore('handles').get('scannerDataFile');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return null; }
+}
+
+// silent=true is used by the automatic new-day check: it will only ever
+// write if a file is already linked AND permission is already granted —
+// it never opens a picker or a permission prompt (both need a user click).
+async function ldExportAllData(silent) {
+  const payload = ldBuildBackupPayload();
+  const json = JSON.stringify(payload);
+  const fsaSupported = typeof window.showSaveFilePicker === 'function';
+
+  if (fsaSupported) {
+    try {
+      let handle = await ldLoadHandle();
+      if (handle) {
+        let perm = await handle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted' && !silent) {
+          perm = await handle.requestPermission({ mode: 'readwrite' });
+        }
+        if (perm !== 'granted') handle = null; // not usable: silent gives up, non-silent falls through to the picker below
+      }
+      if (!handle && !silent) {
+        handle = await window.showSaveFilePicker({
+          suggestedName: LD_BACKUP_FILENAME,
+          types: [{ description: 'JSON backup', accept: { 'application/json': ['.json'] } }]
+        });
+        await ldSaveHandle(handle);
+      }
+      if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        localStorage.setItem(LD_BACKUP_LAST_DATE_KEY, ldTodayIstStr());
+        if (!silent) ldShowBackupMsg(`✓ Saved ${payload.keyCount} keys → ${handle.name || LD_BACKUP_FILENAME}`);
+        return true;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false; // user closed the picker
+      console.warn('[LD] File System Access save failed, falling back to download', e);
+    }
+  }
+
+  if (silent) return false; // never trigger a download without a click
+
+  try {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = LD_BACKUP_FILENAME;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    localStorage.setItem(LD_BACKUP_LAST_DATE_KEY, ldTodayIstStr());
+    ldShowBackupMsg(`✓ Saved ${payload.keyCount} keys to ${LD_BACKUP_FILENAME}`);
+    return true;
+  } catch (e) {
+    console.error('[LD] backup export failed', e);
+    ldShowBackupMsg('⚠ Save failed — see console', true);
+    return false;
+  }
+}
+
+function ldApplyBackupJson(text) {
+  try {
+    const parsed = JSON.parse(text);
+    const data = (parsed && typeof parsed === 'object' && parsed.data) ? parsed.data : parsed;
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Not a valid backup file');
+    }
+    let restored = 0;
+    Object.keys(data).forEach(k => {
+      try { localStorage.setItem(k, data[k]); restored++; } catch (err) { /* quota — skip key */ }
+    });
+    ldShowBackupMsg(`✓ Restored ${restored} keys — reloading…`);
+    setTimeout(() => window.location.reload(), 900);
+  } catch (err) {
+    console.error('[LD] backup restore failed', err);
+    ldShowBackupMsg('⚠ Invalid backup file', true);
+  }
+}
+
+async function ldImportAllData() {
+  // Prefer the already-linked file (no picker at all) if we have one.
+  try {
+    const handle = await ldLoadHandle();
+    if (handle && typeof window.showSaveFilePicker === 'function') {
+      let perm = await handle.queryPermission({ mode: 'read' });
+      if (perm !== 'granted') perm = await handle.requestPermission({ mode: 'read' });
+      if (perm === 'granted') {
+        const file = await handle.getFile();
+        const text = await file.text();
+        if (!window.confirm(`Restore from "${file.name}"? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.`)) return;
+        ldApplyBackupJson(text);
+        return;
+      }
+    }
+  } catch (e) { console.warn('[LD] could not use linked file, falling back to picker', e); }
+
+  if (typeof window.showOpenFilePicker === 'function') {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON backup', accept: { 'application/json': ['.json'] } }],
+        multiple: false
+      });
+      const file = await handle.getFile();
+      const text = await file.text();
+      if (!window.confirm(`Restore from "${file.name}"? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.`)) return;
+      try {
+        const perm = await handle.requestPermission({ mode: 'readwrite' });
+        if (perm === 'granted') await ldSaveHandle(handle); // link it for future silent saves too
+      } catch (e) { /* read-only is fine, restore still works */ }
+      ldApplyBackupJson(text);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // user cancelled
+      console.warn('[LD] File System Access restore failed, falling back', e);
+    }
+  }
+
+  const input = document.getElementById('ld-restore-input');
+  if (input) input.click();
+}
+
+function ldShowBackupMsg(msg, isError) {
+  const els = document.querySelectorAll('.ld-backup-msg');
+  els.forEach(el => {
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--red)' : 'var(--green)';
+    el.style.opacity = '1';
+  });
+  clearTimeout(window._ldBackupMsgTimer);
+  window._ldBackupMsgTimer = setTimeout(() => {
+    els.forEach(el => { el.style.opacity = '0'; });
+  }, 5000);
+}
+
+// Fallback path only (browsers without File System Access): hidden
+// <input type=file> onChange handler.
+function ldOnRestoreFileChosen(e) {
+  const input = e.target;
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!window.confirm(`Restore from "${file.name}"? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.`)) {
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(ev) { ldApplyBackupJson(ev.target.result); };
+  reader.onerror = function() { ldShowBackupMsg('⚠ Could not read file', true); };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// Auto-update: if a file is already linked and a new IST calendar date has
+// rolled over since the last write, silently overwrite it — no click, no
+// picker, no prompt. If nothing is linked yet (first run, or permission
+// wasn't persisted), this does nothing; the user just taps 💾 Save Data
+// once to link "Scanner data.json", and every day after is automatic.
+async function ldAutoBackupIfNewDay() {
+  try {
+    if (typeof window.showSaveFilePicker !== 'function') return;
+    const today = ldTodayIstStr();
+    if (localStorage.getItem(LD_BACKUP_LAST_DATE_KEY) === today) return;
+    const handle = await ldLoadHandle();
+    if (!handle) return;
+    await ldExportAllData(true);
+  } catch (e) { /* best-effort only — never block page load */ }
+}
+window.addEventListener('load', function() { ldAutoBackupIfNewDay(); });
 
 function calcRSI(closes, period) {
   const v = closes.filter(x => x != null && !isNaN(x));
@@ -2921,7 +3165,23 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "header-right"
   }, React.createElement("span", {
     className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
-  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'))), React.createElement("div", {
+  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'), React.createElement("button", {
+    className: "ld-backup-btn",
+    type: "button",
+    title: "Save all scanner data to 'Scanner data.json'. First tap asks where to create it; every tap after that silently overwrites the same file.",
+    onClick: function() { ldExportAllData(false); }
+  }, "💾", React.createElement("span", { className: "ld-backup-label" }, " Save Data")), React.createElement("button", {
+    className: "ld-backup-btn",
+    type: "button",
+    title: "Restore from 'Scanner data.json'. Uses the linked file automatically if one is set up; otherwise asks you to pick it.",
+    onClick: function() { ldImportAllData(); }
+  }, "📂", React.createElement("span", { className: "ld-backup-label" }, " Restore Data")), React.createElement("input", {
+    type: "file",
+    id: "ld-restore-input",
+    accept: "application/json,.json",
+    style: { display: "none" },
+    onChange: ldOnRestoreFileChosen
+  }), React.createElement("span", { className: "ld-backup-msg" }))), React.createElement("div", {
     className: "main-wrap"
   }, phase === 'done' && liveDetail && React.createElement("div", {
     style: {
@@ -9162,8 +9422,16 @@ function setHmPeriod(btn, period) {
     drawHilegaMilega();
 }
 function hmParseDate(dateStr) { var sep = dateStr.includes('/') ? '/' : '-'; var p = dateStr.split(sep); if (p.length === 3 && p[0].length === 2 && p[2].length === 4) return new Date(p[2] + '-' + p[1] + '-' + p[0]); return new Date(dateStr); }
-function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var day = (dt.getDay() + 6) % 7; var refMonday = new Date(dt); refMonday.setDate(dt.getDate() - day); var wid = refMonday.toISOString().slice(0, 10); if (!cur || cur.wid !== wid) { if (cur) weeks.push(cur); cur = { wid: wid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; } } if (cur) weeks.push(cur); return weeks; }
-function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; } } if (cur) months.push(cur); return months; }
+// NOTE: each bucket's "date" must track the LAST trading day seen in that
+// week, not the first — the bucket is a "weekly close", so its date should
+// be the most recent day it covers. Forgetting to update it on the `else`
+// branch (every day after the week's first) used to leave it pinned to the
+// week's opening day even as `nav` kept rolling forward to later closes —
+// so the in-progress current week's bar looked dated days behind where its
+// price actually was, making the chart look like it stopped short of today.
+function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var day = (dt.getDay() + 6) % 7; var refMonday = new Date(dt); refMonday.setDate(dt.getDate() - day); var wid = refMonday.toISOString().slice(0, 10); if (!cur || cur.wid !== wid) { if (cur) weeks.push(cur); cur = { wid: wid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; cur.date = d.date; } } if (cur) weeks.push(cur); return weeks; }
+// Same fix as hmAggregateWeeks above, for monthly buckets.
+function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; cur.date = d.date; } } if (cur) months.push(cur); return months; }
 function hmCalcRSI(prices, period) {
     var rsi = new Array(prices.length).fill(50);
     if (prices.length < period + 1) return rsi;
