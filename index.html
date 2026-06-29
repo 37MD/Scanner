@@ -963,7 +963,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.1</span>
+    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.1</span>
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → TTF → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
@@ -1482,7 +1482,7 @@ const {
   useMemo,
   useEffect
 } = React;
-const CORS_FALLBACKS = ['https://corsproxy.io/?url=', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://thingproxy.freeboard.io/fetch/'];
+const CORS_FALLBACKS = ['https://corsproxy.io/?url=', 'https://api.codetabs.com/v1/proxy?quest=', 'https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 const NSE_API = 'https://www.nseindia.com/api/allIndices';
 function normalize(n) {
   return (n || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -1531,7 +1531,7 @@ function ldTodayIstStr() {
   return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
 }
 
-const APP_VERSION = 'v5.1';
+const APP_VERSION = 'v5.1';
 function ldBuildBackupPayload() {
   const dump = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -2152,6 +2152,23 @@ const Scanner = () => {
           setResults(snap.results);
           if (snap.baResults) setBaResults(snap.baResults);
           setPhase('done');
+          // Restore dailyMap + indexList so Hilega/MF-Scan tabs have data
+          // without re-running the scanner.
+          try {
+            var dmRaw = localStorage.getItem('ld_scanner_dailyMap');
+            var dm = dmRaw ? JSON.parse(dmRaw) : null;
+            if (dm && Object.keys(dm).length > 0) {
+              window._ldScannerData = {
+                dailyMap: dm,
+                indexList: snap.indexList || Object.keys(dm).map(function(k) {
+                  return { name: k.replace(/\b\w/g, function(c){ return c.toUpperCase(); }), key: k, nseKey: 'Other' };
+                }),
+                priceMap: {},
+                nseRaw: []
+              };
+              console.log('[LD] Restored dailyMap:', Object.keys(dm).length, 'indices');
+            }
+          } catch(_) {}
         }
       } else {
         console.log('[LD] No cache found');
@@ -2632,7 +2649,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
       // live fetch genuinely can't produce anything.
       try {
         setProgress({ done: 0, total: 1, label: 'Fetching live closing prices…' });
-        if (typeof window.fetchDeepWeeklyHistory === 'function') {
+        if (typeof window.fetchDeepWeeklyHistory === 'function' && location.protocol !== 'file:') {
           deepCache = await window.fetchDeepWeeklyHistory((doneN, totalN) => {
             setProgress({ done: doneN, total: totalN, label: `Live closes: ${doneN}/${totalN} days` });
           });
@@ -3011,8 +3028,19 @@ Reasoning: [One-line explanation tying data to the rule]`;
         }
         ldStorageSet('ld_scanner_cache', JSON.stringify({
           results: slimResults,
-          baResults: snapBa
+          baResults: snapBa,
+          indexList: (window._ldScannerData && window._ldScannerData.indexList) || null
         }));
+        // Also save dailyMap so Hilega/MF-Scan tabs have data without
+        // re-running the scanner.  Stored in a separate key to avoid bloating
+        // the main scanner cache (which stays small for fast restore).
+        try {
+          var dmSrc = window._ldScannerData && window._ldScannerData.dailyMap;
+          if (dmSrc && Object.keys(dmSrc).length > 0) {
+            ldStorageSet('ld_scanner_dailyMap', JSON.stringify(dmSrc));
+            console.log('[LD] dailyMap saved:', Object.keys(dmSrc).length, 'indices');
+          }
+        } catch(_dmErr) { console.warn('[LD] dailyMap save skipped:', _dmErr); }
         console.log('[LD] Cache saved:', Object.keys(slimResults).length, 'indices,', Object.keys(snapBa).length, 'BA entries');
       } catch (e) {
         console.warn('[LD] Cache save failed:', e);
@@ -4868,7 +4896,7 @@ initBreadthScanner();
 (function(win) {
   'use strict';
   // ── 7.1 Configuration ──
-  var CORS_LIST   = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
+  var CORS_LIST   = ['https://corsproxy.io/?url=','https://api.codetabs.com/v1/proxy?quest=','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
   var NSE_API     = 'https://www.nseindia.com/api/allIndices';
   var CSV_URL     = 'https://nsearchives.nseindia.com/content/indices/ind_close_all_';
   // Try each CORS proxy in order; return first successful response
@@ -6002,7 +6030,7 @@ function rsRealReturn(name, tradingDaysAgo) {
 }
 
 // ── 8.5 RS Config, State & DOM Setup ──
-var CORS_LIST_RS = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
+var CORS_LIST_RS = ['https://corsproxy.io/?url=','https://api.codetabs.com/v1/proxy?quest=','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 var NSE_URL= 'https://www.nseindia.com/api/allIndices';
 async function fetchProxyRS(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
@@ -7304,7 +7332,7 @@ function baDeepLookup(dcMap,indexName,targetDate){
   }
   return bestClose;
 }
-var BA_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
+var BA_CORS_LIST = ['https://corsproxy.io/?url=','https://api.codetabs.com/v1/proxy?quest=','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 async function fetchProxyBA(url, opts) {
   var lastErr = new Error('All proxies failed for: ' + url);
   for (var pi = 0; pi < BA_CORS_LIST.length; pi++) {
@@ -7914,9 +7942,8 @@ win.runBAsScan = runBAsScan;
 // ── Config ──
 var PT_CORS=[
   'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url=',
   'https://api.codetabs.com/v1/proxy?quest=',
-  'https://thingproxy.freeboard.io/fetch/'
+  'https://cors-proxy-xi-ten.vercel.app/api/proxy?url='
 ];
 var PT_NSE_API='https://www.nseindia.com/api/allIndices';
 var PT_CSV_URL='https://nsearchives.nseindia.com/content/indices/ind_close_all_';
@@ -8296,7 +8323,7 @@ var DEEP_CACHE_KEY = 'ld_deep_weekly_history_v4'; // v4 → 2500-day / IDB
 var DEEP_WINDOW_DAYS = 2500; // ~10 years of trading days
 var DEEP_BATCH_SIZE = 30;   // 10 per proxy (3 proxies running in parallel)
 var DEEP_BATCH_DELAY = 200; // ms between batches
-var DEEP_CORS_LIST = ['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url=','https://api.codetabs.com/v1/proxy?quest='];
+var DEEP_CORS_LIST = ['https://corsproxy.io/?url=','https://api.codetabs.com/v1/proxy?quest=','https://cors-proxy-xi-ten.vercel.app/api/proxy?url='];
 var DEEP_CSV_URL_LIST = ['https://nsearchives.nseindia.com/content/indices/ind_close_all_','https://archives.nseindia.com/content/indices/ind_close_all_'];
 
 // ── IndexedDB helpers — IDB supports hundreds of MB vs localStorage's 5 MB
@@ -8368,17 +8395,29 @@ function deepGenGapDays(lastDateStr){
 // Sync fallback for error-recovery path (win._deepWeeklyCache || deepLoadCache())
 function deepLoadCache(){
   try {
+    var v4 = localStorage.getItem('ld_deep_weekly_history_v4');
+    if (v4) { var p4 = JSON.parse(v4); if (p4 && p4.dailyMap && Object.keys(p4.dailyMap).length > 0) return p4; }
+  } catch(e) {}
+  try {
     var v3 = localStorage.getItem('ld_deep_weekly_history_v3');
-    if (v3) { var p3 = JSON.parse(v3); if (p3 && p3.dailyMap) return p3; }
+    if (v3) { var p3 = JSON.parse(v3); if (p3 && p3.dailyMap && Object.keys(p3.dailyMap).length > 0) return p3; }
   } catch(e) {}
   return { lastDate: null, dailyMap: {} };
 }
 
-// Async load: IDB first, migrate v3 localStorage if IDB is empty
+// Async load: IDB first, then v4 localStorage, then v3 localStorage
 function _deepLoadAsync(cb) {
   _idbGet(DEEP_CACHE_KEY, function(data) {
     if (data && data.dailyMap && Object.keys(data.dailyMap).length > 0) { cb(data); return; }
-    // IDB empty — migrate v3 localStorage data (one-time, avoids full re-download)
+    // IDB empty — try v4 localStorage (deepSaveCache writes here as backup)
+    try {
+      var v4 = localStorage.getItem(DEEP_CACHE_KEY);
+      if (v4) {
+        var p4 = JSON.parse(v4);
+        if (p4 && p4.dailyMap && Object.keys(p4.dailyMap).length > 0) { cb(p4); return; }
+      }
+    } catch(e) {}
+    // v4 localStorage empty — migrate v3 localStorage data (one-time)
     try {
       var v3 = localStorage.getItem('ld_deep_weekly_history_v3');
       if (v3) {
@@ -8459,11 +8498,11 @@ function _deepHideProgress() {
 //   • toMonthlyCloses()  — groups by YYYYMM substring: ✓ still correct
 //   • drawHilegaMilega() — sorts by date, reads p[4] as close: ✓ still correct
 //   • deepToWeeklyCloses() — weekly RSI(50) only needs recent data; old
-//     monthly stubs contribute to warmup but the 18-month real window
-//     (~78 weeks) is ample for RSI(50) to fully converge: ✓ acceptable
+//     monthly stubs contribute to warmup but the 36-month real window
+//     (~156 weeks) is ample for RSI(50) to fully converge: ✓ acceptable
 //   • OHLC extractor (scanner) — synthetic OHLC = c|c|c|c; fine for RSI,
 //     slightly approximate for Heikin-Ashi on old history: ✓ acceptable
-var DEEP_KEEP_RAW_MONTHS = 18;
+var DEEP_KEEP_RAW_MONTHS = 36;
 function _compressOldHistory(cache) {
   // Cutoff = first calendar day of the month DEEP_KEEP_RAW_MONTHS months ago
   var cutoff = new Date();
@@ -8487,26 +8526,35 @@ function _compressOldHistory(cache) {
       if (eYMD < cutoffYMD) oldBucket.push(e); else recentBucket.push(e);
     }
     if (oldBucket.length === 0) continue; // nothing old to compress
-    // Sort old entries ascending so the last entry per month = month-end close
+    // Sort old entries ascending so first entry per month = month-open, last = month-close
     oldBucket.sort(function(a, b) {
       var da = a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
       var db = b.substring(4,8)+b.substring(2,4)+b.substring(0,2);
       return da < db ? -1 : da > db ? 1 : 0;
     });
-    // Build monthly close map (last entry per month wins = month-end close)
-    var monthMap = {};
+    // Build monthly OHLC: first open, max high, min low, last close per month
+    var monthOHLC = {};
     for (var j = 0; j < oldBucket.length; j++) {
       var p = oldBucket[j].split('|');
       if (p.length < 5) continue;
       var dt = p[0]; // DDMMYYYY
       var ym = dt.substring(4, 8) + dt.substring(2, 4); // YYYYMM
-      monthMap[ym] = parseFloat(p[4]); // overwrite → ascending sort ensures last wins
+      var o = parseFloat(p[1]), h = parseFloat(p[2]), l = parseFloat(p[3]), c = parseFloat(p[4]);
+      if (isNaN(o) || isNaN(h) || isNaN(l) || isNaN(c)) continue;
+      if (!monthOHLC[ym]) {
+        monthOHLC[ym] = { o: o, h: h, l: l, c: c };
+      } else {
+        var m = monthOHLC[ym];
+        if (h > m.h) m.h = h;
+        if (l < m.l) m.l = l;
+        m.c = c; // ascending sort → last entry = month-end close
+      }
     }
-    // Build synthetic entries: "01MMYYYY|close|close|close|close"
-    var synthetics = Object.keys(monthMap).sort().map(function(ym) {
+    // Build monthly entries with proper OHLC: "01MMYYYY|open|high|low|close"
+    var synthetics = Object.keys(monthOHLC).sort().map(function(ym) {
       var yr = ym.substring(0, 4), mm = ym.substring(4, 6);
-      var c = monthMap[ym];
-      return '01' + mm + yr + '|' + c + '|' + c + '|' + c + '|' + c;
+      var m = monthOHLC[ym];
+      return '01' + mm + yr + '|' + m.o + '|' + m.h + '|' + m.l + '|' + m.c;
     });
     cache.dailyMap[name] = synthetics.concat(recentBucket);
   }
@@ -8517,32 +8565,69 @@ function _compressOldHistory(cache) {
 // Batches of 30 days spread across 3 CORS proxies (10 each) → ~3× throughput.
 // Old history is compressed to monthly summaries before every save to keep
 // storage small (~2.3 MB total vs ~12 MB raw).
+var _deepDownloadInProgress = false;
 function fetchDeepWeeklyHistory(onProgress){
-  return new Promise(function(resolve){
-    _deepLoadAsync(function(cache) {
+  if (_deepDownloadInProgress) {
+    return win._deepDownloadPromise || Promise.resolve(win._deepWeeklyCache || deepLoadCache());
+  }
+  _deepDownloadInProgress = true;
+  win._deepDownloadPromise = new Promise(function(resolve, reject){
+    try {
+      _deepLoadAsync(function(cache) {
+      // If lastDate is null but dailyMap has data (from a previously
+      // interrupted download), estimate lastDate from the newest entry
+      // so we only fetch truly missing days.
+      if (!cache.lastDate && cache.dailyMap && Object.keys(cache.dailyMap).length > 0) {
+        var newestTs = 0;
+        var dKeys = Object.keys(cache.dailyMap);
+        for (var dk = 0; dk < dKeys.length; dk++) {
+          var arr = cache.dailyMap[dKeys[dk]];
+          if (arr && arr.length > 0) {
+            var last = arr[arr.length - 1].split('|')[0];
+            // Parse DDMMYYYY → timestamp for correct comparison
+            var ldd = parseInt(last.substring(0,2),10);
+            var lmm = parseInt(last.substring(2,4),10)-1;
+            var lyy = parseInt(last.substring(4,8),10);
+            var ts = new Date(lyy,lmm,ldd).getTime();
+            if (ts > newestTs) { newestTs = ts; cache.lastDate = last; }
+          }
+        }
+      }
       var gapDays = deepGenGapDays(cache.lastDate);
-      if (!gapDays.length){ resolve(cache); return; }
+      if (!gapDays.length){ _deepDownloadInProgress = false; win._deepDownloadPromise = null; resolve(cache); return; }
+      // Cap initial download when cache is fresh-empty: only fetch the most
+      // recent 1000 days (≈4 years).  The remaining ~1500 days fill
+      // incrementally in future sessions as lastDate advances.
+      // This avoids hammering the CORS proxies with 2500+ requests on first run.
+      if (!cache.lastDate && gapDays.length > 1000) {
+        gapDays = gapDays.slice(0, 1000);
+      }
+      // Reverse to process OLDEST first — so that on retry after interruption,
+      // deepGenGapDays(lastDate) returns only the remaining NEWER days.
+      gapDays.reverse();
       var total = gapDays.length, idx = 0;
+      var consecutiveFails = 0; // track empty batches — abort if all proxies dead
       _deepShowProgress(0, total);
       function batch(){
         if (idx >= total){
           // Final compression + save
           _compressOldHistory(cache);
-          // Trim per-index arrays to DEEP_WINDOW_DAYS (safety bound)
           var keys = Object.keys(cache.dailyMap);
           for (var k=0;k<keys.length;k++){
             var arr = cache.dailyMap[keys[k]];
             if (arr.length > DEEP_WINDOW_DAYS) cache.dailyMap[keys[k]] = arr.slice(arr.length - DEEP_WINDOW_DAYS);
           }
-          cache.lastDate = deepFmtDate(gapDays[0] || new Date());
+          cache.lastDate = deepFmtDate(gapDays[gapDays.length - 1] || new Date());
           deepSaveCache(cache);
           _deepHideProgress();
+          _deepDownloadInProgress = false;
+          win._deepDownloadPromise = null;
           resolve(cache);
           return;
         }
         var slice = gapDays.slice(idx, idx + DEEP_BATCH_SIZE);
         idx += DEEP_BATCH_SIZE;
-        // Proxy rotation: slot i → primary proxy i%3, falls back to others
+        var batchSuccesses = 0;
         Promise.all(slice.map(function(td, slotIdx){
           var ds = deepFmtDate(td);
           return fetchWithFallback(ds, slotIdx % DEEP_CORS_LIST.length)
@@ -8551,6 +8636,7 @@ function fetchDeepWeeklyHistory(onProgress){
               if (!text) return;
               var lines = text.trim().split('\n').filter(function(l){ return l.trim(); });
               if (lines.length < 2) return;
+              batchSuccesses++;
               for (var i=1;i<lines.length;i++){
                 var v = lines[i].split(',');
                 var name = v[0] && v[0].trim().toLowerCase();
@@ -8567,10 +8653,28 @@ function fetchDeepWeeklyHistory(onProgress){
           var done = Math.min(idx, total);
           if (typeof onProgress === 'function') onProgress(done, total);
           _deepShowProgress(done, total);
-          // Incremental save every 5 batches (~150 days) — compress first so
-          // IDB writes stay small even mid-download
+          // Track consecutive empty batches — if 3 in a row with zero data,
+          // all proxies are dead. Save what we have and abort.
+          if (batchSuccesses === 0) {
+            consecutiveFails++;
+            if (consecutiveFails >= 3) {
+              _deepShowProgress(done, total);
+              var sub = document.getElementById('_deepProgSub');
+              if (sub) sub.textContent = '⚠ All proxies failing — saved ' + done + '/' + total + ' days. Retrying later.';
+              cache.lastDate = deepFmtDate(gapDays[Math.max(0, idx - DEEP_BATCH_SIZE)] || new Date());
+              deepSaveCache(cache);
+              _deepHideProgress();
+              _deepDownloadInProgress = false;
+              win._deepDownloadPromise = null;
+              resolve(cache);
+              return;
+            }
+          } else {
+            consecutiveFails = 0;
+          }
           if (Math.floor(idx / DEEP_BATCH_SIZE) % 5 === 0) {
             _compressOldHistory(cache);
+            cache.lastDate = deepFmtDate(gapDays[idx - 1]);
             deepSaveCache(cache);
           }
           setTimeout(batch, DEEP_BATCH_DELAY);
@@ -8578,7 +8682,9 @@ function fetchDeepWeeklyHistory(onProgress){
       }
       batch();
     });
+    } catch(e) { _deepDownloadInProgress = false; win._deepDownloadPromise = null; reject(e); }
   });
+  return win._deepDownloadPromise;
 }
 
 // Compact Wilder RSI (used by RSI Bias tab for daily + weekly)
@@ -8610,7 +8716,7 @@ function rsiFillDaily(el,name){
     var r50d=rsiCalc(c,50),r8d=rsiCalc(c,8);
     if(!r50d.length||!r8d.length){el.cells[3].textContent='—';el.cells[4].textContent='—';el.cells[2].textContent='—';return;}
     var r50=r50d[r50d.length-1],r8=r8d[r8d.length-1];
-    el._rsiDaily={c:c,r50d:r50d,r8d:r8d,r50:r50,r8:r8};
+    el._rsiDaily={c:c,entries:entries,r50d:r50d,r8d:r8d,r50:r50,r8:r8};
     el.cells[3].textContent=r8.toFixed(1);
     el.cells[3].style.color=r8>r50?'#1a8a1a':'#cc0000';
     el.cells[4].textContent=r50.toFixed(1);
@@ -8621,9 +8727,8 @@ function rsiFillDaily(el,name){
   }catch(e){el.cells[3].textContent='ERR';el.cells[4].textContent='ERR';el.cells[2].textContent='ERR';}
 }
 
-// Calendar-week aggregation: Mon start, last trading day's close = week close
-// Aggregate daily entries into weekly closes: Mon-Fri calendar weeks,
-// last trading day's close wins (matches TradingView method)
+// Calendar-week aggregation: Mon start, proper weekly OHLC
+// First day's open, max high, min low, last close per week
 function deepToWeeklyCloses(entries){
   var sorted=entries.slice().sort(function(a,b){
     var da=a.substring(4,8)+a.substring(2,4)+a.substring(0,2);
@@ -8633,24 +8738,35 @@ function deepToWeeklyCloses(entries){
   var map={};
   for(var i=0;i<sorted.length;i++){
     var p=sorted[i].split('|');
+    if(p.length<5)continue;
     var ds=p[0],dd=+ds.substring(0,2),mm=+ds.substring(2,4)-1,yy=+ds.substring(4,8);
     var dt=new Date(yy,mm,dd);
     if(dt.getDay()===0||dt.getDay()===6) continue;
     var dow=dt.getDay(),mon=new Date(dt);
     mon.setDate(dt.getDate()-(dow===0?6:dow-1));
     var wk=mon.getFullYear()*10000+(mon.getMonth()+1)*100+mon.getDate();
-    map[wk]=+p[4];
+    var o=parseFloat(p[1]),h=parseFloat(p[2]),l=parseFloat(p[3]),c=parseFloat(p[4]);
+    if(isNaN(o)||isNaN(h)||isNaN(l)||isNaN(c))continue;
+    if(!map[wk]){map[wk]={o:o,h:h,l:l,c:c};}
+    else{var w=map[wk];if(h>w.h)w.h=h;if(l<w.l)w.l=l;w.c=c;}
   }
-  return Object.keys(map).sort().map(function(w){return map[w];});
+  var weeks=Object.keys(map).sort();
+  return weeks.map(function(w){return map[w];});
 }
+// Monthly aggregation: proper OHLC per month
+// First day's open, max high, min low, last close
 function toMonthlyCloses(entries){
   var map={};
   for(var i=0;i<entries.length;i++){
     var p=entries[i].split('|');
+    if(p.length<5)continue;
     var dt=p[0];
     if(!dt||dt.length<8)continue;
     var ym=dt.substring(4,8)+dt.substring(2,4);
-    map[ym]=+p[4];
+    var o=parseFloat(p[1]),h=parseFloat(p[2]),l=parseFloat(p[3]),c=parseFloat(p[4]);
+    if(isNaN(o)||isNaN(h)||isNaN(l)||isNaN(c))continue;
+    if(!map[ym]){map[ym]={o:o,h:h,l:l,c:c};}
+    else{var m=map[ym];if(h>m.h)m.h=h;if(l<m.l)m.l=l;m.c=c;}
   }
   return Object.keys(map).sort().map(function(k){return map[k];});
 }
@@ -8665,11 +8781,23 @@ function wma(arr,n){
 function rsiFillMonthly(el,name){
   try{
     var sd=win._ldScannerData;
-    if(!sd||!sd.dailyMap){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
-    var entries=sd.dailyMap[(name||'').toLowerCase()];
+    var entries=null;
+    if(sd&&sd.dailyMap){entries=sd.dailyMap[(name||'').toLowerCase()];}
+    if(!entries||entries.length<200){
+      var histKey=rsNormalize(name);
+      var histArr=typeof EMBEDDED_HISTORICAL!=='undefined'?EMBEDDED_HISTORICAL[histKey]:null;
+      if(histArr&&histArr.length>=200){
+        var tDays=genTradingDays(histArr.length);
+        entries=[];
+        var n=Math.min(histArr.length,tDays.length);
+        var off=histArr.length-n;
+        for(var j=0;j<n;j++){var td=tDays[n-1-j];var cv=histArr[off+j];entries.push(fmtDDMMYYYY(td)+'|'+cv+'|'+cv+'|'+cv+'|'+cv);}
+      }
+    }
     if(!entries||entries.length<200){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
     var mc=toMonthlyCloses(entries);
-    var r9m=rsiCalc(mc,9);
+    var mcCloses=mc.map(function(w){return w.c;});
+    var r9m=rsiCalc(mcCloses,9);
     if(!r9m||r9m.length<21){el.cells[8].textContent='—';el.cells[9].textContent='—';el.cells[10].textContent='—';return;}
     var latestRSI9=r9m[r9m.length-1];
     var wmaVal=wma(r9m,21);
@@ -8703,11 +8831,25 @@ function rsiFillWeekly(el,name){
       var sd2=win._ldScannerData;
       var rawEntries=sd2&&sd2.dailyMap?sd2.dailyMap[(name||'').toLowerCase()]:null;
       if(rawEntries&&rawEntries.length>=20){ wc=deepToWeeklyCloses(rawEntries); src='EXACT'; }
-      else { wc=[];for(var i=0;i<rd.c.length;i+=5)wc.push(rd.c[Math.min(i+4,rd.c.length-1)]);src='APPROX'; }
+      else {
+        var histKey=rsNormalize(name);
+        var histArr=typeof EMBEDDED_HISTORICAL!=='undefined'?EMBEDDED_HISTORICAL[histKey]:null;
+        if(histArr&&histArr.length>=20){
+          var tDays=genTradingDays(histArr.length);
+          var entries=[];
+          var n=Math.min(histArr.length,tDays.length);
+          var off=histArr.length-n;
+          for(var j=0;j<n;j++){var td=tDays[n-1-j];var cv=histArr[off+j];entries.push(fmtDDMMYYYY(td)+'|'+cv+'|'+cv+'|'+cv+'|'+cv);}
+          wc=deepToWeeklyCloses(entries); src='EMBEDDED('+histArr.length+')';
+        }else{
+          wc=[];for(var i=0;i<rd.c.length;i+=5){var v=rd.c[Math.min(i+4,rd.c.length-1)];wc.push({o:v,h:v,l:v,c:v});}src='APPROX';
+        }
+      }
     }
     else { el.cells[7].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return; }
     if(!wc||wc.length<65){el.cells[7].textContent='—';el.cells[5].textContent='NEED MORE DATA';el._rsiSrc='FAIL';return;}
-    var r50w=rsiCalc(wc,50);
+    var wcCloses=wc.map(function(w){return w.c;});
+    var r50w=rsiCalc(wcCloses,50);
     var rw=r50w.length?r50w[r50w.length-1]:null;
     if(rw===null||isNaN(rw)){el.cells[7].textContent='—';el.cells[5].textContent='NO DATA';el._rsiSrc='FAIL';return;}
     var r8=rd.r8,r50=rd.r50;
@@ -8717,7 +8859,7 @@ function rsiFillWeekly(el,name){
     else if(rw>50)st='ABOVE';else st='BELOW';
     el.cells[7].textContent=rw.toFixed(1)+(src==='EXACT'?'':'≈');
     el.cells[7].style.color=rw>50?'#1a8a1a':'#cc0000';
-    el.cells[7].title=src==='EXACT'?'TradingView calendar-week W-RSI(50)':'Approximate (every-5th-day)';
+    el.cells[7].title=src==='EXACT'?'TradingView calendar-week W-RSI(50)':src.indexOf('EMBEDDED')>=0?'From embedded 10yr snapshot':'Approximate (every-5th-day)';
     el.cells[5].textContent=st;
     var sc=st==='⚡CROSSOVER'?'#006600':st==='⛔CROSSUNDER'?'#cc0000':st==='WATCH BUY'?'#cc8800':st==='WATCH SELL'?'#cc4400':st==='ABOVE'?'#1a8a1a':'#888';
     el.cells[5].style.color=sc;
@@ -8741,7 +8883,16 @@ function rsiRunAll(){
   var st=document.getElementById('rsi-st');
   var tb=document.getElementById('rsi-tbody');
   if(!sd||!sd.indexList||!sd.indexList.length){
-    if(typeof EMBEDDED_NSE_DATA!=='undefined'&&EMBEDDED_NSE_DATA.indices&&EMBEDDED_HISTORICAL){
+    // Fallback: use deep cache directly if Scanner hasn't run yet
+    var dc=win._deepWeeklyCache;
+    if(dc&&dc.dailyMap&&Object.keys(dc.dailyMap).length>0){
+      var keys=Object.keys(dc.dailyMap);
+      var idxList=keys.filter(function(k){return dc.dailyMap[k]&&dc.dailyMap[k].length>=10;}).map(function(k){
+        return {name:k.replace(/\b\w/g,function(c){return c.toUpperCase();}),key:k};
+      });
+      sd={indexList:idxList,priceMap:{},dailyMap:dc.dailyMap,nseRaw:[]};
+      win._ldScannerData=sd;
+    } else if(typeof EMBEDDED_NSE_DATA!=='undefined'&&EMBEDDED_NSE_DATA.indices&&EMBEDDED_HISTORICAL){
       var tDays=genTradingDays(1000);
       var indexList=[],priceMap={},dailyMap={};
       EMBEDDED_NSE_DATA.indices.forEach(function(idx){
@@ -8780,31 +8931,28 @@ function rsiRunAll(){
     rsiFillDaily(el,all[i].name);
     rsiFillMonthly(el,all[i].name);
   }
-  // Deep history top-up (280-day rolling window, incremental fetch) — needed
-  // for a genuine 50-period weekly RSI. Runs after daily columns are
-  // visible so the person sees immediate partial progress rather than a
-  // blank table while this (potentially slow, CORS-proxy-dependent) fetch
-  // completes. rsiFillWeekly() falls back to Scanner's shallower data (and
-  // an honest "NO DATA") if this hasn't finished or fails.
-  if (location.protocol === 'file:') {
-    if(st)st.textContent='✅ '+all.length+' indices — W-RSI50 (calendar-week, embedded 1000-day)';
-    runWeeklyPass();
-    return;
+  // Fire deep history download in background — don't block the weekly pass.
+  // Weekly pass runs immediately with scanner's ~1000-day data (good enough
+  // for W-RSI50 via APPROX/EMBEDDED fallback).  When deep download completes,
+  // re-run the weekly pass so indices with <50 weeks get upgraded to EXACT.
+  runWeeklyPass(false);
+  if (location.protocol !== 'file:') {
+    fetchDeepWeeklyHistory().then(function(cache){
+      win._deepWeeklyCache = cache;
+      if(st)st.textContent='✅ Deep cache updated — re-computing W-RSI50...';
+      runWeeklyPass(true);
+      setTimeout(function(){if(st)st.textContent='✅ '+all.length+' indices — W-RSI50 updated (deep cache)';},1500);
+    }).catch(function(){
+      win._deepWeeklyCache = win._deepWeeklyCache || deepLoadCache();
+    });
   }
-  if(st)st.textContent='⏳ Updating weekly history cache...';
-  fetchDeepWeeklyHistory(function(done,total){
-    if(st)st.textContent='⏳ Weekly history: '+done+'/'+total+' new days...';
-  }).then(function(cache){
-    win._deepWeeklyCache = cache;
-    runWeeklyPass();
-  }).catch(function(){
-    win._deepWeeklyCache = win._deepWeeklyCache || deepLoadCache();
-    runWeeklyPass();
-  });
 
-  function runWeeklyPass(){
-    // Pass 2: fill W-RSI50 + Status in batches of 5
-    if(st)st.textContent='⏳ Computing W-RSI50 ('+all.length+' indices, batches of 5)...';
+  function runWeeklyPass(isUpgrade){
+    // Pass 2: fill W-RSI50 + Status in batches of 5.
+    // isUpgrade=true means deep cache just finished — re-compute rows that
+    // were previously APPROX/FAIL to pick up more EXACT results.
+    var label = isUpgrade ? 'Upgrading W-RSI50 (deep cache loaded)...' : 'Computing W-RSI50 ('+all.length+' indices, batches of 5)...';
+    if(st)st.textContent='⏳ '+label;
     var idx=0;
     var exactCount=0, approxCount=0, failCount=0;
     function nextBatch(){
@@ -8819,17 +8967,19 @@ function rsiRunAll(){
           else failCount++;
         }
       }
-      if(st)st.textContent='⏳ '+(idx<all.length?idx+'/'+all.length:'✅ Sorting...')+' weekly RSI';
+      if(st)st.textContent='⏳ '+(idx<all.length?idx+'/'+all.length:'✅ Sorting...')+(isUpgrade?' upgrade':' weekly RSI');
       if(idx<all.length){setTimeout(nextBatch,5);return;}
       rsiSortTable();
-      if(st)st.textContent='✅ '+all.length+' indices — sorted: Watch Buy ↑ Watch Sell ↑ Above ↑ Below';
+      var suffix = isUpgrade ? ' (deep cache)' : '';
+      if(st)st.textContent='✅ '+all.length+' indices — sorted: Watch Buy ↑ Watch Sell ↑ Above ↑ Below'+suffix;
       try{
         var dg=document.getElementById('rsi-diag');
         if(dg){
           var sd=win._ldScannerData;
           var dmKeys=sd&&sd.dailyMap?Object.keys(sd.dailyMap).length:0;
+          var dcKeys=win._deepWeeklyCache&&win._deepWeeklyCache.dailyMap?Object.keys(win._deepWeeklyCache.dailyMap).length:0;
           dg.style.display='block';
-          dg.innerHTML='<b>W-RSI(50) Method:</b> Wilder RMA(50) on calendar-week (Mon-Fri) closes<br><b>Source:</b> EMBEDDED_HISTORICAL 1000-day snapshot | dailyMap='+dmKeys+' indices<br><b>Results:</b> <span style="color:#006600">EXACT='+exactCount+'</span> (TradingView match) | <span style="color:#cc8800">APPROX='+approxCount+'</span> | FAIL='+failCount+' | file://='+('file:'===location.protocol);
+          dg.innerHTML='<b>W-RSI(50) Method:</b> Wilder RMA(50) on calendar-week (Mon-Fri) closes<br><b>Source:</b> scanner=1000-day | deepCache='+dcKeys+' indices | dailyMap='+dmKeys+' indices<br><b>Results:</b> <span style="color:#006600">EXACT='+exactCount+'</span> (TradingView match) | <span style="color:#cc8800">APPROX='+approxCount+'</span> | FAIL='+failCount+' | file://='+('file:'===location.protocol);
         }
       }catch(e){}
     }
@@ -8947,6 +9097,37 @@ win.rsiScanAll=rsiRunAll;
 // the static EMBEDDED_HISTORICAL snapshot baked into the file.
 win.fetchDeepWeeklyHistory = fetchDeepWeeklyHistory;
 win.deepLoadCache = deepLoadCache;
+// ── Auto-refresh on page load ─────────────────────────────────────────────
+// Check cache staleness and trigger background update if needed.
+// Ensures daily/weekly/monthly data stays fresh without manual scan.
+// Pre-populate synchronously from localStorage so pages have instant access,
+// then async-load from IDB/localStorage for the freshest copy.
+(function(){
+  try { win._deepWeeklyCache = deepLoadCache(); } catch(e) {}
+  if (location.protocol === 'file:') return; // skip auto-refresh from file:// (proxies unreliable)
+  _deepLoadAsync(function(cache){
+    win._deepWeeklyCache = cache;
+    if(!cache||!cache.lastDate) return;
+    var dd=parseInt(cache.lastDate.substring(0,2),10);
+    var mm=parseInt(cache.lastDate.substring(2,4),10)-1;
+    var yy=parseInt(cache.lastDate.substring(4,8),10);
+    var last=new Date(yy,mm,dd);
+    var diffMs=Date.now()-last.getTime();
+    var diffDays=Math.floor(diffMs/86400000);
+    if(diffDays>=1){
+      fetchDeepWeeklyHistory(function(done,total){
+        var st=document.getElementById('rsi-st');
+        if(st) st.textContent='⏳ Auto-refresh: '+done+'/'+total+' days...';
+      }).then(function(newCache){
+        win._deepWeeklyCache=newCache;
+        var st=document.getElementById('rsi-st');
+        if(st) st.textContent='✅ Cache updated ('+diffDays+' day(s) stale)';
+        setTimeout(function(){if(st) st.textContent='';},3000);
+      }).catch(function(){});
+    }
+  });
+})();
+  win.DEEP_KEEP_RAW_MONTHS = DEEP_KEEP_RAW_MONTHS;
 })(window);
 </script>
 
@@ -9170,9 +9351,25 @@ function MFScanner() {
   const F = { fontFamily: "'Space Mono','Courier New',monospace", color: "#000" };
   const accent = "#009e70", accent2 = "#c97a00", red = "#c8102e";
   const surf = "#f2f5f9", surf2 = "#e4eaf2", bdr = "#b0bece", bdr2 = "#7090b0";
-  function doScan() {
+  async function doScan() {
     stopRef.current = false;
-    const sd = window._ldScannerData;
+    var sd = window._ldScannerData;
+    // Fallback: use deep cache directly if Scanner hasn't run yet
+    if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
+      var dc = window._deepWeeklyCache;
+      if (!dc || !dc.dailyMap || Object.keys(dc.dailyMap).length === 0) {
+        dc = await new Promise(function(res){ _deepLoadAsync(res); });
+        window._deepWeeklyCache = dc;
+      }
+      if (dc && dc.dailyMap && Object.keys(dc.dailyMap).length > 0) {
+        var dcKeys = Object.keys(dc.dailyMap);
+        var dcIdxList = dcKeys.filter(function(k){ return dc.dailyMap[k] && dc.dailyMap[k].length >= 10; }).map(function(k){
+          return { name: k.replace(/\b\w/g, function(c){ return c.toUpperCase(); }), key: k };
+        });
+        sd = { dailyMap: dc.dailyMap, indexList: dcIdxList, priceMap: {}, nseRaw: [] };
+        window._ldScannerData = sd;
+      }
+    }
     if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
       setProgress({ done: 0, total: 0, label: "No data \u2014 run Nifty Index Scanner first" });
       setScanning(false);
@@ -9431,11 +9628,28 @@ window._hmHist = null;
 window._hmHistCode = null;
 window._hmTfDays = 99999;
 window._hmPeriod = 'daily';
-function hmPopulateIndexDropdown() {
+async function hmPopulateIndexDropdown() {
   var catSel = document.getElementById('hmCatSelect');
   var idxSel = document.getElementById('hmIndexSelect');
   if (!catSel || !idxSel) return;
   var sd = window._ldScannerData;
+  // Fallback: build indexList from deep cache keys if Scanner hasn't run yet
+  if (!sd || !sd.indexList) {
+    var dc = window._deepWeeklyCache;
+    if (!dc || !dc.dailyMap || Object.keys(dc.dailyMap).length === 0) {
+      dc = await new Promise(function(res){ _deepLoadAsync(res); });
+      window._deepWeeklyCache = dc;
+    }
+    if (dc && dc.dailyMap && Object.keys(dc.dailyMap).length > 0) {
+      var keys = Object.keys(dc.dailyMap);
+      var idxList = keys.filter(function(k){ return dc.dailyMap[k] && dc.dailyMap[k].length >= 10; }).map(function(k){
+        var display = k.replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+        return { name: display, key: k, nseKey: 'Other' };
+      });
+      sd = { dailyMap: dc.dailyMap, indexList: idxList, priceMap: {}, nseRaw: [] };
+      window._ldScannerData = sd;
+    }
+  }
   if (!sd || !sd.indexList) return;
   var dm = sd.dailyMap || {};
   var prevCat = catSel.value;
@@ -9621,10 +9835,23 @@ function hmAvailDaysFromHist(hist) {
 function hmRefreshPeriodButtonStates(hist) {
     if (!hist) return;
     var lens = { daily: hist.length, weekly: hmAggregateWeeks(hist).length, monthly: hmAggregateMonths(hist).length };
+    // Daily raw OHLC is limited to DEEP_KEEP_RAW_MONTHS months
+    var dailyMaxCandles = (window.DEEP_KEEP_RAW_MONTHS || 36) * 21; // ~21 trading days/month
     document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) {
       var per = b.dataset.period, len = lens[per] || 0;
-      if (len < 2) { b.style.opacity = '0.4'; b.title = 'Only ' + len + ' ' + per + ' point' + (len === 1 ? '' : 's') + ' available for this index'; }
-      else { b.style.opacity = '1'; b.title = ''; }
+      if (len < 2) {
+        b.style.opacity = '0.4';
+        b.title = 'Only ' + len + ' ' + per + ' point' + (len === 1 ? '' : 's') + ' available for this index';
+      } else if (per === 'daily' && hist.length > dailyMaxCandles) {
+        // Daily data beyond 36 months is monthly stubs, not real daily candles
+        b.style.opacity = '0.7';
+        b.title = 'Daily: last 36 months are real OHLC, older entries are monthly approximations. Use Weekly for full coverage.';
+      } else {
+        b.style.opacity = '1';
+        b.title = per === 'weekly' ? 'Weekly candles from daily OHLC \u2014 full 10-year coverage'
+                : per === 'monthly' ? 'Monthly candles from daily OHLC \u2014 full 10-year coverage'
+                : '';
+      }
     });
 }
 // Greys out timeframe buttons that can't add anything for the current
@@ -9634,20 +9861,33 @@ function hmRefreshPeriodButtonStates(hist) {
 // button. Floor-disabled buttons are also made unclickable, since tapping
 // them changes nothing — that's clearer on mobile than a tap that silently
 // does nothing.
+// For the DAILY period, buttons beyond DEEP_KEEP_RAW_MONTHS (36 months)
+// are dimmed because older data is stored as monthly stubs, not daily OHLC.
 function hmRefreshTfButtonStates(availDays) {
-    var floor = hmPeriodFloor(window._hmPeriod || 'daily');
+    var period = window._hmPeriod || 'daily';
+    var floor = hmPeriodFloor(period);
+    // Daily data is only raw OHLC for DEEP_KEEP_RAW_MONTHS months (~1080 days).
+    // Beyond that, entries are monthly stubs — not usable for daily charts.
+    var DAILY_RAW_MAX_DAYS = (window.DEEP_KEEP_RAW_MONTHS || 36) * 30;
     var btns = Array.prototype.slice.call(document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)'));
     var sorted = btns.slice().sort(function(a, b) { return parseInt(a.dataset.days, 10) - parseInt(b.dataset.days, 10); });
-    var coveredFull = false, anyFloor = false, anyRange = false;
+    var coveredFull = false, anyFloor = false, anyRange = false, anyDailyLimit = false;
     sorted.forEach(function(b) {
       var bd = parseInt(b.dataset.days, 10);
       if (bd < floor) {
         b.style.opacity = '0.35'; b.style.pointerEvents = 'none';
-        b.title = 'Merges into the ' + window._hmPeriod + ' minimum range (' + floor + ' days)';
+        b.title = 'Merges into the ' + period + ' minimum range (' + floor + ' days)';
         anyFloor = true;
         return;
       }
       b.style.pointerEvents = '';
+      // For daily period: dim buttons beyond raw daily data window
+      if (period === 'daily' && bd > DAILY_RAW_MAX_DAYS) {
+        b.style.opacity = '0.4'; b.style.pointerEvents = 'none';
+        b.title = 'Only monthly data available beyond 36 months \u2014 switch to Monthly for full coverage';
+        anyDailyLimit = true;
+        return;
+      }
       if (availDays != null && coveredFull) {
         b.style.opacity = '0.55';
         b.title = 'Same chart as a shorter range \u2014 only ~' + Math.round(availDays) + ' days of history for this index';
@@ -9659,8 +9899,11 @@ function hmRefreshTfButtonStates(availDays) {
     });
     var hint = document.getElementById('hmBtnHint');
     if (!hint) return;
-    if (anyFloor && anyRange) { hint.textContent = 'Greyed: too short for this period, or beyond this index\u2019s history'; hint.style.display = 'block'; }
-    else if (anyFloor) { hint.textContent = 'Greyed buttons are too short a range for ' + window._hmPeriod + ' view'; hint.style.display = 'block'; }
+    if (anyDailyLimit) {
+      hint.textContent = 'Daily: raw OHLC only for last 36 months. Use Weekly/Monthly for older data.';
+      hint.style.display = 'block';
+    } else if (anyFloor && anyRange) { hint.textContent = 'Greyed: too short for this period, or beyond this index\u2019s history'; hint.style.display = 'block'; }
+    else if (anyFloor) { hint.textContent = 'Greyed buttons are too short a range for ' + period + ' view'; hint.style.display = 'block'; }
     else if (anyRange) { hint.textContent = 'Greyed buttons repeat this index\u2019s full available history'; hint.style.display = 'block'; }
     else { hint.style.display = 'none'; }
 }
@@ -9747,12 +9990,24 @@ async function drawHilegaMilega() {
     if (ovTxt) { ovTxt.textContent = 'LOADING\u2026'; ovTxt.style.color = ''; }
     try {
         var sd = window._ldScannerData;
+        // Fallback: if Scanner (Step 1) hasn't been run yet, use the deep
+        // cache directly — async-load from IDB/localStorage if not ready yet.
         if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
-          hmShowCanvasMessage('\u26A0 Run the Nifty Index Scanner first', 'Open the Scanner tab (or SCAN ALL), then come back here');
-          hmClearStatBoxes('No scanner data yet');
+          var dc = window._deepWeeklyCache;
+          if (!dc || !dc.dailyMap || Object.keys(dc.dailyMap).length === 0) {
+            dc = await new Promise(function(res){ _deepLoadAsync(res); });
+            window._deepWeeklyCache = dc;
+          }
+          if (dc && dc.dailyMap && Object.keys(dc.dailyMap).length > 0) {
+            sd = { dailyMap: dc.dailyMap, indexList: [], priceMap: {}, nseRaw: [] };
+          }
+        }
+        if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
+          hmShowCanvasMessage('\u26A0 No cached data yet \u2014 run Step 1 first or wait for auto-refresh', 'Open the Scanner tab and click Execute X-Ray Audit, then come back here');
+          hmClearStatBoxes('No data available');
           clearTimeout(safetyTimer); hmHideOv(); return;
         }
-        if (!document.getElementById('hmIndexSelect')?.value) hmPopulateIndexDropdown();
+        if (!document.getElementById('hmIndexSelect')?.value) await hmPopulateIndexDropdown();
         var key = document.getElementById('hmIndexSelect')?.value;
         if (!key) {
           hmShowCanvasMessage('No index available to chart', '(scanner data loaded, but nothing matched)');
@@ -9923,7 +10178,7 @@ async function drawHilegaMilega() {
     } catch (e) { clearTimeout(safetyTimer); hmHideOv(); hmShowCanvasMessage('Chart render failed', e.message || 'Unknown error — check Brave Shields fingerprint protection'); hmClearStatBoxes('Render error'); }
 }
 function openHilegaTab() {
-  hmPopulateIndexDropdown();
+  hmPopulateIndexDropdown().then(function(){
   window._hmTfDays = parseInt(localStorage.getItem('hm_tf_days_v2')) || 99999;
   window._hmPeriod = localStorage.getItem('hm_period_v2') || 'weekly';
   // Re-apply the period floor on every tab open too — the two values are
@@ -9958,8 +10213,8 @@ function openHilegaTab() {
     }
   }
   requestAnimationFrame(function() { drawHilegaMilega(); });
+  }).catch(function(){ requestAnimationFrame(function() { drawHilegaMilega(); }); });
 }
-// ── Hilega Tab: redraw on viewport size changes ──
 // Mobile browsers resize the visible viewport (address bar show/hide on
 // scroll, rotation) without firing anything that would otherwise tell this
 // canvas to re-measure itself. drawHilegaMilega() only reads the wrapper's
