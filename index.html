@@ -2649,10 +2649,15 @@ Reasoning: [One-line explanation tying data to the rule]`;
       // live fetch genuinely can't produce anything.
       try {
         setProgress({ done: 0, total: 1, label: 'Fetching live closing prices…' });
-        if (typeof window.fetchDeepWeeklyHistory === 'function' && location.protocol !== 'file:') {
-          deepCache = await window.fetchDeepWeeklyHistory((doneN, totalN) => {
-            setProgress({ done: doneN, total: totalN, label: `Live closes: ${doneN}/${totalN} days` });
-          });
+        if (typeof window.fetchDeepWeeklyHistory === 'function') {
+          if (location.protocol !== 'file:') {
+            deepCache = await window.fetchDeepWeeklyHistory((doneN, totalN) => {
+              setProgress({ done: doneN, total: totalN, label: `Live closes: ${doneN}/${totalN} days` });
+            });
+          } else {
+            // file:// — load existing deep cache from IDB/localStorage without download
+            deepCache = await new Promise(function(res){ _deepLoadAsync(function(d){ res(d); }); });
+          }
           if (deepCache && deepCache.dailyMap && Object.keys(deepCache.dailyMap).length > 10) {
             const converted = {};
             const convertedOHLC = {};
@@ -10002,6 +10007,14 @@ async function drawHilegaMilega() {
             sd = { dailyMap: dc.dailyMap, indexList: [], priceMap: {}, nseRaw: [] };
           }
         }
+        // Always load deep cache for per-key comparison — scanner's dailyMap
+        // may have fake dates (file:// protocol with EMBEDDED_HISTORICAL) while
+        // the deep cache has real historical dates spanning 10 years.
+        var dcAll = window._deepWeeklyCache;
+        if (!dcAll || !dcAll.dailyMap || Object.keys(dcAll.dailyMap).length === 0) {
+          dcAll = await new Promise(function(res){ _deepLoadAsync(res); });
+          window._deepWeeklyCache = dcAll;
+        }
         if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
           hmShowCanvasMessage('\u26A0 No cached data yet \u2014 run Step 1 first or wait for auto-refresh', 'Open the Scanner tab and click Execute X-Ray Audit, then come back here');
           hmClearStatBoxes('No data available');
@@ -10019,6 +10032,14 @@ async function drawHilegaMilega() {
         var idxSelect = document.getElementById('hmIndexSelect');
         var origName = idxSelect?.options?.[idxSelect.selectedIndex]?.dataset?.name;
         var entries = sd.dailyMap[key] || sd.dailyMap[(key || '').toLowerCase()] || (origName ? sd.dailyMap[origName.toLowerCase()] : null);
+        // Prefer deep cache entries if they have more data (real 10-year dates
+        // vs scanner's fake dates from file:// EMBEDDED_HISTORICAL fallback)
+        if (dcAll && dcAll.dailyMap) {
+          var dcEntries = dcAll.dailyMap[key] || dcAll.dailyMap[(key || '').toLowerCase()] || (origName ? dcAll.dailyMap[origName.toLowerCase()] : null);
+          if (dcEntries && dcEntries.length > (entries ? entries.length : 0)) {
+            entries = dcEntries;
+          }
+        }
         if (!entries || entries.length < 10) {
           hmShowCanvasMessage('No data for ' + (key || 'selected index'), '(' + (entries ? entries.length : 0) + ' entries — try another index)');
           hmClearStatBoxes('No data for this index');
@@ -10038,12 +10059,14 @@ async function drawHilegaMilega() {
         }
         window._hmHist = hist;
         window._hmHistCode = key;
+        console.log('[HM TRACE] period=' + window._hmPeriod + ' tfDays=' + window._hmTfDays + ' key=' + key + ' dailyEntries=' + entries.length + ' histLen=' + hist.length + ' first=' + (hist[0] ? hist[0].date : '?') + ' last=' + (hist[hist.length-1] ? hist[hist.length-1].date : '?'));
         hmRefreshPeriodButtonStates(hist);
         hmRefreshTfButtonStates(hmAvailDaysFromHist(hist));
         hmSetDefaultDates();
         var viewData = hist;
         if (window._hmPeriod === 'weekly') viewData = hmAggregateWeeks(hist);
         else if (window._hmPeriod === 'monthly') viewData = hmAggregateMonths(hist);
+        console.log('[HM TRACE] viewData.length=' + viewData.length + ' first=' + (viewData[0] ? viewData[0].date : '?') + ' last=' + (viewData[viewData.length-1] ? viewData[viewData.length-1].date : '?'));
         var rsiLen = parseInt(document.getElementById('hmRsiLen').value) || 9;
         var wmaLen = parseInt(document.getElementById('hmWmaLen').value) || 21;
         var emaLen = parseInt(document.getElementById('hmEmaLen').value) || 3;
@@ -10057,6 +10080,7 @@ async function drawHilegaMilega() {
         var slicedIdx = 0;
         for (var si2 = 0; si2 < viewData.length; si2++) { var dt = hmParseDate(viewData[si2].date); if (!isNaN(dt.getTime()) && dt >= cutoffDate) { slicedIdx = si2; break; } }
         var slicedLen = viewData.length - slicedIdx;
+        console.log('[HM TRACE] cutoffDate=' + cutoffDate.toISOString().slice(0,10) + ' slicedIdx=' + slicedIdx + ' slicedLen=' + slicedLen + ' viewDataTotal=' + viewData.length);
         if (slicedLen < 2) {
           var periodLabelInsuff = window._hmPeriod.charAt(0).toUpperCase() + window._hmPeriod.slice(1);
           hmShowCanvasMessage('Not enough ' + periodLabelInsuff + ' data points in this range', 'Try a longer timeframe button, or switch to Daily/Weekly period');
