@@ -959,11 +959,11 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <button class="tab-btn" onclick="switchTab('rsi')">📡 RSI Bias</button>
     <button class="tab-btn" onclick="switchTab('hilega')">📈 Hilega</button>
     <button class="tab-btn" onclick="switchTab('ba')">⚖️ Balanced Allocation</button>
-    <button class="tab-btn" onclick="switchTab('pt')">💹 Paper Trade</button>
+    <button class="tab-btn" onclick="switchTab('pt')">💹 Portfolio Snapshot</button>
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.1</span>
+    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.2</span>
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → Confluence → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
@@ -1511,16 +1511,39 @@ function ldTodayIstStr() {
   return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
 }
 
-const APP_VERSION = 'v5.1';
-function ldBuildBackupPayload() {
+const APP_VERSION = 'v5.1';
+
+// Reads the deep weekly/daily/monthly history straight from IndexedDB —
+// the primary store for this data. The localStorage mirror (BB.deepCacheV4)
+// is a convenience copy only and is NOT relied upon here: at full 10-year
+// size (~15-20MB across daily/weekly/monthly) it routinely exceeds the
+// ~5-10MB localStorage quota and silently fails to save, which would
+// otherwise make the JSON backup miss the deep history entirely.
+function _ldLoadDeepCacheForBackup() {
+  return new Promise(function(resolve) {
+    if (typeof window._deepLoadAsync !== 'function') { resolve(null); return; }
+    try {
+      window._deepLoadAsync(function(dc) {
+        if (dc && dc.dailyMap && Object.keys(dc.dailyMap).length > 0) resolve(dc);
+        else resolve(null);
+      });
+    } catch (e) { resolve(null); }
+  });
+}
+
+async function ldBuildBackupPayload() {
   const dump = BB.getAll();
+  const deepCache = await _ldLoadDeepCacheForBackup();
   return {
     __ldBackup: true,
     app: 'Nifty Index Scanner',
     version: APP_VERSION,
     savedAt: new Date().toISOString(),
     keyCount: Object.keys(dump).length,
-    data: dump
+    data: dump,
+    // Separate top-level field (not part of `data`/localStorage dump) since
+    // it comes from IndexedDB and is restored via a different code path.
+    deepCache: deepCache
   };
 }
 
@@ -1533,7 +1556,7 @@ async function ldLoadHandle() { return CC.backupLoadHandle(); }
 // write if a file is already linked AND permission is already granted —
 // it never opens a picker or a permission prompt (both need a user click).
 async function ldExportAllData(silent) {
-  const payload = ldBuildBackupPayload();
+  const payload = await ldBuildBackupPayload();
   const json = JSON.stringify(payload);
   const fsaSupported = typeof window.showSaveFilePicker === 'function';
 
@@ -1590,7 +1613,7 @@ async function ldExportAllData(silent) {
   }
 }
 
-function ldApplyBackupJson(text) {
+async function ldApplyBackupJson(text) {
   try {
     const parsed = JSON.parse(text);
     const data = (parsed && typeof parsed === 'object' && parsed.data) ? parsed.data : parsed;
@@ -1598,7 +1621,19 @@ function ldApplyBackupJson(text) {
       throw new Error('Not a valid backup file');
     }
     const restored = BB.restoreAll(data);
-    ldShowBackupMsg(`✓ Restored ${restored} keys — reloading…`);
+    // Deep 10-year history (daily/weekly/monthly) lives in IndexedDB, not
+    // localStorage — restore it separately via the same path deepSaveCache
+    // uses, so a fresh browser/profile gets the full history back, not just
+    // whatever fit in the (often-truncated) localStorage mirror.
+    let deepRestored = false;
+    if (parsed && parsed.deepCache && parsed.deepCache.dailyMap
+        && Object.keys(parsed.deepCache.dailyMap).length > 0
+        && typeof window.deepSaveCache === 'function') {
+      try { window.deepSaveCache(parsed.deepCache); deepRestored = true; } catch (e) {
+        console.warn('[LD] deep cache restore failed', e);
+      }
+    }
+    ldShowBackupMsg(`✓ Restored ${restored} keys${deepRestored ? ' + deep history' : ''} — reloading…`);
     setTimeout(() => window.location.reload(), 900);
   } catch (err) {
     console.error('[LD] backup restore failed', err);
@@ -1617,7 +1652,7 @@ async function ldImportAllData() {
         const file = await handle.getFile();
         const text = await file.text();
         if (!window.confirm(`Restore from "${file.name}"? This will overwrite current saved data (scanner cache, watchlist, paper trade, settings) and reload the app.`)) return;
-        ldApplyBackupJson(text);
+        await ldApplyBackupJson(text);
         return;
       }
     }
@@ -1636,7 +1671,7 @@ async function ldImportAllData() {
         const perm = await handle.requestPermission({ mode: 'readwrite' });
         if (perm === 'granted') await ldSaveHandle(handle); // link it for future silent saves too
       } catch (e) { /* read-only is fine, restore still works */ }
-      ldApplyBackupJson(text);
+      await ldApplyBackupJson(text);
       return;
     } catch (e) {
       if (e && e.name === 'AbortError') return; // user cancelled
@@ -1672,7 +1707,7 @@ function ldOnRestoreFileChosen(e) {
     return;
   }
   const reader = new FileReader();
-  reader.onload = function(ev) { ldApplyBackupJson(ev.target.result); };
+  reader.onload = function(ev) { ldApplyBackupJson(ev.target.result); }; // fire-and-forget; function self-handles errors
   reader.onerror = function() { ldShowBackupMsg('⚠ Could not read file', true); };
   reader.readAsText(file);
   input.value = '';
@@ -2009,14 +2044,20 @@ var DD = (function() {
   // localhost/github.io/ngrok/trycloudflare-style dev origins — file://
   // and most personal-use hosting are no longer covered, so it was
   // failing ~1/4 of every batch (it rotates as the starting proxy).
-  // Demoted to last as a long-shot fallback; allorigins/codetabs first.
-  // All proxies use query-param format: prefix + encodeURIComponent(targetUrl)
+  // All 5 proxies verified working 2026-06-30 against NSE CSV (15,684 bytes each)
+  // Ranked by speed: blkproxy(551ms) > raghu(641ms) > corsmirror(985ms) > render(1372ms) > relayx(1591ms)
+  // cors.lol removed — permanently 429 rate-limited
   var CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',                // primary
-    'https://api.codetabs.com/v1/proxy?quest=',           // secondary
-    'https://thingproxy.freeboard.io/fetch/',             // third — D8B verified
-    'https://corsproxy.io/?url='                          // last — free tier now dev-origin-only
+    'https://blkproxy.iambhvsh.in/api/proxy?url=',       // 551ms — Vercel Edge
+    'https://cors.raghu.workers.dev/?url=',               // 641ms — Cloudflare Workers
+    'https://corsmirror.com/v1?url=',                     // 985ms — Cloudflare Pages
+    'https://corsproxy-8uo5.onrender.com/?url=',          // 1372ms — Render
+    'https://relayx.bax.workers.dev/'                     // 1591ms — Cloudflare Workers (path-based)
   ];
+  // Helper: build proxy URL. Path-based proxies (no ? in prefix) append raw URL.
+  function _buildProxyUrl(proxy, targetUrl) {
+    return proxy.indexOf('?') === -1 ? proxy + targetUrl : proxy + encodeURIComponent(targetUrl);
+  }
 
   // ── API Endpoints ──
   var NSE_API_URL = 'https://www.nseindia.com/api/allIndices';
@@ -2033,7 +2074,7 @@ var DD = (function() {
     var proxyList = DD._proxies || CORS_PROXIES;
     return (function tryProxy(i) {
       if (i >= proxyList.length) throw lastErr;
-      return fetch(proxyList[i] + encodeURIComponent(url), opts || {}).then(function(r) {
+      return fetch(_buildProxyUrl(proxyList[i], url), opts || {}).then(function(r) {
         if (r.ok) return r;
         lastErr = new Error('HTTP ' + r.status + ' from proxy ' + i);
         return tryProxy(i + 1);
@@ -2057,7 +2098,7 @@ var DD = (function() {
           if (done) return; done = true; xhr.abort();
           tryProxy(i + 1).then(resolve, reject);
         }, ms);
-        xhr.open('GET', proxyList[i] + encodeURIComponent(url), true);
+        xhr.open('GET', _buildProxyUrl(proxyList[i], url), true);
         xhr.onload = function() {
           if (done) return; done = true; clearTimeout(timer);
           if (xhr.status >= 200 && xhr.status < 300) {
@@ -2152,6 +2193,7 @@ var DD = (function() {
   // ── Public API ──
   return {
     _proxies: CORS_PROXIES,
+    _buildProxyUrl: _buildProxyUrl,
     fetchURL: fetchURL,
     fetchURLXHR: fetchURLXHR,
     fetchNSEIndices: fetchNSEIndices,
@@ -2162,6 +2204,7 @@ var DD = (function() {
 })();
 // Expose DD globally
 window.DD = DD;
+window._buildProxyUrl = DD._buildProxyUrl;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONTAINER B: LOCALSTORAGE — MONOPOLISED PERSISTENT STORAGE
@@ -2223,9 +2266,7 @@ var BB = (function() {
       if (!_warned) {
         _warned = true;
         try { sessionStorage.setItem('ld_storage_warned', '1'); } catch(_) {}
-        var el = document.getElementById('scan-status') ||
-                 document.getElementById('rsi-st') ||
-                 document.getElementById('rs-status');
+        var el = document.getElementById('rsi-st');
         if (el) el.textContent = '⚠ Storage full — some data could not be saved. Clear browser storage for this site.';
         console.warn('[BB] localStorage quota exceeded:', key);
       }
@@ -2411,7 +2452,7 @@ var BB = (function() {
   }
 
   function hmPeriod(val) {
-    if (val === undefined) return get('hm_period_v2') || 'weekly';
+    if (val === undefined) return get('hm_period_v2') || 'daily';
     return set('hm_period_v2', val);
   }
 
@@ -5065,8 +5106,6 @@ var M = (function() {
 
   function bpClock() {
     var now = new Date();
-    var bpUT = document.getElementById('bpUpdateTime');
-    if (bpUT) bpUT.textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     var bpFT = document.getElementById('bpFooterTime');
     if (bpFT) bpFT.textContent = now.toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
   }
@@ -7265,7 +7304,7 @@ window.rsToggleWL=rsToggleWL;
 <div id="tab-pt" class="tab-panel">
 <div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
-<h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">Paper Trade</h2>
+<h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">Portfolio Snapshot</h2>
 <p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin-bottom:8px">ALL indicators + MONTHLY | Rs 10,00,000 | 158 NSE indices</p>
 
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0">
@@ -7289,11 +7328,52 @@ window.rsToggleWL=rsToggleWL;
   <button onclick="ptReset()" style="background:#666;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">RESET</button>
 </div>
 
+<!-- ── Portfolio Snapshot Action Buttons ── -->
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin:8px 0">
+  <button id="pt-btn-universe" onclick="PSnap.openUniverse()" style="background:#0055aa;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Index Universe</button>
+  <button id="pt-btn-update" onclick="PSnap.toggleUpdateMode()" style="background:#1a6dd8;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Update Portfolio</button>
+  <button id="pt-btn-summary" onclick="PSnap.showSummary()" style="background:#1a8a1a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Portfolio Summary</button>
+  <button id="pt-btn-confluence" onclick="PSnap.addColumn('confluence')" style="background:#8855cc;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Confluence</button>
+  <button id="pt-btn-regime" onclick="PSnap.addColumn('regime')" style="background:#cc7a00;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Regime</button>
+  <button id="pt-btn-pwma" onclick="PSnap.addColumn('pwma')" style="background:#007a7a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">P&gt;WMA</button>
+  <button id="pt-btn-ba" onclick="PSnap.addColumn('ba')" style="background:#a3822f;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">BA Weightage</button>
+  <button id="pt-btn-rs" onclick="PSnap.addColumn('rs')" style="background:#b8390e;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">RS Score</button>
+  <button id="pt-btn-returns" onclick="PSnap.addColumn('returns')" style="background:#1a8a4a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Returns</button>
+</div>
+
+<!-- Purchase date selector (shown while Update Portfolio mode is active) -->
+<div id="pt-datewrap" style="display:none;align-items:center;gap:6px;margin:4px 0 8px;background:#fff8e5;border:1px solid #e0c060;border-radius:4px;padding:6px 8px">
+  <span style="font-size:9px;color:#8a6d00;font-weight:bold">Purchase Date:</span>
+  <input type="date" id="pt-purchase-date" style="font-size:10px;padding:3px 4px;border:1px solid #ccc;border-radius:3px;flex:1">
+  <span style="font-size:8px;color:#888">Applies to indices added next</span>
+</div>
+
+<!-- Index Universe panel (lists all indices from Scanner tab) -->
+<div id="pt-universe-panel" style="display:none;margin:8px 0;border:1px solid #0055aa;border-radius:4px;background:#fff">
+  <div style="display:flex;justify-content:space-between;align-items:center;background:#0055aa;color:#fff;padding:6px 8px;border-radius:4px 4px 0 0">
+    <span style="font-size:10px;font-weight:bold;text-transform:uppercase">Index Universe</span>
+    <button onclick="PSnap.closeUniverse()" style="background:none;border:none;color:#fff;font-size:14px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+  </div>
+  <div id="pt-universe-list" style="max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:9px"></div>
+</div>
+
 <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
 <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
-  <thead><tr style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI4</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI8</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">RSI14</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">MACD</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Regime uses weekly RSI(8), built from every-5-trading-day blocks (approximate, not true calendar weeks)">Regime≈</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Action</th></tr></thead>
-  <tbody id="pt-tb"><tr><td colspan="11" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
+  <thead><tr id="pt-thead-row" style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Click a row's # to add/remove it from the Portfolio list (Update Portfolio mode)">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Monthly / Weekly / Daily RSI(9) vs 50 — Hilega Milega (NK Sir)">HM Status</th></tr></thead>
+  <tbody id="pt-tb"><tr><td colspan="5" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
 </table>
+</div>
+
+<!-- ── Portfolio Summary table (shown via "Portfolio Summary" button) ── -->
+<div id="pt-summary-wrap" style="display:none;margin:8px 0">
+  <h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Portfolio Summary</h3>
+  <div style="font-size:8px;color:#888;margin-bottom:4px">Extra columns can be appended via the Confluence / Regime / P&gt;WMA / BA Weightage / RS Score / Returns buttons above.</div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #1a8a1a;border-radius:4px">
+  <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
+    <thead><tr id="pt-sum-thead" style="background:#eaffea"></tr></thead>
+    <tbody id="pt-sum-tb"><tr><td style="text-align:center;color:#666;padding:8px">No indices in Portfolio yet — use Update Portfolio to add some</td></tr></tbody>
+  </table>
+  </div>
 </div>
 
 <h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Positions</h3>
@@ -8465,26 +8545,20 @@ async function ptRunScan(){
 }
 
 // ── 10.8 Render Table ──
+// Portfolio Snapshot main table: # | Index | Price | Chg% | HM Status
+// Row "#" cell is clickable when PSnap update-mode is active (adds/removes
+// the index from the Portfolio Snapshot selection, toggling light-blue bg).
 function ptRender(results){
-  var top3=results.slice(0,3).map(function(r){return r.name});
   ptEl('pt-tb').innerHTML=results.map(function(r,i){
-    var sc=r.score>=200?'#1a8a1a':r.score>=150?'#b8860b':'#cc0000';
-    var rc=r.regime==='A'?'#1a8a1a':r.regime==='B'?'#b8860b':'#cc0000';
-    var act=r.regime==='A'&&r.score>=150?(top3.indexOf(r.name)>=0?'BUY':'WATCH'):'HOLD';
-    var ac=act==='BUY'?'#1a8a1a':act==='WATCH'?'#b8860b':'#666';
-    var held=ptPf.pos[r.name];
-    return'<tr style="background:'+(held?'#f0fff0':'#fff')+';border-bottom:1px solid #eee">'+
-      '<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
+    var inPortfolio=(typeof PSnap!=='undefined')&&PSnap.has(r.name);
+    var numStyle='padding:5px 4px;font-size:9px;'+(inPortfolio?'background:#cfe8ff;font-weight:bold;':'')+(typeof PSnap!=='undefined'&&PSnap.updateMode?'cursor:pointer;':'');
+    var hm=(typeof PSnap!=='undefined')?PSnap.hmStatusCell(r.name):'—';
+    return'<tr data-pt-name="'+r.name.replace(/"/g,'&quot;')+'" style="background:'+(inPortfolio?'#f0f8ff':'#fff')+';border-bottom:1px solid #eee">'+
+      '<td class="pt-num-cell" onclick="PSnap.onRowNumClick('+i+')" style="'+numStyle+'">'+(i+1)+'</td>'+
       '<td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-size:11px;font-weight:600;color:#000;word-break:break-word;white-space:normal">'+r.name+'</td>'+
       '<td style="padding:5px 4px;font-size:9px">'+ptFmt(r.price)+'</td>'+
       '<td style="padding:5px 4px;font-size:9px;color:'+(r.change>=0?'#1a8a1a':'#cc0000')+'">'+(r.change>=0?'+':'')+r.change.toFixed(1)+'%</td>'+
-      '<td style="padding:5px 4px;font-size:9px">'+r.r4+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px">'+r.r8+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px">'+r.r14+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px;color:'+(r.macd>0?'#1a8a1a':'#cc0000')+'">'+(r.macd>0?'+':'')+r.macd+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px;color:'+rc+'">'+r.regime+'</td>'+
-      '<td style="padding:5px 4px;font-size:9px"><span style="background:'+sc+';color:#fff;padding:1px 5px;border-radius:3px;font-size:8px">'+r.score+'</span></td>'+
-      '<td style="padding:5px 4px;font-size:9px;color:'+ac+';font-weight:bold">'+act+'</td></tr>';
+      '<td style="padding:5px 4px;font-size:9px;white-space:nowrap">'+hm+'</td></tr>';
   }).join('');
 }
 
@@ -8589,11 +8663,291 @@ win.onPTTabActivated=function(){
   }else{
     ptEl('pt-st').textContent='No Scanner data yet — use ⚡ SCAN ALL above';
   }
+  if(typeof PSnap!=='undefined')PSnap.onTabActivated();
 };
+
+// Expose ptScanR (main scanner-mirroring results) for PSnap to read
+win.ptGetScanR=function(){return ptScanR;};
+win.ptRerender=function(){if(ptScanR&&ptScanR.length)ptRender(ptScanR);};
 
 // Expose globals
 win.ptRunScan=ptRunScan;
 win.ptReset=ptReset;
+
+})(window);
+</script>
+<!-- ── Portfolio Snapshot (PSnap) Extension JS ── -->
+<!-- ================================================================
+   SECTION 10.5: PORTFOLIO SNAPSHOT
+   Adds: Index Universe list, manual add/remove-to-portfolio via row #,
+   purchase-date tagging, Portfolio Summary table with pluggable columns
+   (Confluence / Regime / P>WMA / BA Weightage / RS Score / Returns).
+   Reads cross-tab data from BB.scannerCache(), BB.ttfCache(), BB.rsScanCache().
+   Exposes: window.PSnap
+   ============================================================ -->
+<script>
+(function(win){
+'use strict';
+
+var PS_STORE_KEY='ld_pt_snapshot_v1'; // {names:[...], purchases:{name:{date,price}}, cols:[...]}
+var PState={names:[],purchases:{},cols:[]}; // cols: subset of ['confluence','regime','pwma','ba','rs','returns']
+var updateMode=false;
+
+function psEl(id){return document.getElementById(id);}
+function psSave(){try{localStorage.setItem(PS_STORE_KEY,JSON.stringify(PState));}catch(e){}}
+function psLoad(){try{var raw=localStorage.getItem(PS_STORE_KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p==='object'){PState.names=p.names||[];PState.purchases=p.purchases||{};PState.cols=p.cols||[];}}}catch(e){}}
+
+// ── RSI helper (Wilder/RMA, matches Scanner methodology) ──
+function psRSI(closes,period){
+  var v=closes.filter(function(x){return x!=null&&!isNaN(x)});
+  if(v.length<period+1)return[];
+  var rsis=[],gains=0,losses=0;
+  for(var i=1;i<=period;i++){var d=v[i]-v[i-1];if(d>0)gains+=d;else losses-=d}
+  var ag=gains/period,al=losses/period;
+  rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  for(var i=period+1;i<v.length;i++){
+    var d=v[i]-v[i-1];
+    ag=(ag*(period-1)+Math.max(d,0))/period;
+    al=(al*(period-1)+Math.abs(Math.min(d,0)))/period;
+    rsis.push(al===0?100:parseFloat((100-100/(1+ag/al)).toFixed(2)));
+  }
+  return rsis;
+}
+function psParseEntries(entries){
+  // entries: ["DDMMYYYY|o|h|l|c", ...] oldest→newest (as stored in dailyMap)
+  var out=[];
+  for(var i=0;i<entries.length;i++){
+    var p=entries[i].split('|');
+    if(p.length<5)continue;
+    var dt=p[0];if(!dt||dt.length<8)continue;
+    var c=parseFloat(p[4]);
+    if(isNaN(c))continue;
+    out.push({ym:dt.substring(4,8)+dt.substring(2,4),c:c});
+  }
+  return out;
+}
+function psWeeklyCloses(parsed){
+  // every-5-trading-day block, matches Scanner's approximate weekly method
+  var closes=parsed.map(function(p){return p.c});
+  var w=[];
+  for(var i=0;i<closes.length;i+=5)w.push(closes[Math.min(i+4,closes.length-1)]);
+  return w;
+}
+function psMonthlyCloses(parsed){
+  var map={};
+  for(var i=0;i<parsed.length;i++){map[parsed[i].ym]=parsed[i].c;}
+  return Object.keys(map).sort().map(function(k){return map[k];});
+}
+function psDailyMapEntriesFor(name){
+  var sd=win._ldScannerData;
+  if(!sd||!sd.dailyMap)return null;
+  var key=(name||'').toLowerCase();
+  return sd.dailyMap[key]||sd.dailyMap[key.replace(/[^a-z0-9]/gi,'')]||null;
+}
+
+// ── HM Status: Monthly / Weekly / Daily RSI(9) vs 50 ──
+// Returns a small HTML string with 3 tick/cross glyphs: M · W · D
+function hmStatusCell(name){
+  var entries=psDailyMapEntriesFor(name);
+  if(!entries||entries.length<40)return '<span style="color:#999">—</span>';
+  var parsed=psParseEntries(entries);
+  var g='<span style="color:#1a8a4a;font-weight:700">&#10003;</span>';
+  var r='<span style="color:#cc3344;font-weight:700">&#10007;</span>';
+  var dCloses=parsed.map(function(p){return p.c});
+  var dR=psRSI(dCloses,9);
+  var wCloses=psWeeklyCloses(parsed);
+  var wR=psRSI(wCloses,9);
+  var mCloses=psMonthlyCloses(parsed);
+  var mR=psRSI(mCloses,9);
+  var dv=dR.length?dR[dR.length-1]:null;
+  var wv=wR.length?wR[wR.length-1]:null;
+  var mv=mR.length?mR[mR.length-1]:null;
+  return '<span title="Monthly RSI(9)">M:'+(mv!=null?(mv>50?g:r):'—')+'</span> '+
+         '<span title="Weekly RSI(9)">W:'+(wv!=null?(wv>50?g:r):'—')+'</span> '+
+         '<span title="Daily RSI(9)">D:'+(dv!=null?(dv>50?g:r):'—')+'</span>';
+}
+
+// ── Index Universe ──
+function openUniverse(){
+  var sd=win._ldScannerData;
+  var list=(sd&&sd.indexList)||[];
+  var panel=psEl('pt-universe-panel'),listEl=psEl('pt-universe-list');
+  if(!panel||!listEl)return;
+  if(!list.length){
+    listEl.innerHTML='<div style="padding:10px;color:#666;text-align:center">No index list yet — run ⚡ SCAN ALL first.</div>';
+  }else{
+    var names=list.map(function(idx){return idx.name;}).sort();
+    listEl.innerHTML=names.map(function(n){
+      var inP=PState.names.indexOf(n)>=0;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #eee;'+(inP?'background:#cfe8ff':'')+'">'+
+        '<span style="word-break:break-word">'+n+'</span>'+
+        '<button onclick="PSnap.toggleName(\''+n.replace(/'/g,"\\'")+'\')" style="background:'+(inP?'#cc0000':'#1a8a1a')+';color:#fff;border:none;padding:3px 8px;border-radius:3px;font-size:8px;cursor:pointer">'+(inP?'Remove':'Add')+'</button>'+
+        '</div>';
+    }).join('');
+  }
+  panel.style.display='block';
+}
+function closeUniverse(){
+  var panel=psEl('pt-universe-panel');
+  if(panel)panel.style.display='none';
+}
+function toggleName(name){
+  var i=PState.names.indexOf(name);
+  var priceRow=null;
+  var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+  scanR.forEach(function(r){if(r.name===name)priceRow=r;});
+  if(i>=0){
+    PState.names.splice(i,1);
+    delete PState.purchases[name];
+  }else{
+    PState.names.push(name);
+    var dateInput=psEl('pt-purchase-date');
+    var pdate=dateInput&&dateInput.value?dateInput.value:new Date().toISOString().slice(0,10);
+    PState.purchases[name]={date:pdate,price:priceRow?priceRow.price:null};
+  }
+  psSave();
+  openUniverse(); // refresh list highlighting
+  if(typeof win.ptRerender==='function')win.ptRerender();
+  if(psEl('pt-summary-wrap')&&psEl('pt-summary-wrap').style.display!=='none')renderSummary();
+}
+function has(name){return PState.names.indexOf(name)>=0;}
+
+// ── Update Portfolio mode (click row # to add/remove) ──
+function toggleUpdateMode(){
+  updateMode=!updateMode;
+  var btn=psEl('pt-btn-update');
+  var dateWrap=psEl('pt-datewrap');
+  if(btn)btn.style.background=updateMode?'#0033aa':'#1a6dd8';
+  if(btn)btn.textContent=updateMode?'Done Updating':'Update Portfolio';
+  if(dateWrap)dateWrap.style.display=updateMode?'flex':'none';
+  if(dateWrap&&updateMode){
+    var di=psEl('pt-purchase-date');
+    if(di&&!di.value)di.value=new Date().toISOString().slice(0,10);
+  }
+  if(typeof win.ptRerender==='function')win.ptRerender();
+}
+function onRowNumClick(i){
+  if(!updateMode)return;
+  var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+  var r=scanR[i];
+  if(!r)return;
+  toggleName(r.name);
+}
+
+// ── Cross-tab data lookups ──
+function scannerRowFor(name){
+  var cache=win.BB&&win.BB.scannerCache?win.BB.scannerCache():null;
+  if(!cache||!cache.results)return null;
+  return cache.results[name]||null;
+}
+function confluenceStatusFor(name){
+  var cache=win.BB&&win.BB.ttfCache?win.BB.ttfCache():null;
+  if(!cache||!cache.results)return null;
+  var row=cache.results.filter(function(r){return r.name===name;})[0];
+  return row?row.rsiStatus:null; // pre-built tick/cross HTML string
+}
+function baPctFor(name){
+  var cache=win.BB&&win.BB.scannerCache?win.BB.scannerCache():null;
+  if(!cache||!cache.baResults)return null;
+  var ba=cache.baResults[name];
+  return ba&&ba.status==='done'?ba.pct:null;
+}
+function rsScoreFor(name){
+  var cache=win.BB&&win.BB.rsScanCache?win.BB.rsScanCache():null;
+  if(!cache||!cache.rows)return null;
+  var row=cache.rows.filter(function(r){return r.name===name;})[0];
+  return row&&row.rs?row.rs.score:null;
+}
+
+// ── Column registry ──
+var COL_DEFS={
+  confluence:{label:'RSI Weekly',render:function(name){var s=confluenceStatusFor(name);return s||'<span style="color:#999">—</span>';}},
+  regime:{label:'Regime',render:function(name){var r=scannerRowFor(name);if(!r||!r.regime)return '<span style="color:#999">—</span>';var c=r.regime==='A'?'#1a8a1a':r.regime==='B'?'#b8860b':'#cc0000';return '<span style="color:'+c+';font-weight:bold">'+r.regime+'</span>';}},
+  pwma:{label:'P&gt;WMA',render:function(name){var r=scannerRowFor(name);if(!r||r.price==null||r.wma20Price==null)return '<span style="color:#999">—</span>';var yes=r.price>r.wma20Price;return '<span style="color:'+(yes?'#1a8a1a':'#cc0000')+';font-weight:bold">'+(yes?'YES':'NO')+'</span>';}},
+  ba:{label:'BA Wt%',render:function(name){var p=baPctFor(name);return p!=null?p+'%':'<span style="color:#999">—</span>';}},
+  rs:{label:'RS Score',render:function(name){var s=rsScoreFor(name);return s!=null?Number(s).toFixed(1):'<span style="color:#999">—</span>';}},
+  returns:{label:'Returns',render:function(name){
+    var pur=PState.purchases[name];
+    if(!pur||pur.price==null)return '<span style="color:#999">—</span>';
+    var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+    var cur=null;scanR.forEach(function(r){if(r.name===name)cur=r.price;});
+    if(cur==null)return '<span style="color:#999">—</span>';
+    var diff=cur-pur.price,pct=pur.price?(diff/pur.price*100):0;
+    var c=diff>=0?'#1a8a1a':'#cc0000';
+    return '<span style="color:'+c+'">'+(diff>=0?'+':'')+diff.toFixed(1)+' ('+(pct>=0?'+':'')+pct.toFixed(2)+'%)</span>';
+  }}
+};
+function addColumn(key){
+  if(!COL_DEFS[key])return;
+  var idx=PState.cols.indexOf(key);
+  if(idx>=0)PState.cols.splice(idx,1); // toggle off if already present
+  else PState.cols.push(key);
+  psSave();
+  var btnMap={confluence:'pt-btn-confluence',regime:'pt-btn-regime',pwma:'pt-btn-pwma',ba:'pt-btn-ba',rs:'pt-btn-rs',returns:'pt-btn-returns'};
+  var btn=psEl(btnMap[key]);
+  if(btn)btn.style.outline=PState.cols.indexOf(key)>=0?'2px solid #333':'none';
+  showSummary(); // ensure summary table is visible and reflects the new column
+}
+
+// ── Portfolio Summary table ──
+function showSummary(){
+  var wrap=psEl('pt-summary-wrap');
+  if(wrap)wrap.style.display='block';
+  renderSummary();
+  if(wrap)wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function ptFmtLocal(n){return n==null?'—':'Rs '+Math.round(n).toLocaleString('en-IN');}
+function renderSummary(){
+  var theadEl=psEl('pt-sum-thead'),tbEl=psEl('pt-sum-tb');
+  if(!theadEl||!tbEl)return;
+  var baseCols=['#','Index','Price','Chg%','HM Status'];
+  var extraCols=PState.cols.map(function(k){return COL_DEFS[k].label;});
+  var allCols=baseCols.concat(extraCols);
+  theadEl.innerHTML=allCols.map(function(h){return '<th style="padding:5px 4px;text-align:left;font-size:7px;color:#0a6b0a;text-transform:uppercase;white-space:nowrap">'+h+'</th>';}).join('');
+  if(!PState.names.length){
+    tbEl.innerHTML='<tr><td colspan="'+allCols.length+'" style="text-align:center;color:#666;padding:8px">No indices in Portfolio yet — use Update Portfolio to add some</td></tr>';
+    return;
+  }
+  var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+  var priceOf={};scanR.forEach(function(r){priceOf[r.name]={price:r.price,change:r.change};});
+  tbEl.innerHTML=PState.names.map(function(name,i){
+    var pr=priceOf[name]||{};
+    var cells='<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
+      '<td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-size:10px;font-weight:600;color:#000;word-break:break-word;white-space:normal">'+name+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+ptFmtLocal(pr.price)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+((pr.change||0)>=0?'#1a8a1a':'#cc0000')+'">'+(pr.change!=null?(pr.change>=0?'+':'')+pr.change.toFixed(1)+'%':'—')+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;white-space:nowrap">'+hmStatusCell(name)+'</td>';
+    PState.cols.forEach(function(k){
+      cells+='<td style="padding:5px 4px;font-size:9px;white-space:nowrap">'+COL_DEFS[k].render(name)+'</td>';
+    });
+    return '<tr style="border-bottom:1px solid #eee">'+cells+'</tr>';
+  }).join('');
+}
+
+function onTabActivated(){
+  psLoad();
+  // Restore column-button outlines to reflect saved state
+  var btnMap={confluence:'pt-btn-confluence',regime:'pt-btn-regime',pwma:'pt-btn-pwma',ba:'pt-btn-ba',rs:'pt-btn-rs',returns:'pt-btn-returns'};
+  Object.keys(btnMap).forEach(function(k){
+    var btn=psEl(btnMap[k]);
+    if(btn)btn.style.outline=PState.cols.indexOf(k)>=0?'2px solid #333':'none';
+  });
+  if(PState.names.length)showSummary();
+}
+
+win.PSnap={
+  openUniverse:openUniverse,
+  closeUniverse:closeUniverse,
+  toggleName:toggleName,
+  toggleUpdateMode:toggleUpdateMode,
+  onRowNumClick:onRowNumClick,
+  addColumn:addColumn,
+  showSummary:showSummary,
+  has:has,
+  hmStatusCell:hmStatusCell,
+  onTabActivated:onTabActivated,
+  get updateMode(){return updateMode;}
+};
 
 })(window);
 </script>
@@ -8627,8 +8981,8 @@ var DEEP_CACHE_KEY_DAILY   = 'ld_deep_daily_v1';   // { lastDate, dailyMap }
 var DEEP_CACHE_KEY_WEEKLY  = 'ld_deep_weekly_v1';  // { weeklyMap }
 var DEEP_CACHE_KEY_MONTHLY = 'ld_deep_monthly_v1'; // { monthlyMap }
 var DEEP_WINDOW_DAYS = 2500; // ~10 years of trading days
-var DEEP_BATCH_SIZE = 15;   // 5 per proxy (3 working proxies, post corsproxy.io demotion)
-var DEEP_BATCH_DELAY = 500; // ms between batches — eases load on AllOrigins (~20/min) & ThingProxy (10/s)
+var DEEP_BATCH_SIZE = 30;    // days per chunk — chunks auto-chain until all gap days are fetched
+var DEEP_BATCH_DELAY = 500; // ms between individual fetches — reduced for speed
 var DEEP_CORS_LIST = DD._proxies; // Container D — single source of truth
 var DEEP_CSV_URL_LIST = ['https://nsearchives.nseindia.com/content/indices/ind_close_all_','https://archives.nseindia.com/content/indices/ind_close_all_'];
 
@@ -8641,25 +8995,46 @@ function _idbPut(key, val) { CC.deepPut(key, val); }
 // NOTE: Uses DD._proxies directly (not DD.fetchURL) because this needs to try
 // multiple URL backends (DEEP_CSV_URL_LIST) with proxy rotation — a pattern
 // DD.fetchURL doesn't support. Proxy list is still sourced from Container D.
+// Track last working proxy to avoid wasting time on dead ones
+var _deepLastGoodProxy = -1;
 async function fetchWithFallback(ds, proxySlot) {
   var proxies = DD._proxies;
   var n = proxies.length;
+  var _dbg = [];
+  // Start from last known good proxy if available
+  var startSlot = (_deepLastGoodProxy >= 0) ? _deepLastGoodProxy : proxySlot;
   for (var pi = 0; pi < n; pi++) {
-    var proxy = proxies[(proxySlot + pi) % n];
+    var proxy = proxies[(startSlot + pi) % n];
     for (var ui = 0; ui < DEEP_CSV_URL_LIST.length; ui++) {
+      var fullUrl = DEEP_CSV_URL_LIST[ui] + ds + '.csv';
+      var fetchUrl = window._buildProxyUrl(proxy, fullUrl);
       try {
-        var r = await fetch(proxy + encodeURIComponent(DEEP_CSV_URL_LIST[ui] + ds + '.csv'),
-                            { signal: AbortSignal.timeout(8000) });
-        if (r.ok) return r;
-      } catch(e) {}
+        _dbg.push(proxy.split('//')[1].split('?')[0].split('/')[0] + ' → ' + fullUrl.split('/').pop());
+        var r = await fetch(fetchUrl, { signal: AbortSignal.timeout(10000) });
+        if (r.ok) {
+          var txt = await r.text();
+          if (txt && txt.trim().split('\n').length >= 2) {
+            _deepLastGoodProxy = (startSlot + pi) % n; // remember working proxy
+            console.log('[DEEP] FETCH OK ' + ds + ' via ' + _dbg[_dbg.length-1] + ' (' + txt.length + ' bytes)');
+            return { ok: true, text: function(){ return Promise.resolve(txt); } };
+          }
+          _dbg[_dbg.length-1] += ' (empty/short)';
+        } else {
+          _dbg[_dbg.length-1] += ' HTTP' + r.status;
+        }
+      } catch(e) {
+        _dbg[_dbg.length-1] += ' ERR:' + (e.name || e.message || e);
+        console.warn('[DEEP] fetch attempt failed:', fetchUrl.substring(0, 80), e.name || e.message || e);
+      }
     }
   }
+  console.warn('[DEEP] FETCH FAILED ' + ds + ' — tried: ' + _dbg.join(' | '));
   return null;
 }
 
 // ── 11.3 Date & Gap Helpers ──
 function deepPad(v){ return String(v).padStart(2,'0'); }
-function deepFmtDate(d){ return deepPad(d.getDate())+deepPad(d.getMonth()+1)+d.getFullYear(); }
+function deepFmtDate(d){ if(!d) d=new Date(); return deepPad(d.getDate())+deepPad(d.getMonth()+1)+d.getFullYear(); }
 function deepGenTradingDays(n){
   var a=[],d=new Date();
   while(a.length<n){ if(d.getDay()!==0&&d.getDay()!==6) a.push(new Date(d)); d.setDate(d.getDate()-1); }
@@ -8748,7 +9123,7 @@ function deepSaveCache(cache){
 // ── 11.5 Floating Progress Overlay ─────────────────────────────────────────
 // Appears at screen bottom during deep history downloads; works across all
 // tabs. Auto-hides when download completes. Creates the DOM element lazily.
-function _deepShowProgress(done, total) {
+function _deepShowProgress(done, total, phaseLabel) {
   var el = document.getElementById('_deepProg');
   if (!el) {
     el = document.createElement('div');
@@ -8757,7 +9132,7 @@ function _deepShowProgress(done, total) {
       + 'background:rgba(18,18,28,0.95);color:#f0f0f0;border-radius:10px;'
       + 'padding:12px 22px;font-family:monospace;font-size:13px;'
       + 'box-shadow:0 4px 24px rgba(0,0,0,0.55);z-index:99999;'
-      + 'min-width:300px;max-width:500px;text-align:center;'
+      + 'min-width:300px;max-width:520px;text-align:center;'
       + 'border:1.5px solid rgba(251,146,60,0.4);transition:opacity 0.5s ease;';
     el.innerHTML = '<div id="_deepProgTxt" style="margin-bottom:8px;font-weight:bold;letter-spacing:0.03em;"></div>'
       + '<div style="background:rgba(255,255,255,0.13);border-radius:5px;height:7px;overflow:hidden;">'
@@ -8774,19 +9149,25 @@ function _deepShowProgress(done, total) {
   var sub = document.getElementById('_deepProgSub');
   if (bar) bar.style.width = pct + '%';
   if (txt) {
-    txt.textContent = done === 0
-      ? '\u23F3 Downloading NSE history \u2014 ' + total + ' trading days (~'
-          + Math.round(total/250) + ' years)\u2026'
-      : '\u23F3 Caching NSE history: ' + done + ' \u2044 ' + total + ' days  (' + pct + '%)';
+    if (phaseLabel) {
+      txt.textContent = phaseLabel + (total > 0 ? ': ' + done + ' \u2044 ' + total + '  (' + pct + '%)' : '');
+    } else {
+      txt.textContent = done === 0
+        ? '\u23F3 Downloading NSE history \u2014 ' + total + ' trading days (~'
+            + Math.round(total/250) + ' years)\u2026'
+        : '\u23F3 Caching NSE history: ' + done + ' \u2044 ' + total + ' days  (' + pct + '%)';
+    }
   }
   if (sub) {
-    if (done === 0) {
+    if (phaseLabel) {
+      sub.textContent = phaseLabel;
+    } else if (done === 0) {
       sub.textContent = 'First run only \u2014 subsequent opens use stored data (< 1 s top-up)';
     } else {
       var mLeft = Math.round((total - done) / 22);
       sub.textContent = mLeft > 0
         ? '\u2248 ' + mLeft + ' more months to go \u2014 old data pre-aggregated to save space'
-        : 'Finalising\u2026 compressing & saving';
+        : 'Download complete \u2014 processing...';
     }
   }
 }
@@ -8874,7 +9255,8 @@ function _compressOldHistory(cache) {
 // so the UI thread gets to breathe between chunks instead of freezing for
 // the entire 158-index pass. Calls cb() when done.
 var _COMPRESS_CHUNK_SIZE = 20;
-function _compressOldHistoryAsync(cache, cb) {
+function _compressOldHistoryAsync(cache, onProgress, cb) {
+  if (typeof onProgress === 'function') onProgress(0, 0);
   var cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - DEEP_KEEP_RAW_MONTHS);
   cutoff.setDate(1);
@@ -8885,6 +9267,7 @@ function _compressOldHistoryAsync(cache, cb) {
   function step() {
     var end = Math.min(k + _COMPRESS_CHUNK_SIZE, keys.length);
     for (; k < end; k++) {
+      try {
       var name = keys[k];
       var arr = cache.dailyMap[name];
       if (!arr || arr.length < 30) continue;
@@ -8924,9 +9307,10 @@ function _compressOldHistoryAsync(cache, cb) {
         return '01' + mm + yr + '|' + m.o + '|' + m.h + '|' + m.l + '|' + m.c;
       });
       cache.dailyMap[name] = synthetics.concat(recentBucket);
+      } catch(e) {}
     }
-    if (k < keys.length) setTimeout(step, 0);
-    else cb();
+    if (k < keys.length) { if (typeof onProgress === 'function') onProgress(k, keys.length); setTimeout(step, 0); }
+    else { if (typeof onProgress === 'function') onProgress(keys.length, keys.length); cb(); }
   }
   if (keys.length === 0) { cb(); return; }
   step();
@@ -8998,13 +9382,15 @@ function _buildWeeklyMonthlyMaps(cache) {
 // 2500-day backfill doesn't lock the main thread (and the UI) for the
 // entire pass. Calls cb() when wMap/mMap are fully built & attached.
 var _BUILD_CHUNK_SIZE = 20;
-function _buildWeeklyMonthlyMapsAsync(cache, cb) {
+function _buildWeeklyMonthlyMapsAsync(cache, onProgress, cb) {
+  if (typeof onProgress === 'function') onProgress(0, 0);
   var wMap = {}, mMap = {};
   var keys = Object.keys(cache.dailyMap || {});
   var k = 0;
   function step() {
     var end = Math.min(k + _BUILD_CHUNK_SIZE, keys.length);
     for (; k < end; k++) {
+      try {
       var name = keys[k];
       var normName = name.replace(/[^a-z0-9]/gi, '').toLowerCase();
       var arr = cache.dailyMap[name];
@@ -9026,7 +9412,7 @@ function _buildWeeklyMonthlyMapsAsync(cache, cb) {
         var wk = mon.getFullYear() * 10000 + (mon.getMonth() + 1) * 100 + mon.getDate();
         var o = parseFloat(p[1]), h = parseFloat(p[2]), l = parseFloat(p[3]), c = parseFloat(p[4]);
         if (isNaN(o) || isNaN(h) || isNaN(l) || isNaN(c)) continue;
-        if (!wBuckets[wk]) { wBuckets[wk] = { o: o, h: h, l: l, c: c, d: mon }; }
+        if (!wBuckets[wk]) { wBuckets[wk] = { o: o, h: h, l: l, c: c, d: dt }; }
         else { var w = wBuckets[wk]; if (h > w.h) w.h = h; if (l < w.l) w.l = l; w.c = c; w.d = dt; }
       }
       wMap[normName] = Object.keys(wBuckets).sort().map(function(wk) {
@@ -9052,9 +9438,10 @@ function _buildWeeklyMonthlyMapsAsync(cache, cb) {
         var m2 = mBuckets[ym2];
         return '01' + ym2.substring(4, 6) + ym2.substring(0, 4) + '|' + m2.o + '|' + m2.h + '|' + m2.l + '|' + m2.c;
       });
+      } catch(e) {}
     }
-    if (k < keys.length) setTimeout(step, 0);
-    else { cache.weeklyMap = wMap; cache.monthlyMap = mMap; cb(); }
+    if (k < keys.length) { if (typeof onProgress === 'function') onProgress(k, keys.length); setTimeout(step, 0); }
+    else { if (typeof onProgress === 'function') onProgress(keys.length, keys.length); cache.weeklyMap = wMap; cache.monthlyMap = mMap; cb(); }
   }
   if (keys.length === 0) { cache.weeklyMap = wMap; cache.monthlyMap = mMap; cb(); return; }
   step();
@@ -9064,6 +9451,9 @@ function _buildWeeklyMonthlyMapsAsync(cache, cb) {
 // Main entry: load cache from IDB, compute missing dates, batch-fetch CSVs.
 // Calls onProgress(doneCount, totalCount) per batch; resolves with cache.
 // Batches of 30 days spread across 3 CORS proxies (10 each) → ~3× throughput.
+// Chunks run back-to-back automatically (no user click needed between them)
+// until every gap day has been fetched; each chunk is checkpointed to IDB
+// as it finishes so an interrupted run can resume without re-downloading.
 // Old history is compressed to monthly summaries before every save to keep
 // storage small (~2.3 MB total vs ~12 MB raw).
 var _deepDownloadInProgress = false;
@@ -9110,46 +9500,93 @@ function fetchDeepWeeklyHistory(onProgress){
           }
         }
       }
-      var gapDays = deepGenGapDays(cache.lastDate);
+      // NEWEST FIRST: generate all trading days, filter out dates already in dailyMap
+      var gapDays = deepGenTradingDays(DEEP_WINDOW_DAYS);
+      if (cache.dailyMap && Object.keys(cache.dailyMap).length > 0) {
+        var _sampleKey = Object.keys(cache.dailyMap).reduce(function(a, b) {
+          return (cache.dailyMap[a].length > cache.dailyMap[b].length) ? a : b;
+        });
+        var _existingDates = {};
+        cache.dailyMap[_sampleKey].forEach(function(e) { _existingDates[e.split('|')[0]] = true; });
+        var _before = gapDays.length;
+        gapDays = gapDays.filter(function(d) { return !_existingDates[deepFmtDate(d)]; });
+        console.log('[DEEP] Filtered ' + _before + ' → ' + gapDays.length + ' days (skipped ' + (_before - gapDays.length) + ' already cached)');
+      }
       if (!gapDays.length){ _deepDownloadInProgress = false; resolveOuter(cache); return; }
-      gapDays.reverse();
       var total = gapDays.length, idx = 0;
-      _deepShowProgress(0, total);
+      var totalChunks = Math.ceil(total / DEEP_BATCH_SIZE);
+      _deepShowProgress(0, total, '\uD83D\uDCE5 Downloading chunk 0/' + totalChunks);
       function batch(){
         if (idx >= total){
-          try {
-            var rawBlob = new Blob([JSON.stringify({lastDate: cache.lastDate, dailyMap: cache.dailyMap}, null, 2)], {type: 'application/json'});
-            var rawUrl = URL.createObjectURL(rawBlob);
-            var rawA = document.createElement('a');
-            rawA.href = rawUrl;
-            rawA.download = 'nse_raw_daily_' + (cache.lastDate || 'full') + '.json';
-            rawA.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;background:#16a34a;color:#fff;padding:10px 18px;border-radius:6px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;';
-            rawA.textContent = 'Download Raw JSON (' + Object.keys(cache.dailyMap).length + ' indices)';
-            rawA.id = '_deepRawJsonBtn';
-            var old = document.getElementById('_deepRawJsonBtn');
-            if (old) old.remove();
-            document.body.appendChild(rawA);
-            setTimeout(function(){ var b = document.getElementById('_deepRawJsonBtn'); if(b) b.remove(); }, 60000);
-          } catch(e) {}
-          // Chunked (non-blocking) compress + weekly/monthly rebuild — the
-          // synchronous full-dataset versions were freezing the UI on a
-          // cold 158-index / 2500-day backfill. Progress text stays on
-          // "Finalising…" and the thread yields between chunks so the page
-          // stays responsive while this runs.
-          _compressOldHistoryAsync(cache, function(){
-            _buildWeeklyMonthlyMapsAsync(cache, function(){
-              var keys = Object.keys(cache.dailyMap);
-              for (var k=0;k<keys.length;k++){
-                var a = cache.dailyMap[keys[k]];
-                if (a.length > DEEP_WINDOW_DAYS) cache.dailyMap[keys[k]] = a.slice(a.length - DEEP_WINDOW_DAYS);
+          // ── Phase 1: Download complete — verify data ──
+          var _nIndices = Object.keys(cache.dailyMap).length;
+          var _totalRows = 0;
+          var _sampleKeys = Object.keys(cache.dailyMap).slice(0, 5);
+          Object.keys(cache.dailyMap).forEach(function(k){ _totalRows += cache.dailyMap[k].length; });
+          console.log('[DEEP] ===== DOWNLOAD COMPLETE =====');
+          console.log('[DEEP] Indices: ' + _nIndices + ', Total rows: ' + _totalRows);
+          console.log('[DEEP] Sample: ' + _sampleKeys.map(function(k){ return k + '(' + cache.dailyMap[k].length + ')'; }).join(', '));
+          if (_nIndices === 0 || _totalRows === 0) {
+            console.error('[DEEP] !! NO DATA DOWNLOADED — all fetches failed');
+            _deepShowProgress(0, 1, '\u274C Download complete but NO DATA — all proxies failed');
+            setTimeout(function(){ _deepHideProgress(); }, 8000);
+            _deepDownloadInProgress = false;
+            resolveOuter(cache);
+            return;
+          }
+          function _phaseTxt(label, done, total) {
+            _deepShowProgress(done, total, label);
+          }
+          // ── Phase 2: Save raw daily data to IDB ──
+          _phaseTxt('\uD83D\uDCC2 Saving raw daily data to IDB', 0, 1);
+          _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
+          _phaseTxt('\uD83D\uDCC2 Saving raw daily data to IDB', 1, 1);
+          console.log('[DEEP] Raw daily saved — lastDate: ' + cache.lastDate);
+          // ── Phase 3: Compress old history ──
+          _compressOldHistoryAsync(cache, function(d, t){ _phaseTxt('\u2699\uFE0F Compressing old history', d, t); }, function(){
+            var _postCompressRows = 0;
+            Object.keys(cache.dailyMap).forEach(function(k){ _postCompressRows += cache.dailyMap[k].length; });
+            console.log('[DEEP] Compress done — rows: ' + _totalRows + ' -> ' + _postCompressRows);
+            // ── Phase 4: Build weekly + monthly maps ──
+            var _wkKeys = Object.keys(cache.dailyMap);
+            _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', 0, _wkKeys.length);
+            _buildWeeklyMonthlyMapsAsync(cache, function(d, t){ _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', d, t); }, function(){
+              var _wkCount = cache.weeklyMap ? Object.keys(cache.weeklyMap).length : 0;
+              var _moCount = cache.monthlyMap ? Object.keys(cache.monthlyMap).length : 0;
+              var _wkRows = 0, _moRows = 0;
+              if (cache.weeklyMap) Object.keys(cache.weeklyMap).forEach(function(k){ _wkRows += cache.weeklyMap[k].length; });
+              if (cache.monthlyMap) Object.keys(cache.monthlyMap).forEach(function(k){ _moRows += cache.monthlyMap[k].length; });
+              console.log('[DEEP] Build done — daily:' + _nIndices + ' weekly:' + _wkCount + '(' + _wkRows + ' rows) monthly:' + _moCount + '(' + _moRows + ' rows)');
+              // ── Phase 5: Slice daily to window ──
+              var _sKeys = Object.keys(cache.dailyMap);
+              _phaseTxt('\u2702 Slicing daily data', 0, _sKeys.length);
+              for (var k=0;k<_sKeys.length;k++){
+                var a = cache.dailyMap[_sKeys[k]];
+                if (a.length > DEEP_WINDOW_DAYS) cache.dailyMap[_sKeys[k]] = a.slice(a.length - DEEP_WINDOW_DAYS);
               }
-              var hasData = cache.dailyMap && Object.keys(cache.dailyMap).length > 0;
-              if (hasData) {
-                cache.lastDate = deepFmtDate(gapDays[gapDays.length - 1] || new Date());
+              _phaseTxt('\u2702 Slicing daily data', _sKeys.length, _sKeys.length);
+              if (_nIndices > 0) {
+                cache.lastDate = deepFmtDate(gapDays[0] || new Date());
               }
-              deepSaveCache(cache);
+              // ── Phase 6: Save to each container ──
+              _phaseTxt('\uD83D\uDCBE Saving Daily container', 0, 4);
+              _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
+              _phaseTxt('\uD83D\uDCBE Saving Weekly container', 1, 4);
+              _idbPut(DEEP_CACHE_KEY_WEEKLY, { weeklyMap: cache.weeklyMap || {} });
+              _phaseTxt('\uD83D\uDCBE Saving Monthly container', 2, 4);
+              _idbPut(DEEP_CACHE_KEY_MONTHLY, { monthlyMap: cache.monthlyMap || {} });
+              _phaseTxt('\uD83D\uDCBE Saving localStorage backup', 3, 4);
+              try { BB.deepCacheV4(cache); } catch(e) {}
+              _phaseTxt('\uD83D\uDCBE Saving localStorage backup', 4, 4);
+              // ── Phase 7: Verify ──
+              console.log('[DEEP] ===== ALL CONTAINERS SAVED =====');
+              console.log('[DEEP] Daily: ' + _nIndices + ' indices, lastDate: ' + cache.lastDate);
+              console.log('[DEEP] Weekly: ' + _wkCount + ' indices, ' + _wkRows + ' entries');
+              console.log('[DEEP] Monthly: ' + _moCount + ' indices, ' + _moRows + ' entries');
+              // ── Phase 8: Done ──
+              _deepShowProgress(1, 1, '\u2705 Finished! ' + _nIndices + ' indices \u00B7 ' + _wkCount + ' weeks \u00B7 ' + _moCount + ' months');
               win._deepWeeklyCache = cache;
-              _deepHideProgress();
+              setTimeout(function(){ _deepHideProgress(); }, 2500);
               _deepDownloadInProgress = false;
               resolveOuter(cache);
             });
@@ -9157,58 +9594,73 @@ function fetchDeepWeeklyHistory(onProgress){
           return;
         }
         var slice = gapDays.slice(idx, idx + DEEP_BATCH_SIZE);
+        var _chunkStart = idx, _chunkEnd = Math.min(idx + DEEP_BATCH_SIZE, total);
         idx += DEEP_BATCH_SIZE;
-        Promise.all(slice.map(function(td, slotIdx){
+        var _dayIdx = 0, _okCount = 0, _failCount = 0;
+        var chunkNum = Math.ceil(_chunkEnd / DEEP_BATCH_SIZE);
+        var totalChunks = Math.ceil(total / DEEP_BATCH_SIZE);
+        function fetchNextDay(){
+          try {
+          if (_dayIdx >= slice.length){
+            var idxCount = Object.keys(cache.dailyMap).length;
+            var totalRows = 0;
+            Object.keys(cache.dailyMap).forEach(function(k){ totalRows += cache.dailyMap[k].length; });
+            var chunkNumDone = Math.ceil(idx / DEEP_BATCH_SIZE);
+            console.log('[DEEP] Chunk ' + chunkNumDone + '/' + totalChunks + ' done — ok:' + _okCount + ' fail:' + _failCount + ' — ' + idxCount + ' indices, ' + totalRows + ' rows');
+            cache.lastDate = deepFmtDate(slice[slice.length - 1] || new Date());
+            // ── Per-chunk checkpoint save (raw daily only — cheap, keeps an
+            // interrupted run resumable without re-fetching completed days) ──
+            _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
+            _deepShowProgress(idx, total, '\u2705 Chunk ' + chunkNumDone + '/' + totalChunks + ' saved \u00B7 ' + idxCount + ' indices \u00B7 ' + totalRows + ' rows — continuing...');
+            // ── Single-chunk download has been verified — now auto-continue
+            // through all remaining chunks back-to-back with no user action
+            // required. batch() re-enters this same function for the next
+            // slice, and when idx >= total it falls through to the full
+            // completion pipeline (compress → build weekly/monthly → save
+            // all containers) defined above.
+            batch();
+            return;
+          }
+          var td = slice[_dayIdx];
           var ds = deepFmtDate(td);
-          return fetchWithFallback(ds, slotIdx % DEEP_CORS_LIST.length)
+          var done = _chunkStart + _dayIdx + 1;
+          _deepShowProgress(done, total, '\uD83D\uDCE5 Chunk ' + chunkNum + '/' + totalChunks + '  day ' + (_dayIdx+1) + '/' + slice.length);
+          fetchWithFallback(ds, _dayIdx % 4)
             .then(function(r){ return (r && r.ok) ? r.text() : ''; })
             .then(function(text){
-              if (!text) return;
+              if (!text) { _failCount++; _dayIdx++; setTimeout(fetchNextDay, DEEP_BATCH_DELAY); return; }
               var lines = text.trim().split('\n').filter(function(l){ return l.trim(); });
-              if (lines.length < 2) return;
+              if (lines.length < 2) { _failCount++; _dayIdx++; setTimeout(fetchNextDay, DEEP_BATCH_DELAY); return; }
+              _okCount++;
               for (var i=1;i<lines.length;i++){
                 var v = lines[i].split(',');
-                var name = v[0] && v[0].trim().toLowerCase();
+                var name = v[0] && v[0].replace(/"/g,'').trim().toLowerCase();
                 var open=parseFloat(v[2]), high=parseFloat(v[3]), low=parseFloat(v[4]), close=parseFloat(v[5]);
                 if (name && !isNaN(close)){
                   if (!cache.dailyMap[name]) cache.dailyMap[name] = [];
-                  var already = cache.dailyMap[name].some(function(e){ return e.indexOf(ds+'|')===0; });
-                  if (!already) cache.dailyMap[name].push(ds+'|'+open+'|'+high+'|'+low+'|'+close);
+                  cache.dailyMap[name].push(ds+'|'+open+'|'+high+'|'+low+'|'+close);
                 }
               }
+              _dayIdx++;
+              // Incremental save every 10 successful days
+              if (_okCount % 10 === 0) {
+                cache.lastDate = ds;
+                _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
+              }
+              setTimeout(fetchNextDay, DEEP_BATCH_DELAY);
             })
-            .catch(function(){});
-        })).then(function(){
-          var done = Math.min(idx, total);
-          if (typeof onProgress === 'function') onProgress(done, total);
-          _deepShowProgress(done, total);
-          // Resilience checkpoint: persist progress every batch so an
-          // interrupted download (tab backgrounded/killed) doesn't lose
-          // more than ~15 days. IndexedDB only here — deepSaveCache() also
-          // JSON.stringifies the whole cache into a localStorage backup,
-          // which gets expensive (and keeps hitting the quota anyway) once
-          // the cache is multi-MB, so that part is reserved for the
-          // periodic/final checkpoints below instead of every batch.
-          cache.lastDate = deepFmtDate(gapDays[idx - 1]);
-          _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
-          // The full-dataset compress/rebuild scans EVERY index's entire
-          // history (not just this batch), so it gets more expensive as
-          // the cache grows. Running it every batch (not just every 5)
-          // was freezing the UI near the end of a cold 2500-day backfill.
-          // Now chunked + async (yields via setTimeout) so even the
-          // periodic checkpoint can't block the UI thread. Fire-and-forget:
-          // it doesn't gate the next download batch. The final batch
-          // (idx>=total, below) always runs it once more to guarantee the
-          // saved cache is fully compressed/rebuilt even if this is skipped.
-          if (Math.floor(idx / DEEP_BATCH_SIZE) % 5 === 0) {
-            _compressOldHistoryAsync(cache, function(){
-              _buildWeeklyMonthlyMapsAsync(cache, function(){
-                deepSaveCache(cache);
-              });
+            .catch(function(e){
+              _failCount++; _dayIdx++;
+              console.warn('[DEEP] error for ' + ds + ':', e.message || e);
+              setTimeout(fetchNextDay, DEEP_BATCH_DELAY);
             });
+          } catch(syncErr) {
+            console.error('[DEEP] fetchNextDay sync error:', syncErr);
+            _failCount++; _dayIdx++;
+            setTimeout(fetchNextDay, DEEP_BATCH_DELAY);
           }
-          setTimeout(batch, DEEP_BATCH_DELAY);
-        });
+        }
+        fetchNextDay();
       }
       batch();
     });
@@ -9262,7 +9714,7 @@ window.ldDownloadRawCache = ldDownloadRawCache;
 // Compact Wilder RSI (used by RSI Bias tab for daily + weekly)
 function rsiCalc(c,p){
   var v=c.filter(function(x){return x!=null&&!isNaN(x)});
-  if(v.length<p+2)return[];
+  if(v.length<p+1)return[];
   var g=0,l=0,i,d,ag,al,o=[];
   for(i=1;i<=p;i++){d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
   ag=g/p;al=l/p;o.push(al===0?100:+(100-100/(1+ag/al)).toFixed(2));
@@ -9503,19 +9955,9 @@ function rsiRunAll(){
     rsiFillDaily(el,all[i].name);
     rsiFillMonthly(el,all[i].name);
   }
-  // Fire deep history download in background — don't block the weekly pass.
-  // Weekly pass runs immediately with scanner's ~1000-day data (good enough
-  // for W-RSI50 via APPROX/EMBEDDED fallback).  When deep download completes,
-  // re-run the weekly pass so indices with <50 weeks get upgraded to EXACT.
+  // Use whatever deep cache is already available — do NOT auto-download.
+  // Deep download is only triggered by the Scan button (Step 1).
   runWeeklyPass(false);
-  fetchDeepWeeklyHistory().then(function(cache){
-    win._deepWeeklyCache = cache;
-    if(st)st.textContent='✅ Deep cache updated — re-computing W-RSI50...';
-    runWeeklyPass(true);
-    setTimeout(function(){if(st)st.textContent='✅ '+all.length+' indices — W-RSI50 updated (deep cache)';},1500);
-  }).catch(function(){
-    win._deepWeeklyCache = win._deepWeeklyCache || deepLoadCache();
-  });
 
   function runWeeklyPass(isUpgrade){
     // Pass 2: fill W-RSI50 + Status in batches of 5.
@@ -9668,8 +10110,15 @@ win.rsiScanAll=rsiRunAll;
 // the static EMBEDDED_HISTORICAL snapshot baked into the file.
 win.fetchDeepWeeklyHistory = fetchDeepWeeklyHistory;
 win.deepLoadCache = deepLoadCache;
+win.deepSaveCache = deepSaveCache;
 win._deepLoadAsync = _deepLoadAsync;
 win._buildWeeklyMonthlyMaps = _buildWeeklyMonthlyMaps;
+win._buildWeeklyMonthlyMapsAsync = _buildWeeklyMonthlyMapsAsync;
+win._idbGet = _idbGet;
+win._idbPut = _idbPut;
+win.DEEP_CACHE_KEY_DAILY = DEEP_CACHE_KEY_DAILY;
+win.DEEP_CACHE_KEY_WEEKLY = DEEP_CACHE_KEY_WEEKLY;
+win.DEEP_CACHE_KEY_MONTHLY = DEEP_CACHE_KEY_MONTHLY;
 // ── Auto-refresh on page load ─────────────────────────────────────────────
 // Check cache staleness and trigger background update if needed.
 // Ensures daily/weekly/monthly data stays fresh without manual scan.
@@ -9681,8 +10130,8 @@ win._buildWeeklyMonthlyMaps = _buildWeeklyMonthlyMaps;
   // Chunked/async so a legacy cache with no weeklyMap yet doesn't freeze the
   // page on load while it backfills 158 indices synchronously.
   try {
-    if (win._deepWeeklyCache && win._deepWeeklyCache.dailyMap && !win._deepWeeklyCache.weeklyMap) {
-      _buildWeeklyMonthlyMapsAsync(win._deepWeeklyCache, function(){
+    if (win._deepWeeklyCache && win._deepWeeklyCache.dailyMap && (!win._deepWeeklyCache.weeklyMap || Object.keys(win._deepWeeklyCache.weeklyMap).length === 0)) {
+      _buildWeeklyMonthlyMapsAsync(win._deepWeeklyCache, null, function(){
         deepSaveCache(win._deepWeeklyCache);
       });
     }
@@ -9692,19 +10141,9 @@ win._buildWeeklyMonthlyMaps = _buildWeeklyMonthlyMaps;
     win._deepWeeklyCache = cache;
     var hasData = cache && cache.dailyMap && Object.keys(cache.dailyMap).length > 0;
     if (!hasData) {
-      // Cold/empty cache (new profile or cleared storage) — kick off a full
-      // background download instead of silently doing nothing.
+      // Cold/empty cache — do NOT auto-download. User must click Step 1 to start.
       var st0=document.getElementById('rsi-st');
-      if(st0) st0.textContent='⏳ Initial download: 0/0 days...';
-      fetchDeepWeeklyHistory(function(done,total){
-        var st=document.getElementById('rsi-st');
-        if(st) st.textContent='⏳ Initial download: '+done+'/'+total+' days...';
-      }).then(function(newCache){
-        win._deepWeeklyCache=newCache;
-        var st=document.getElementById('rsi-st');
-        if(st) st.textContent='✅ Initial cache built';
-        setTimeout(function(){if(st) st.textContent='';},3000);
-      }).catch(function(){});
+      if(st0) st0.textContent='\u26A0 No cached data \u2014 click Step 1 to download';
       return;
     }
     if(!cache||!cache.lastDate) return;
@@ -9760,7 +10199,7 @@ function _mfLoadCache() {
     if (savedIso !== todayIso) return { results: {}, date: null };
     const savedVer = BB.mfScanCacheVer();
     if (savedVer < MF_SCAN_VER) return { results: {}, date: null };
-    return { results: JSON.parse(raw), date };
+    return { results: raw, date };
   } catch (e) { return { results: {}, date: null }; }
 }
 function _mfSaveCache(results) {
@@ -10389,6 +10828,23 @@ function hmCalcDateRange() {
 // transparently raised to the nearest sensible value instead of silently
 // producing 0-1 data points.
 function hmPeriodFloor(period) { return period === 'weekly' ? 90 : period === 'monthly' ? 365 : 0; }
+// hmPeriodCeil() is the companion maximum: how far back the "ALL" button
+// (and any other timeframe value) is allowed to render for a given period.
+// Daily is capped tighter (300 days) since raw daily OHLC is dense and a
+// multi-year daily chart is unreadable; Weekly/Monthly render the full
+// ~10-year deep-history window since they're already aggregated/low-density.
+// SINGLE SOURCE OF TRUTH: both the chart-slicing code (drawHilegaMilega)
+// and the button-highlighting code (setHmTf/setHmPeriod/openHilegaTab) call
+// this so the highlighted timeframe button always matches what's actually
+// rendered — previously the chart silently capped Daily+ALL down to 300
+// days while the "ALL" button stayed highlighted, looking like a stale/
+// unsynced control.
+function hmPeriodCeil(period) { return period === 'daily' ? 300 : 3650; }
+// Clamps a requested day-count into [floor, ceil] for the given period.
+function hmClampTfDays(days, period) {
+    var floor = hmPeriodFloor(period), ceil = hmPeriodCeil(period);
+    return Math.min(Math.max(days, floor), ceil);
+}
 // Highlights whichever timeframe button's data-days value matches the
 // EFFECTIVE day count actually being charted (post period-floor adjustment),
 // rather than whichever button was literally clicked. This is what used to
@@ -10427,9 +10883,18 @@ function hmAvailDaysFromHist(hist) {
 // Greys out DAILY/WEEKLY/MONTHLY itself when this index doesn't have enough
 // history to build at least 2 candles at that resolution (e.g. a brand new
 // index only has a couple of months of daily data — Monthly would be 1 bar).
-function hmRefreshPeriodButtonStates(hist) {
-    if (!hist) return;
-    var lens = { daily: hist.length, weekly: hmAggregateWeeks(hist).length, monthly: hmAggregateMonths(hist).length };
+// IMPORTANT: takes the three REAL independent counts (daily/weekly/monthly
+// row counts straight from their own databases), not a re-derivation from
+// whichever period's viewData happens to be active. Re-deriving from
+// viewData used to break cross-tab sync — e.g. while on the Weekly tab,
+// viewData held one row per week, so "daily" greying was computed off the
+// weekly row count (wildly undercounting), and while on Monthly, weekly
+// candles got rebuilt by ISO-week-bucketing already-monthly rows (nonsense
+// counts). Each button's state must always reflect that period's own true
+// database length, regardless of which period is currently being viewed.
+function hmRefreshPeriodButtonStates(dailyHist, cntDaily, cntWeekly, cntMonthly) {
+    if (!dailyHist) return;
+    var lens = { daily: cntDaily || 0, weekly: cntWeekly || 0, monthly: cntMonthly || 0 };
     // Daily raw OHLC is limited to DEEP_KEEP_RAW_MONTHS months
     var dailyMaxCandles = (window.DEEP_KEEP_RAW_MONTHS || 36) * 21; // ~21 trading days/month
     document.querySelectorAll('#hmBtnRow .hm-period-btn').forEach(function(b) {
@@ -10437,7 +10902,7 @@ function hmRefreshPeriodButtonStates(hist) {
       if (len < 2) {
         b.style.opacity = '0.4';
         b.title = 'Only ' + len + ' ' + per + ' point' + (len === 1 ? '' : 's') + ' available for this index';
-      } else if (per === 'daily' && hist.length > dailyMaxCandles) {
+      } else if (per === 'daily' && cntDaily > dailyMaxCandles) {
         // Daily data beyond 36 months is monthly stubs, not real daily candles
         b.style.opacity = '0.7';
         b.title = 'Daily: last 36 months are real OHLC, older entries are monthly approximations. Use Weekly for full coverage.';
@@ -10451,22 +10916,31 @@ function hmRefreshPeriodButtonStates(hist) {
 }
 // Greys out timeframe buttons that can't add anything for the current
 // period: either (a) below the period's floor, so they get silently merged
-// into the floor value, or (b) beyond this index's actual history, so they'd
+// into the floor value, (b) beyond this index's actual history, so they'd
 // just repeat the same full-history chart as a shorter, already-available
-// button. Floor-disabled buttons are also made unclickable, since tapping
-// them changes nothing — that's clearer on mobile than a tap that silently
-// does nothing.
+// button, or (c) beyond the period's render ceiling (hmPeriodCeil), so
+// clicking them renders identically to the ceiling button itself. Floor-
+// disabled buttons are made unclickable (tapping them changes nothing);
+// ceiling-capped buttons stay clickable (hmClampTfDays still handles the
+// click correctly) but are dimmed and labeled so it's clear what they'll
+// actually produce, instead of silently rendering a shorter chart than
+// the button's own label implies (e.g. 2Y/3Y/5Y/10Y/ALL on Daily — all of
+// which clamp down to the 300-day daily ceiling).
 // For the DAILY period, buttons beyond DEEP_KEEP_RAW_MONTHS (36 months)
-// are dimmed because older data is stored as monthly stubs, not daily OHLC.
+// are ALSO dimmed for a different reason (older data is monthly stubs, not
+// daily OHLC) — that check stays separate since it can fire even when the
+// 300-day ceiling check wouldn't (e.g. if the ceiling is ever raised above
+// 1080 days in the future).
 function hmRefreshTfButtonStates(availDays) {
     var period = window._hmPeriod || 'daily';
     var floor = hmPeriodFloor(period);
+    var ceil = hmPeriodCeil(period);
     // Daily data is only raw OHLC for DEEP_KEEP_RAW_MONTHS months (~1080 days).
     // Beyond that, entries are monthly stubs — not usable for daily charts.
     var DAILY_RAW_MAX_DAYS = (window.DEEP_KEEP_RAW_MONTHS || 36) * 30;
     var btns = Array.prototype.slice.call(document.querySelectorAll('#hmBtnRow .hm-tf-btn:not(.hm-period-btn)'));
     var sorted = btns.slice().sort(function(a, b) { return parseInt(a.dataset.days, 10) - parseInt(b.dataset.days, 10); });
-    var coveredFull = false, anyFloor = false, anyRange = false, anyDailyLimit = false;
+    var coveredFull = false, anyFloor = false, anyRange = false, anyDailyLimit = false, anyCeil = false;
     sorted.forEach(function(b) {
       var bd = parseInt(b.dataset.days, 10);
       if (bd < floor) {
@@ -10481,6 +10955,15 @@ function hmRefreshTfButtonStates(availDays) {
         b.style.opacity = '0.4'; b.style.pointerEvents = 'none';
         b.title = 'Only monthly data available beyond 36 months \u2014 switch to Monthly for full coverage';
         anyDailyLimit = true;
+        return;
+      }
+      // Beyond the period's own render ceiling: clicking still works (clamps
+      // down to the ceiling) but renders identically to the ceiling/ALL
+      // button, so mark it rather than let it look unresponsive.
+      if (bd > ceil) {
+        b.style.opacity = '0.55';
+        b.title = 'Caps at ' + ceil + ' days for ' + period + ' view \u2014 same chart as a shorter range';
+        anyCeil = true;
         return;
       }
       if (availDays != null && coveredFull) {
@@ -10499,11 +10982,12 @@ function hmRefreshTfButtonStates(availDays) {
       hint.style.display = 'block';
     } else if (anyFloor && anyRange) { hint.textContent = 'Greyed: too short for this period, or beyond this index\u2019s history'; hint.style.display = 'block'; }
     else if (anyFloor) { hint.textContent = 'Greyed buttons are too short a range for ' + period + ' view'; hint.style.display = 'block'; }
+    else if (anyCeil) { hint.textContent = 'Buttons beyond ' + ceil + ' days cap at ' + ceil + ' for ' + period + ' view'; hint.style.display = 'block'; }
     else if (anyRange) { hint.textContent = 'Greyed buttons repeat this index\u2019s full available history'; hint.style.display = 'block'; }
     else { hint.style.display = 'none'; }
 }
 function setHmTf(btn, days) {
-    var effDays = Math.max(days, hmPeriodFloor(window._hmPeriod || 'daily'));
+    var effDays = hmClampTfDays(days, window._hmPeriod || 'daily');
     window._hmTfDays = effDays;
     BB.hmTfDays(effDays);
     hmHighlightTfButton(effDays);
@@ -10513,7 +10997,12 @@ function setHmPeriod(btn, period) {
     window._hmPeriod = period;
     BB.hmPeriod(period);
     hmHighlightPeriodButton(period);
-    var effDays = Math.max(window._hmTfDays || 99999, hmPeriodFloor(period));
+    // Re-clamp the CURRENT timeframe into the new period's [floor, ceil]
+    // range. Using clamp (not Math.max) is what fixes the cross-tab desync:
+    // switching from Monthly+ALL (99999) to Daily must bring the effective
+    // days back DOWN to Daily's 300-day ceiling, not leave it pinned at
+    // 99999 just because Math.max() can only ever raise a value.
+    var effDays = hmClampTfDays(window._hmTfDays || 99999, period);
     window._hmTfDays = effDays;
     BB.hmTfDays(effDays);
     hmHighlightTfButton(effDays);
@@ -10533,6 +11022,9 @@ function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0
 // Same fix as hmAggregateWeeks above, for monthly buckets.
 function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; cur.date = d.date; } } if (cur) months.push(cur); return months; }
 // ── 13.5 RSI / WMA / EMA Computation ──
+// NOTE: unlike U.calcRSI/ptCalcRSI/rsiCalc, this pre-fills with neutral 50
+// instead of returning [] on insufficient data — intentional for charting
+// (keeps array length aligned to `prices`), not a bug to "fix" into matching.
 function hmCalcRSI(prices, period) {
     var rsi = new Array(prices.length).fill(50);
     if (prices.length < period + 1) return rsi;
@@ -10590,31 +11082,53 @@ async function drawHilegaMilega() {
 
         // ═══════════════════════════════════════════════════════════════════
         // CONTAINER 1: DL_ — DATA DOWNLOAD FROM NSE
-        // Loads raw dailyMap, weeklyMap, monthlyMap from scanner/deep cache.
-        // This is the ONLY place that touches raw NSE data sources.
+        // 3 INDEPENDENT reads from 3 SEPARATE IDB containers.
+        // dailyMap ← ld_deep_daily_v1    (or scanner fallback)
+        // weeklyMap ← ld_deep_weekly_v1   (or rebuild from daily)
+        // monthlyMap ← ld_deep_monthly_v1 (or rebuild from daily)
+        // No merged object. Each container owns its own data.
         // ═══════════════════════════════════════════════════════════════════
         var DL_rawDailyMap = null;
         var DL_rawWeeklyMap = null;
         var DL_rawMonthlyMap = null;
+
+        // ── DL daily: scanner data → IDB daily container ──
         var DL_sd = window._ldScannerData;
         if (DL_sd && DL_sd.dailyMap && Object.keys(DL_sd.dailyMap).length > 0) {
           DL_rawDailyMap = DL_sd.dailyMap;
         }
         if (!DL_rawDailyMap) {
-          var DL_dc = window._deepWeeklyCache;
-          if (!DL_dc || !DL_dc.dailyMap || Object.keys(DL_dc.dailyMap).length === 0) {
-            DL_dc = await new Promise(function(res){ _deepLoadAsync(res); });
-            window._deepWeeklyCache = DL_dc;
-          }
-          if (DL_dc && DL_dc.dailyMap && Object.keys(DL_dc.dailyMap).length > 0) {
-            DL_rawDailyMap = DL_dc.dailyMap;
-          }
+          DL_rawDailyMap = await new Promise(function(res) {
+            window._idbGet(window.DEEP_CACHE_KEY_DAILY, function(d) {
+              res((d && d.dailyMap && Object.keys(d.dailyMap).length > 0) ? d.dailyMap : null);
+            });
+          });
         }
-        // Load pre-computed weekly/monthly maps from deep cache
-        var DL_dc2 = window._deepWeeklyCache;
-        if (DL_dc2) {
-          DL_rawWeeklyMap = DL_dc2.weeklyMap || null;
-          DL_rawMonthlyMap = DL_dc2.monthlyMap || null;
+        // ── DL weekly: IDB weekly container (independent read) ──
+        DL_rawWeeklyMap = await new Promise(function(res) {
+          window._idbGet(window.DEEP_CACHE_KEY_WEEKLY, function(w) {
+            res((w && w.weeklyMap && Object.keys(w.weeklyMap).length > 0) ? w.weeklyMap : null);
+          });
+        });
+        // ── DL monthly: IDB monthly container (independent read) ──
+        DL_rawMonthlyMap = await new Promise(function(res) {
+          window._idbGet(window.DEEP_CACHE_KEY_MONTHLY, function(m) {
+            res((m && m.monthlyMap && Object.keys(m.monthlyMap).length > 0) ? m.monthlyMap : null);
+          });
+        });
+
+        // ── DL rebuild: if weekly/monthly empty, rebuild from daily ──
+        var DL_dailyForRebuild = DL_rawDailyMap;
+        var DL_needRebuildW = !DL_rawWeeklyMap || Object.keys(DL_rawWeeklyMap).length === 0;
+        var DL_needRebuildM = !DL_rawMonthlyMap || Object.keys(DL_rawMonthlyMap).length === 0;
+        if ((DL_needRebuildW || DL_needRebuildM) && DL_dailyForRebuild && Object.keys(DL_dailyForRebuild).length > 0) {
+          var _hmRebuildCache = { dailyMap: DL_dailyForRebuild };
+          await new Promise(function(resolve) { window._buildWeeklyMonthlyMapsAsync(_hmRebuildCache, null, resolve); });
+          if (DL_needRebuildW) DL_rawWeeklyMap = _hmRebuildCache.weeklyMap;
+          if (DL_needRebuildM) DL_rawMonthlyMap = _hmRebuildCache.monthlyMap;
+          // Persist rebuilt maps back into their own IDB containers
+          if (DL_needRebuildW) window._idbPut(window.DEEP_CACHE_KEY_WEEKLY, { weeklyMap: DL_rawWeeklyMap });
+          if (DL_needRebuildM) window._idbPut(window.DEEP_CACHE_KEY_MONTHLY, { monthlyMap: DL_rawMonthlyMap });
         }
         if (!DL_rawDailyMap || Object.keys(DL_rawDailyMap).length === 0) {
           hmShowCanvasMessage('\u26A0 No cached data yet', 'Run Step 1 first');
@@ -10636,9 +11150,7 @@ async function drawHilegaMilega() {
         // Daily database — raw dailyMap as-is
         DB_dailyDatabase = DL_rawDailyMap;
 
-        // Weekly database — ONLY from deep cache weeklyMap (pre-computed).
-        // Never rebuild from daily — that produces wrong counts and stale data.
-        // If deep cache weeklyMap/monthlyMap are empty, buttons show 0.
+        // Weekly database — from DL_rawWeeklyMap (deep cache or rebuilt in DL_ above).
         if (DL_rawWeeklyMap && Object.keys(DL_rawWeeklyMap).length > 0) {
           DB_weeklyDatabase = DL_rawWeeklyMap;
         } else {
@@ -10775,7 +11287,7 @@ async function drawHilegaMilega() {
         if (_weeklyBtn) _weeklyBtn.textContent = 'Weekly (' + _cntWeekly + ')';
         if (_monthlyBtn) _monthlyBtn.textContent = 'Monthly (' + _cntMonthly + ')';
 
-        hmRefreshPeriodButtonStates(viewData);
+        hmRefreshPeriodButtonStates(viewData, _cntDaily, _cntWeekly, _cntMonthly);
         hmRefreshTfButtonStates(hmAvailDaysFromHist(viewData));
         hmSetDefaultDates();
 
@@ -10784,7 +11296,23 @@ async function drawHilegaMilega() {
         var wmaLen = parseInt(document.getElementById('hmWmaLen').value) || 21;
         var emaLen = parseInt(document.getElementById('hmEmaLen').value) || 3;
         var midLine = 50;
-        var tfDays = window._hmTfDays || 1825;
+        // ── Period-aware render window ──
+        // Uses the same hmClampTfDays() helper that setHmTf/setHmPeriod use,
+        // so the chart's actual slice and the highlighted timeframe button
+        // can never disagree. Clamps both directions: raises a too-short
+        // value up to the period's floor (e.g. 2W on Monthly → 365), and
+        // caps a too-long value down to the period's ceiling (e.g. ALL on
+        // Daily → 300 days; ALL on Weekly/Monthly → ~10 years).
+        var tfDays = hmClampTfDays(window._hmTfDays || 99999, window._hmPeriod);
+        if (tfDays !== window._hmTfDays) {
+          // The requested value got clamped (most commonly: switched periods
+          // without re-clicking a timeframe button, or stale persisted state
+          // from a previous session) — persist and re-highlight so the UI
+          // reflects what's actually about to render, not the stale request.
+          window._hmTfDays = tfDays;
+          BB.hmTfDays(tfDays);
+          hmHighlightTfButton(tfDays);
+        }
         var rsi = hmCalcRSI(viewData.map(function(d) { return d.nav; }), rsiLen);
         var wma = hmCalcWMA(rsi, wmaLen);
         var ema = hmCalcEMA(rsi, emaLen);
@@ -10911,12 +11439,13 @@ function openHilegaTab() {
   hmPopulateIndexDropdown().then(function(){
   window._hmTfDays = BB.hmTfDays();
   window._hmPeriod = BB.hmPeriod();
-  // Re-apply the period floor on every tab open too — the two values are
-  // stored independently, so a saved combo like period=monthly + tf=14
-  // (from an earlier session, or a manual localStorage edit) would otherwise
-  // sail straight into the "fewer than 2 data points" wall as soon as the
-  // chart draws.
-  window._hmTfDays = Math.max(window._hmTfDays, hmPeriodFloor(window._hmPeriod));
+  // Re-apply the period floor AND ceiling on every tab open too — the two
+  // values are stored independently, so a saved combo like period=monthly
+  // + tf=14 (too short — floor) or period=daily + tf=99999 (too long for
+  // Daily — ceiling, e.g. from a previous session before this cap existed)
+  // would otherwise sail straight into "fewer than 2 data points" or an
+  // unreadable multi-year daily chart as soon as it draws.
+  window._hmTfDays = hmClampTfDays(window._hmTfDays, window._hmPeriod);
   BB.hmTfDays(window._hmTfDays);
   hmHighlightPeriodButton(window._hmPeriod);
   hmHighlightTfButton(window._hmTfDays);
@@ -10976,6 +11505,8 @@ function openHilegaTab() {
 })();
 window.openHilegaTab = openHilegaTab;
 window.drawHilegaMilega = drawHilegaMilega;
+window.setHmTf = setHmTf;
+window.setHmPeriod = setHmPeriod;
 window.HilegaMilega = { open: openHilegaTab, draw: drawHilegaMilega };
 return { open: openHilegaTab, draw: drawHilegaMilega };
 })(); // end Container HM
