@@ -943,7 +943,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <body>
 <!-- ================================================================
    SECTION 3: HTML BODY — 9-TAB SINGLE-PAGE APP
-   Tabs: Breadth | Scanner | Buy/Sell Triggers | Confluence | RS | Balanced Allocation | Paper Trade | RSI Bias | Hilega
+   Tabs (in on-screen order): Market Breadth | Nifty Index Scanner |
+   Buy/Sell Triggers | Confluence | RS Scanner | RSI Bias | Hilega |
+   Balanced Allocation | Portfolio Snapshot (formerly "Paper Trade")
    ============================================================ -->
 <!-- ════════════════════════════════════════════ -->
 <!--  3. HTML: 9-TAB PAGE STRUCTURE              -->
@@ -963,7 +965,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.2</span>
+    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.3</span>
+
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → Confluence → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
 </div>
@@ -1067,7 +1070,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 </div>
 
 </div>
-<!-- ── 3.3 Lie Detector V7 (React mount point, active by default) ── -->
+<!-- ── 3.3 Lie Detector V7 (Nifty Index Scanner tab; React mount point, active by default) ── -->
 <div id="tab-scanner" class="tab-panel active">
 <div id="root"></div>
 </div>
@@ -1115,6 +1118,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <!-- ════════════════════════════════════════════ -->
 <!-- ================================================================
    SECTION 4: LIE DETECTOR V7 — REACT SCANNER
+   "Lie Detector" is this app's own name for the main Nifty Index Scanner
+   + BA audit engine (see the "Audit Guidelines" AI prompt later in this
+   section) — not a leftover/mislabeled name from another project.
    Contains: embedded historical data (166 indices), NSE snapshot,
    BA portfolio data, and the full React application UI + logic
    ============================================================ -->
@@ -1511,7 +1517,7 @@ function ldTodayIstStr() {
   return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
 }
 
-const APP_VERSION = 'v5.1';
+const APP_VERSION = 'v5.3';
 
 // Reads the deep weekly/daily/monthly history straight from IndexedDB —
 // the primary store for this data. The localStorage mirror (BB.deepCacheV4)
@@ -3699,9 +3705,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand-text"
   }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
-  }, React.createElement("span", {
-    className: `live-dot ${phase === 'rsi' ? 'active' : ''}`
-  }, phase === 'rsi' ? `Scanning ⟳` : phase === 'done' ? 'Scanned '+sortedRows.length+' idx' : phase === 'prices' ? 'LOADING' : 'INIT'), React.createElement("button", {
+  }, React.createElement("button", {
     className: "ld-backup-btn",
     type: "button",
     title: "Save all scanner data to 'Scanner data.json'. First tap asks where to create it; every tap after that silently overwrites the same file.",
@@ -7300,7 +7304,7 @@ window.rsToggleWL=rsToggleWL;
 </div><!-- .ba-wrap -->
 </div><!-- #tab-ba -->
 
-<!-- ── 3.7 Paper Trade Tab Panel ── -->
+<!-- ── 3.7 Portfolio Snapshot Tab Panel (was "Paper Trade"; div id="tab-pt") ── -->
 <div id="tab-pt" class="tab-panel">
 <div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
@@ -7357,7 +7361,7 @@ window.rsToggleWL=rsToggleWL;
   <div id="pt-universe-list" style="max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:9px"></div>
 </div>
 
-<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
+<div id="pt-main-table-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0;border:1px solid #ddd;border-radius:4px">
 <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
   <thead><tr id="pt-thead-row" style="background:#f5f5f5"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Click a row's # to add/remove it from the Portfolio list (Update Portfolio mode)">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#b8860b;text-transform:uppercase;white-space:nowrap" title="Monthly / Weekly / Daily RSI(9) vs 50 — Hilega Milega (NK Sir)">HM Status</th></tr></thead>
   <tbody id="pt-tb"><tr><td colspan="5" style="text-align:center;color:#666;padding:8px">No data yet — run SCAN ALL</td></tr></tbody>
@@ -7367,11 +7371,23 @@ window.rsToggleWL=rsToggleWL;
 <!-- ── Portfolio Summary table (shown via "Portfolio Summary" button) ── -->
 <div id="pt-summary-wrap" style="display:none;margin:8px 0">
   <h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Portfolio Summary</h3>
-  <div style="font-size:8px;color:#888;margin-bottom:4px">Extra columns can be appended via the Confluence / Regime / P&gt;WMA / BA Weightage / RS Score / Returns buttons above.</div>
+  <div style="font-size:8px;color:#888;margin-bottom:4px">Confluence / Regime / P&gt;WMA / BA Weightage / RS Score / Returns / HM Chart — all shown below. Tap a header button above to jump to a column.</div>
   <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #1a8a1a;border-radius:4px">
   <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
     <thead><tr id="pt-sum-thead" style="background:#eaffea"></tr></thead>
     <tbody id="pt-sum-tb"><tr><td style="text-align:center;color:#666;padding:8px">No indices in Portfolio yet — use Update Portfolio to add some</td></tr></tbody>
+  </table>
+  </div>
+</div>
+
+<!-- ── Matching Index table: near-matching or better-scoring indices ── -->
+<div id="pt-matching-wrap" style="display:none;margin:8px 0">
+  <h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Matching Index</h3>
+  <div style="font-size:8px;color:#888;margin-bottom:4px">Indices outside your Portfolio scoring at or above its average (Regime + P&gt;WMA + RS Score + BA Weightage composite).</div>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #cc7a00;border-radius:4px">
+  <table style="width:100%;border-collapse:collapse;font-size:9px;min-width:480px">
+    <thead><tr style="background:#fff3e0"><th style="padding:5px 4px;text-align:left;font-size:7px;color:#a35a00;text-transform:uppercase;white-space:nowrap">#</th><th style="font-family:'Segoe UI',Arial,sans-serif;padding:5px 4px;text-align:left;font-size:9px;color:#000;text-transform:uppercase;white-space:nowrap">Index</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#a35a00;text-transform:uppercase;white-space:nowrap">Price</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#a35a00;text-transform:uppercase;white-space:nowrap">Chg%</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#a35a00;text-transform:uppercase;white-space:nowrap">Score</th><th style="padding:5px 4px;text-align:left;font-size:7px;color:#a35a00;text-transform:uppercase;white-space:nowrap">Add to Portfolio</th></tr></thead>
+    <tbody id="pt-matching-tb"><tr><td colspan="6" style="text-align:center;color:#666;padding:8px">Run ⚡ SCAN ALL and build a Portfolio to see matches</td></tr></tbody>
   </table>
   </div>
 </div>
@@ -7473,8 +7489,8 @@ window.rsToggleWL=rsToggleWL;
   <div style="display:flex;flex-direction:column;height:100vh;height:100dvh;background:#fff;">
     <div id="hmCanvasWrap" style="width:100%;height:50vh;height:50dvh;min-height:220px;flex-shrink:0;position:relative;border-bottom:1px solid var(--border);background:#fff;">
       <canvas id="hmCanvas"></canvas>
-      <div id="hmHud" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:nowrap;top:2px;"></div>
-      <div id="hmHudRight" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:nowrap;top:2px;right:2px;text-align:right;"></div>
+      <div id="hmHud" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:normal;top:2px;max-width:58%;box-sizing:border-box;"></div>
+      <div id="hmHudRight" style="display:none;position:absolute;pointer-events:none;background:rgba(255,255,255,0.92);border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-family:monospace;font-size:10px;line-height:1.5;color:#000;box-shadow:1px 1px 6px rgba(0,0,0,0.1);z-index:10;white-space:nowrap;top:2px;right:2px;text-align:right;max-width:40%;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;"></div>
       <div id="hmNoDataBanner" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#fff;text-align:center;padding:16px;">
         <div id="hmNoDataMsg" style="font-size:13px;color:#888;font-family:var(--mono);max-width:280px;white-space:pre-line;">No scanner data yet</div>
         <button onclick="switchTab('scanner')" style="background:var(--green);color:#fff;border:none;border-radius:4px;padding:6px 14px;font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">Go to Scanner tab →</button>
@@ -7521,8 +7537,6 @@ window.rsToggleWL=rsToggleWL;
         <button class="hm-tf-btn hm-period-btn active" data-period="daily" onclick="setHmPeriod(this,'daily')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">DAILY</button>
         <button class="hm-tf-btn hm-period-btn" data-period="weekly" onclick="setHmPeriod(this,'weekly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">WEEKLY</button>
         <button class="hm-tf-btn hm-period-btn" data-period="monthly" onclick="setHmPeriod(this,'monthly')" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;font-weight:700;white-space:nowrap;border-right:1px solid var(--border);">MONTHLY</button>
-        <button class="hm-tf-btn" data-days="14" onclick="setHmTf(this,14)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">2W</button>
-        <button class="hm-tf-btn" data-days="30" onclick="setHmTf(this,30)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1M</button>
         <button class="hm-tf-btn" data-days="90" onclick="setHmTf(this,90)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3M</button>
         <button class="hm-tf-btn" data-days="180" onclick="setHmTf(this,180)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">6M</button>
         <button class="hm-tf-btn" data-days="365" onclick="setHmTf(this,365)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">1Y</button>
@@ -7530,7 +7544,6 @@ window.rsToggleWL=rsToggleWL;
         <button class="hm-tf-btn" data-days="1095" onclick="setHmTf(this,1095)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">3Y</button>
         <button class="hm-tf-btn" data-days="1825" onclick="setHmTf(this,1825)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">5Y</button>
         <button class="hm-tf-btn" data-days="3650" onclick="setHmTf(this,3650)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">10Y</button>
-        <button class="hm-tf-btn" data-days="99999" onclick="setHmTf(this,99999)" style="background:transparent;border:none;color:#888;font-family:var(--mono);font-size:12px;padding:4px 8px;cursor:pointer;border-radius:4px;white-space:nowrap;">ALL</button>
       </div>
       <div id="hmBtnHint" style="display:none;font-size:9px;color:#aaa;text-align:center;margin-top:-2px;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
@@ -8347,9 +8360,11 @@ win.runBAsScan = runBAsScan;
 </script>
 
 <!-- ================================================================
-   SECTION 10: PAPER TRADE
+   SECTION 10: PAPER TRADE ENGINE (tab UI renamed "Portfolio Snapshot")
    IIFE: simulated portfolio with buy/sell based on scanner signals.
    Tracks P&L, allocation, trade history, equity curve.
+   Extended by SECTION 10.5 (PSnap) below, which adds the manual
+   watchlist/summary features now surfaced under the same tab.
    Exposes: window.ptRunScan(), window.ptReset(), window.ptInit()
    ============================================================ -->
 <!-- ── Paper Trade Tab JS (scoped under window.PT) ── -->
@@ -8679,9 +8694,12 @@ win.ptReset=ptReset;
 <!-- ── Portfolio Snapshot (PSnap) Extension JS ── -->
 <!-- ================================================================
    SECTION 10.5: PORTFOLIO SNAPSHOT
-   Adds: Index Universe list, manual add/remove-to-portfolio via row #,
-   purchase-date tagging, Portfolio Summary table with pluggable columns
-   (Confluence / Regime / P>WMA / BA Weightage / RS Score / Returns).
+   Adds on top of the Paper Trade engine below: Index Universe list,
+   manual add/remove-to-portfolio via row #, purchase-date tagging,
+   Portfolio Summary table with always-on columns (Confluence / Regime /
+   P>WMA / BA Weightage / RS Score / Returns / View HM Chart), a
+   Matching Index table of better-or-equal-scoring non-portfolio indices,
+   and a floating Back button for the HM-Chart round trip to the Hilega tab.
    Reads cross-tab data from BB.scannerCache(), BB.ttfCache(), BB.rsScanCache().
    Exposes: window.PSnap
    ============================================================ -->
@@ -8773,6 +8791,7 @@ function openUniverse(){
   var list=(sd&&sd.indexList)||[];
   var panel=psEl('pt-universe-panel'),listEl=psEl('pt-universe-list');
   if(!panel||!listEl)return;
+  hideSummary(); // per spec: only the summary table shows while viewing it; universe/main table returns here
   if(!list.length){
     listEl.innerHTML='<div style="padding:10px;color:#666;text-align:center">No index list yet — run ⚡ SCAN ALL first.</div>';
   }else{
@@ -8806,9 +8825,11 @@ function toggleName(name){
     PState.purchases[name]={date:pdate,price:priceRow?priceRow.price:null};
   }
   psSave();
-  openUniverse(); // refresh list highlighting
+  var univPanel=psEl('pt-universe-panel');
+  if(univPanel&&univPanel.style.display!=='none')openUniverse(); // refresh list highlighting
   if(typeof win.ptRerender==='function')win.ptRerender();
-  if(psEl('pt-summary-wrap')&&psEl('pt-summary-wrap').style.display!=='none')renderSummary();
+  var sumWrap=psEl('pt-summary-wrap');
+  if(sumWrap&&sumWrap.style.display!=='none'){renderSummary();renderMatchingIndex();updateHeaderStats();}
 }
 function has(name){return PState.names.indexOf(name)>=0;}
 
@@ -8824,6 +8845,7 @@ function toggleUpdateMode(){
     var di=psEl('pt-purchase-date');
     if(di&&!di.value)di.value=new Date().toISOString().slice(0,10);
   }
+  if(updateMode)hideSummary(); // show the clickable main table while updating
   if(typeof win.ptRerender==='function')win.ptRerender();
 }
 function onRowNumClick(i){
@@ -8860,6 +8882,9 @@ function rsScoreFor(name){
 }
 
 // ── Column registry ──
+// All of these are now ALWAYS shown in the Portfolio Summary table (per spec).
+// The header buttons act as "jump to summary" shortcuts / column-highlighters
+// rather than true show/hide toggles.
 var COL_DEFS={
   confluence:{label:'RSI Weekly',render:function(name){var s=confluenceStatusFor(name);return s||'<span style="color:#999">—</span>';}},
   regime:{label:'Regime',render:function(name){var r=scannerRowFor(name);if(!r||!r.regime)return '<span style="color:#999">—</span>';var c=r.regime==='A'?'#1a8a1a':r.regime==='B'?'#b8860b':'#cc0000';return '<span style="color:'+c+';font-weight:bold">'+r.regime+'</span>';}},
@@ -8875,37 +8900,100 @@ var COL_DEFS={
     var diff=cur-pur.price,pct=pur.price?(diff/pur.price*100):0;
     var c=diff>=0?'#1a8a1a':'#cc0000';
     return '<span style="color:'+c+'">'+(diff>=0?'+':'')+diff.toFixed(1)+' ('+(pct>=0?'+':'')+pct.toFixed(2)+'%)</span>';
+  }},
+  hmchart:{label:'HM Chart',render:function(name){
+    return '<button onclick="PSnap.viewHMChart(\''+name.replace(/'/g,"\\'")+'\')" style="background:#0055aa;color:#fff;border:none;padding:3px 7px;border-radius:3px;font-size:8px;cursor:pointer;white-space:nowrap">View HM Chart</button>';
   }}
 };
+// Fixed column order used everywhere "all columns" are requested
+var ALL_COL_KEYS=['confluence','regime','pwma','ba','rs','returns','hmchart'];
+
 function addColumn(key){
   if(!COL_DEFS[key])return;
-  var idx=PState.cols.indexOf(key);
-  if(idx>=0)PState.cols.splice(idx,1); // toggle off if already present
-  else PState.cols.push(key);
-  psSave();
-  var btnMap={confluence:'pt-btn-confluence',regime:'pt-btn-regime',pwma:'pt-btn-pwma',ba:'pt-btn-ba',rs:'pt-btn-rs',returns:'pt-btn-returns'};
-  var btn=psEl(btnMap[key]);
-  if(btn)btn.style.outline=PState.cols.indexOf(key)>=0?'2px solid #333':'none';
-  showSummary(); // ensure summary table is visible and reflects the new column
+  // Columns are always-on in the Summary table now; the button just jumps
+  // there and gives a brief highlight pulse on the matching header cell.
+  showSummary();
+  setTimeout(function(){
+    var th=psEl('pt-col-'+key);
+    if(th){th.style.background='#c8f7c8';setTimeout(function(){th.style.background='';},900);}
+  },50);
+}
+
+// ── Navigate to Hilega Milega chart (Monthly, 3Y) for a given index ──
+function viewHMChart(name){
+  var sd=win._ldScannerData;
+  var key=null;
+  if(sd&&sd.indexList){
+    for(var i=0;i<sd.indexList.length;i++){
+      if(sd.indexList[i].name===name){key=sd.indexList[i].key;break;}
+    }
+  }
+  if(!key)return;
+  if(win.BB){
+    if(win.BB.hmIndexKey)win.BB.hmIndexKey(key);
+    if(win.BB.hmPeriod)win.BB.hmPeriod('monthly');
+    if(win.BB.hmTfDays)win.BB.hmTfDays(1095); // 3 years
+  }
+  win._hmPeriod='monthly';
+  win._hmTfDays=1095;
+  win._hmReturnToPT=true;
+  showBackButton();
+  if(typeof win.switchTab==='function')win.switchTab('hilega');
+}
+function showBackButton(){
+  var b=psEl('pt-back-fab');
+  if(!b){
+    b=document.createElement('button');
+    b.id='pt-back-fab';
+    b.textContent='← Back';
+    b.style.cssText='position:fixed;top:8px;right:8px;z-index:99999;background:#0055aa;color:#fff;border:none;padding:6px 10px;border-radius:14px;font-size:10px;font-weight:bold;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.35)';
+    b.onclick=function(){
+      win._hmReturnToPT=false;
+      b.style.display='none';
+      if(typeof win.switchTab==='function')win.switchTab('pt');
+    };
+    document.body.appendChild(b);
+  }
+  b.style.display='block';
+}
+function hideBackButton(){
+  var b=psEl('pt-back-fab');
+  if(b)b.style.display='none';
 }
 
 // ── Portfolio Summary table ──
 function showSummary(){
   var wrap=psEl('pt-summary-wrap');
   if(wrap)wrap.style.display='block';
+  var mwrap=psEl('pt-matching-wrap');
+  if(mwrap)mwrap.style.display='block';
+  var univ=psEl('pt-universe-panel');
+  if(univ)univ.style.display='none'; // hide universe list while summary is shown
+  var mainTableWrap=psEl('pt-main-table-wrap');
+  if(mainTableWrap)mainTableWrap.style.display='none'; // hide basic index table while summary is shown
   renderSummary();
+  renderMatchingIndex();
+  updateHeaderStats();
   if(wrap)wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function hideSummary(){
+  var wrap=psEl('pt-summary-wrap');
+  if(wrap)wrap.style.display='none';
+  var mwrap=psEl('pt-matching-wrap');
+  if(mwrap)mwrap.style.display='none';
+  var mainTableWrap=psEl('pt-main-table-wrap');
+  if(mainTableWrap)mainTableWrap.style.display='block';
 }
 function ptFmtLocal(n){return n==null?'—':'Rs '+Math.round(n).toLocaleString('en-IN');}
 function renderSummary(){
   var theadEl=psEl('pt-sum-thead'),tbEl=psEl('pt-sum-tb');
   if(!theadEl||!tbEl)return;
   var baseCols=['#','Index','Price','Chg%','HM Status'];
-  var extraCols=PState.cols.map(function(k){return COL_DEFS[k].label;});
-  var allCols=baseCols.concat(extraCols);
-  theadEl.innerHTML=allCols.map(function(h){return '<th style="padding:5px 4px;text-align:left;font-size:7px;color:#0a6b0a;text-transform:uppercase;white-space:nowrap">'+h+'</th>';}).join('');
+  var extraCols=ALL_COL_KEYS.map(function(k){return {key:k,label:COL_DEFS[k].label};});
+  theadEl.innerHTML=baseCols.map(function(h){return '<th style="padding:5px 4px;text-align:left;font-size:7px;color:#0a6b0a;text-transform:uppercase;white-space:nowrap">'+h+'</th>';}).join('')+
+    extraCols.map(function(c){return '<th id="pt-col-'+c.key+'" style="padding:5px 4px;text-align:left;font-size:7px;color:#0a6b0a;text-transform:uppercase;white-space:nowrap;transition:background 0.4s">'+c.label+'</th>';}).join('');
   if(!PState.names.length){
-    tbEl.innerHTML='<tr><td colspan="'+allCols.length+'" style="text-align:center;color:#666;padding:8px">No indices in Portfolio yet — use Update Portfolio to add some</td></tr>';
+    tbEl.innerHTML='<tr><td colspan="'+(baseCols.length+extraCols.length)+'" style="text-align:center;color:#666;padding:8px">No indices in Portfolio yet — use Update Portfolio to add some</td></tr>';
     return;
   }
   var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
@@ -8917,22 +9005,94 @@ function renderSummary(){
       '<td style="padding:5px 4px;font-size:9px">'+ptFmtLocal(pr.price)+'</td>'+
       '<td style="padding:5px 4px;font-size:9px;color:'+((pr.change||0)>=0?'#1a8a1a':'#cc0000')+'">'+(pr.change!=null?(pr.change>=0?'+':'')+pr.change.toFixed(1)+'%':'—')+'</td>'+
       '<td style="padding:5px 4px;font-size:9px;white-space:nowrap">'+hmStatusCell(name)+'</td>';
-    PState.cols.forEach(function(k){
+    ALL_COL_KEYS.forEach(function(k){
       cells+='<td style="padding:5px 4px;font-size:9px;white-space:nowrap">'+COL_DEFS[k].render(name)+'</td>';
     });
     return '<tr style="border-bottom:1px solid #eee">'+cells+'</tr>';
   }).join('');
 }
 
+// ── Header P&L / Return / Portfolio Value stat boxes ──
+// Recomputed from the Portfolio Snapshot selection's purchase price vs current
+// price (equal-weighted, since PSnap is a watchlist-style tool, not a sized
+// paper-trade book). Only runs when at least one index has a tagged purchase.
+function updateHeaderStats(){
+  var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+  var priceOf={};scanR.forEach(function(r){priceOf[r.name]=r.price;});
+  var withPurchase=PState.names.filter(function(n){return PState.purchases[n]&&PState.purchases[n].price!=null;});
+  var pvEl=psEl('pt-pv'),tpEl=psEl('pt-tp'),trEl=psEl('pt-tr');
+  if(!withPurchase.length)return; // leave the underlying paper-trade engine's own figures untouched
+  var investedTotal=0,curTotal=0;
+  withPurchase.forEach(function(n){
+    var pur=PState.purchases[n].price;
+    var cur=priceOf[n]!=null?priceOf[n]:pur;
+    investedTotal+=pur;
+    curTotal+=cur;
+  });
+  var pnl=curTotal-investedTotal;
+  var retPct=investedTotal?(pnl/investedTotal*100):0;
+  if(pvEl)pvEl.textContent='Rs '+Math.round(curTotal).toLocaleString('en-IN');
+  if(tpEl){tpEl.textContent=(pnl>=0?'+':'')+'Rs '+Math.round(Math.abs(pnl)).toLocaleString('en-IN');tpEl.style.color=pnl>=0?'#1a8a1a':'#cc0000';}
+  if(trEl){trEl.textContent=(retPct>=0?'+':'')+retPct.toFixed(2)+'%';trEl.style.color=retPct>=0?'#1a8a1a':'#cc0000';}
+}
+
+// ── Matching Index table: indices NOT in the portfolio that look as-good-or-
+// better than the portfolio's average, ranked by a simple composite score
+// (Regime A + P>WMA + RS Score + BA weight all nudge the score up). Shown
+// below the Portfolio Summary table.
+function compositeScoreFor(name){
+  var r=scannerRowFor(name);
+  var score=0;
+  if(r&&r.regime==='A')score+=40;
+  else if(r&&r.regime==='B')score+=15;
+  if(r&&r.price!=null&&r.wma20Price!=null&&r.price>r.wma20Price)score+=20;
+  var rs=rsScoreFor(name);
+  if(rs!=null)score+=Math.max(0,Math.min(30,Number(rs)));
+  var ba=baPctFor(name);
+  if(ba!=null)score+=Math.max(0,Math.min(10,Number(ba)/10));
+  return score;
+}
+function renderMatchingIndex(){
+  var wrap=psEl('pt-matching-wrap');
+  var tbEl=psEl('pt-matching-tb');
+  if(!wrap||!tbEl)return;
+  var sd=win._ldScannerData;
+  var allNames=(sd&&sd.indexList)?sd.indexList.map(function(x){return x.name;}):[];
+  if(!allNames.length||!PState.names.length){
+    tbEl.innerHTML='<tr><td colspan="6" style="text-align:center;color:#666;padding:8px">Run ⚡ SCAN ALL and build a Portfolio to see matches</td></tr>';
+    return;
+  }
+  var portfolioAvg=PState.names.reduce(function(s,n){return s+compositeScoreFor(n);},0)/PState.names.length;
+  var candidates=allNames.filter(function(n){return PState.names.indexOf(n)<0;})
+    .map(function(n){return {name:n,score:compositeScoreFor(n)};})
+    .filter(function(c){return c.score>=portfolioAvg;})
+    .sort(function(a,b){return b.score-a.score;})
+    .slice(0,15);
+  if(!candidates.length){
+    tbEl.innerHTML='<tr><td colspan="6" style="text-align:center;color:#666;padding:8px">No indices currently score as well as your portfolio average</td></tr>';
+    return;
+  }
+  var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
+  var priceOf={};scanR.forEach(function(r){priceOf[r.name]={price:r.price,change:r.change};});
+  tbEl.innerHTML=candidates.map(function(c,i){
+    var pr=priceOf[c.name]||{};
+    var r=scannerRowFor(c.name);
+    return '<tr style="border-bottom:1px solid #eee">'+
+      '<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
+      '<td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-size:10px;font-weight:600;color:#000;word-break:break-word;white-space:normal">'+c.name+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px">'+ptFmtLocal(pr.price)+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px;color:'+((pr.change||0)>=0?'#1a8a1a':'#cc0000')+'">'+(pr.change!=null?(pr.change>=0?'+':'')+pr.change.toFixed(1)+'%':'—')+'</td>'+
+      '<td style="padding:5px 4px;font-size:9px"><span style="background:#1a8a1a;color:#fff;padding:1px 5px;border-radius:3px;font-size:8px">'+c.score.toFixed(0)+'</span> <span style="color:#888;font-size:7px">vs avg '+portfolioAvg.toFixed(0)+'</span>'+(r&&r.regime?' &nbsp;<span style="color:#888">Regime '+r.regime+'</span>':'')+'</td>'+
+      '<td style="padding:5px 4px"><button onclick="PSnap.toggleName(\''+c.name.replace(/'/g,"\\'")+'\')" style="background:#1a8a1a;color:#fff;border:none;padding:3px 8px;border-radius:3px;font-size:8px;cursor:pointer;white-space:nowrap">Add to Portfolio</button></td>'+
+      '</tr>';
+  }).join('');
+}
+
 function onTabActivated(){
   psLoad();
-  // Restore column-button outlines to reflect saved state
-  var btnMap={confluence:'pt-btn-confluence',regime:'pt-btn-regime',pwma:'pt-btn-pwma',ba:'pt-btn-ba',rs:'pt-btn-rs',returns:'pt-btn-returns'};
-  Object.keys(btnMap).forEach(function(k){
-    var btn=psEl(btnMap[k]);
-    if(btn)btn.style.outline=PState.cols.indexOf(k)>=0?'2px solid #333':'none';
-  });
+  hideBackButton();
   if(PState.names.length)showSummary();
+  else hideSummary();
 }
 
 win.PSnap={
@@ -8943,6 +9103,8 @@ win.PSnap={
   onRowNumClick:onRowNumClick,
   addColumn:addColumn,
   showSummary:showSummary,
+  hideSummary:hideSummary,
+  viewHMChart:viewHMChart,
   has:has,
   hmStatusCell:hmStatusCell,
   onTabActivated:onTabActivated,
@@ -9129,16 +9291,15 @@ function _deepShowProgress(done, total, phaseLabel) {
     el = document.createElement('div');
     el.id = '_deepProg';
     el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);'
-      + 'background:rgba(18,18,28,0.95);color:#f0f0f0;border-radius:10px;'
-      + 'padding:12px 22px;font-family:monospace;font-size:13px;'
-      + 'box-shadow:0 4px 24px rgba(0,0,0,0.55);z-index:99999;'
-      + 'min-width:300px;max-width:520px;text-align:center;'
-      + 'border:1.5px solid rgba(251,146,60,0.4);transition:opacity 0.5s ease;';
-    el.innerHTML = '<div id="_deepProgTxt" style="margin-bottom:8px;font-weight:bold;letter-spacing:0.03em;"></div>'
-      + '<div style="background:rgba(255,255,255,0.13);border-radius:5px;height:7px;overflow:hidden;">'
+      + 'background:#fff;color:#1a1a1a;border-radius:10px;'
+      + 'padding:10px 16px;font-family:monospace;font-size:11px;'
+      + 'box-shadow:0 4px 24px rgba(0,0,0,0.25);z-index:99999;'
+      + 'max-width:92vw;width:max-content;text-align:center;white-space:nowrap;'
+      + 'border:1.5px solid rgba(251,146,60,0.5);transition:opacity 0.5s ease;';
+    el.innerHTML = '<div id="_deepProgTxt" style="margin-bottom:6px;font-weight:bold;letter-spacing:0.02em;white-space:nowrap;"></div>'
+      + '<div style="background:rgba(0,0,0,0.1);border-radius:5px;height:6px;overflow:hidden;">'
       + '<div id="_deepProgBar" style="height:100%;background:linear-gradient(90deg,#f97316,#eab308);border-radius:5px;width:0%;transition:width 0.35s ease;"></div>'
-      + '</div>'
-      + '<div id="_deepProgSub" style="margin-top:7px;font-size:11px;opacity:0.65;"></div>';
+      + '</div>';
     document.body.appendChild(el);
   }
   el.style.opacity = '1';
@@ -9146,28 +9307,18 @@ function _deepShowProgress(done, total, phaseLabel) {
   var pct = total > 0 ? Math.round(done * 100 / total) : 0;
   var bar = document.getElementById('_deepProgBar');
   var txt = document.getElementById('_deepProgTxt');
-  var sub = document.getElementById('_deepProgSub');
   if (bar) bar.style.width = pct + '%';
   if (txt) {
     if (phaseLabel) {
-      txt.textContent = phaseLabel + (total > 0 ? ': ' + done + ' \u2044 ' + total + '  (' + pct + '%)' : '');
+      // Compact single-line form (strip a redundant "day N/30" segment if the
+      // caller included one, since it's implied by the chunk count already).
+      var shortLabel = phaseLabel.replace(/\s+day\s+\d+\/\d+/, '');
+      txt.textContent = shortLabel + (total > 0 ? ': ' + done + '/' + total + ' (' + pct + '%)' : '');
     } else {
       txt.textContent = done === 0
         ? '\u23F3 Downloading NSE history \u2014 ' + total + ' trading days (~'
             + Math.round(total/250) + ' years)\u2026'
-        : '\u23F3 Caching NSE history: ' + done + ' \u2044 ' + total + ' days  (' + pct + '%)';
-    }
-  }
-  if (sub) {
-    if (phaseLabel) {
-      sub.textContent = phaseLabel;
-    } else if (done === 0) {
-      sub.textContent = 'First run only \u2014 subsequent opens use stored data (< 1 s top-up)';
-    } else {
-      var mLeft = Math.round((total - done) / 22);
-      sub.textContent = mLeft > 0
-        ? '\u2248 ' + mLeft + ' more months to go \u2014 old data pre-aggregated to save space'
-        : 'Download complete \u2014 processing...';
+        : '\u23F3 Caching NSE history: ' + done + '/' + total + ' days (' + pct + '%)';
     }
   }
 }
@@ -10513,11 +10664,13 @@ function BuySellTriggers() {
   // could mean the frozen column alone fills the whole viewport, leaving no
   // room to scroll the rest of the columns into view. Capping the width and
   // letting the name wrap onto 2 lines instead keeps it readable while
-  // leaving the remaining columns reachable.
-  const FROZEN_COL_W = 112;
-  const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W };
+  // leaving the remaining columns reachable. Width is expressed as 30% of
+  // viewport width (not a fixed px) so it scales sensibly across phone
+  // sizes, paired with a smaller font so more of each name fits per line.
+  const FROZEN_COL_W = "30vw";
+  const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, fontSize: 9 };
   const tdS = { padding: "6px 9px", borderBottom: `1px solid ${surf2}`, borderRight: `1px solid ${surf2}`, whiteSpace: "nowrap", fontFamily: "'Space Mono','Courier New',monospace", fontSize: 11, color: "#000" };
-  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.25, zIndex: 5 };
+  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.25, zIndex: 5, fontSize: 9 };
   return React.createElement("div", { style: { background: "#fff", minHeight: "100vh", ...F } },
     React.createElement("div", { style: { background: surf, borderBottom: `1px solid ${bdr}`, padding: "3px 6px", position: "sticky", top: 0, zIndex: 99, display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" } },
       React.createElement("select", { style: { fontSize: 9, padding: "2px 3px", background: "#fff", border: `1px solid ${bdr}`, fontFamily: "'Space Mono','Courier New',monospace", flexShrink: 0, maxWidth: 80 }, value: regF, onChange: e => setRegF(e.target.value) },
@@ -10687,6 +10840,22 @@ async function hmPopulateIndexDropdown() {
   var dm = sd.dailyMap || {};
   var prevCat = catSel.value;
   var prevIdx = idxSel.value;
+  // Determine which index we ultimately want selected BEFORE building the
+  // category list, so the category dropdown can be set to match it — this
+  // is what previously caused Category and Index to go out of sync: the
+  // category was chosen first (defaulting to "Broad Market"), then the
+  // index dropdown was force-set to the saved/previous index key even when
+  // that index belonged to a different category.
+  var saved = BB.hmIndexKey();
+  var wantKey = (saved && sd.indexList.some(function(idx){ return idx.key === saved; })) ? saved
+              : (prevIdx && sd.indexList.some(function(idx){ return idx.key === prevIdx; })) ? prevIdx
+              : null;
+  var wantCat = null;
+  if (wantKey) {
+    for (var wi = 0; wi < sd.indexList.length; wi++) {
+      if (sd.indexList[wi].key === wantKey) { wantCat = sd.indexList[wi].nseKey || 'Other'; break; }
+    }
+  }
   // Build category→indices map
   var groups = {};
   sd.indexList.forEach(function(idx) {
@@ -10700,12 +10869,13 @@ async function hmPopulateIndexDropdown() {
   catSel.innerHTML = '<option value="">Select Category…</option>';
   var catOrder = ['Broad Market','Broad Market - Size','Sectoral','Sectoral - Financial','Sectoral - Healthcare','Thematic','Strategy','Dividend','Fixed Income','Real Estate','Volatility'];
   var defaultCat = 'Broad Market';
+  var targetCat = wantCat || prevCat || defaultCat;
   catOrder.forEach(function(cat) {
     if (!groups[cat]) return;
     var opt = document.createElement('option');
     opt.value = cat;
     opt.textContent = cat + ' (' + groups[cat].length + ')';
-    if (cat === prevCat || (!prevCat && cat === defaultCat)) opt.selected = true;
+    if (cat === targetCat) opt.selected = true;
     catSel.appendChild(opt);
     delete groups[cat];
   });
@@ -10713,16 +10883,14 @@ async function hmPopulateIndexDropdown() {
     var opt = document.createElement('option');
     opt.value = cat;
     opt.textContent = cat + ' (' + groups[cat].length + ')';
-    if (cat === prevCat || (!prevCat && cat === defaultCat)) opt.selected = true;
+    if (cat === targetCat) opt.selected = true;
     catSel.appendChild(opt);
   });
-  // Populate index dropdown based on selected category
+  // Populate index dropdown based on the now-synced category
   hmUpdateIdxDropdown();
-  var saved = BB.hmIndexKey();
-  if (saved && idxSel.querySelector('option[value="' + saved + '"]')) idxSel.value = saved;
-  else if (prevIdx && idxSel.querySelector('option[value="' + prevIdx + '"]')) idxSel.value = prevIdx;
+  if (wantKey && idxSel.querySelector('option[value="' + wantKey + '"]')) idxSel.value = wantKey;
   else {
-    // Default: select Nifty 50
+    // Default: select Nifty 50 (only valid if it's actually in this category's list)
     var n50 = idxSel.querySelector('option[value="nifty50"]');
     if (n50) idxSel.value = 'nifty50';
   }
