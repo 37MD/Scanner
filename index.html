@@ -10,7 +10,7 @@
 <!-- ── 1.1 Document Meta ── -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nifty Index Scanner</title>
+<title>Nifty Scanner</title>
 <meta name="theme-color" content="#ffffff">
   <!-- ── 1.2 PWA Metadata ── -->
   <link rel="manifest" href="manifest.json">
@@ -355,6 +355,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .ld-backup-btn{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .ld-backup-btn:active{opacity:.65}
 .ld-backup-msg{font-family:var(--mono);font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;white-space:nowrap}
+/* Slim toolbar row for Save/Restore — kept separate from .app-header so the
+   title never overlaps these buttons on narrow phone screens. */
+.ld-toolbar{display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border2);padding:8px 12px;position:sticky;top:0;z-index:99}
+.ld-toolbar .ld-backup-btn{padding:7px 14px;font-size:12px;min-height:32px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* ── 2.3 Layout ── */
 .main-wrap{max-width:1500px;margin:0 auto;padding:10px 20px}
@@ -463,11 +467,11 @@ td.name-col{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--t
 
 .ba-key-input{flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;padding:5px 10px;color:var(--text);outline:none}
 .ba-key-input:focus{border-color:var(--orange)}
-.ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.ba-key-save{background:var(--orange);color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 16px;border:none;cursor:pointer;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;min-width:78px;text-align:center}
 .ba-key-status{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
-@media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px}}
+@media(max-width:600px){.ba-key-bar{padding:6px 10px;gap:6px}.ba-key-input{font-size:10px;padding:5px 8px;min-width:0}.ba-key-save{font-size:10px;padding:5px 10px;min-width:64px}}
 @media(max-width:768px){.app-header{padding:10px 12px}.main-wrap{padding:12px 8px}.table-wrap{max-height:calc(100vh - 130px)}}
-@media(max-width:600px){.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:1;min-width:0}.brand-text{min-width:0}.brand-text h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.app-header .header-right{flex-shrink:0}.app-header .ld-backup-btn{font-size:9px;padding:4px 6px;gap:2px}.app-header .ld-backup-btn .ld-backup-label{display:none}}
+@media(max-width:600px){.app-header{padding:8px 10px}.app-header .brand-text p{display:none}.app-header .header-right .live-dot{font-size:9px}.brand{flex-shrink:0;flex-grow:1;min-width:0}.brand-text{min-width:0}.brand-text h1{white-space:nowrap;overflow:visible;text-overflow:clip;font-size:16px!important;letter-spacing:1px!important}.app-header .header-right{flex-shrink:1;min-width:0;overflow:hidden}.ld-toolbar{gap:8px;padding:8px 10px}.ld-toolbar .ld-backup-btn{font-size:10px;padding:6px 10px;gap:3px}}
 
 /* ── 2.8 Column Group Backgrounds ── */
 th[data-group="1"], td[data-group="1"]{background:rgba(180,180,180,0.08)}
@@ -790,9 +794,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 @media(max-width:600px) {
   #tab-ttf .ttf-panel { padding:10px; }
   #tab-ttf .ttf-panel .subtitle { font-size:10px; margin-bottom:12px; }
-  #tab-ttf .ttf-panel .controls { flex-direction:column; align-items:stretch; gap:8px; }
+  #tab-ttf .ttf-panel .controls { display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; gap:8px; }
+  #tab-ttf .ttf-panel .controls select { flex:1 1 45%; min-width:0; }
+  #tab-ttf .ttf-panel .controls label { flex:1 1 100%; font-size:11px; }
   #tab-ttf .ttf-panel .btn { padding:10px 16px; font-size:12px; text-align:center; }
-  #tab-ttf .ttf-panel .controls label { font-size:11px; }
   #tab-ttf .ttf-panel .legend { font-size:10px; gap:6px; }
   #tab-ttf .ttf-panel .table-wrap { border-radius:4px; }
   #tab-ttf .ttf-panel tbody td { font-family:'Segoe UI',Arial,sans-serif; padding:4px 3px; font-size:10px; }
@@ -840,24 +845,9 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   #tab-hilega #hmBtnRow { flex-wrap:nowrap; justify-content:flex-start; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #tab-hilega #hmBtnRow button { font-size:10px !important; padding:3px 5px !important; white-space:nowrap !important; }
 }
-/* ── Portrait-only lock for mobile phones ── */
-@media screen and (orientation: landscape) and (max-height: 500px) {
-  body::after {
-    content: "Please rotate your device to portrait mode";
-    display: flex;
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    background: #000;
-    color: #fff;
-    font-size: 16px;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-}
+/* Portrait-only app: landscape rotate-prompt overlay removed per user request.
+   The app still renders in landscape (existing landscape media queries below
+   adjust sizing), it just no longer blocks the screen asking to rotate. */
 /* ── BA (Balanced Allocation) Mobile ── */
 @media(max-width:600px){
   .ba-wrap{padding:6px 8px}
@@ -924,8 +914,8 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 }
 /* ── Confluence Filter Selects Mobile ── */
 @media(max-width:600px){
-  #tab-ttf .ttf-panel .controls select{min-width:0!important;flex:1;font-size:11px;padding:4px 6px}
-  #tab-ttf .ttf-panel .controls{flex-wrap:wrap;gap:4px}
+  #tab-ttf .ttf-panel .controls select{min-width:0!important;flex:1 1 45%;font-size:11px;padding:4px 6px}
+  #tab-ttf .ttf-panel .controls{flex-wrap:wrap;gap:8px}
 }
 /* ── Global 393px/400px breakpoint — Xiaomi POCO M6 5G etc ── */
 @media(max-width:400px){
@@ -954,7 +944,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <div class="app-tabs">
   <div class="app-tabs-btns">
     <button class="tab-btn" onclick="switchTab('breadth')">📊 Market Breadth</button>
-    <button class="tab-btn active" onclick="switchTab('scanner')">⚡ Nifty Index Scanner</button>
+    <button class="tab-btn active" onclick="switchTab('scanner')">⚡ Nifty Scanner</button>
     <button class="tab-btn" onclick="switchTab('mfscan')">📡 Buy/Sell Triggers</button>
     <button class="tab-btn" onclick="switchTab('ttf')">🔍 Confluence</button>
     <button class="tab-btn" onclick="switchTab('rs')">📈 RS Scanner</button>
@@ -965,7 +955,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.3</span>
+    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.4</span>
 
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → Confluence → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
@@ -1006,13 +996,14 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
     <div class="bp-ath-item"><div class="bp-ath-lbl">BULLISH TRIGGER<br><span style="font-size:9px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">All 3 ATH + Breadth &gt;60% + Macro Green</span></div><div class="bp-ath-right"><div class="bp-ath-bdg no">NOT YET</div></div></div>
   </div>
 
+  <div id="bpDataSourceNote" style="font-size:10px;font-family:'Segoe UI',Arial,sans-serif;margin:6px 2px 4px;"></div>
   <div class="bp-breadth" id="bpCards"></div>
 
   <div class="bp-chart-box">
     <div class="bp-shdr">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="bp-stitle">% STOCKS ABOVE 40W EMA</div>
-      <div style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Segoe UI',Arial,sans-serif;">13 WEEKS HISTORY</div>
+        <div class="bp-stitle">CAP-WISE BREADTH (W-RSI 8 PROXY)</div>
+      <div id="bpChartHistBadge" style="font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(30,30,30,0.04);color:var(--bp-muted);border:1px solid var(--bp-border);font-family:'Segoe UI',Arial,sans-serif;">BUILDING HISTORY</div>
       </div>
       <div class="bp-legend">
         <div class="bp-litem"><div class="bp-ldot" style="background:var(--bp-large);"></div><span style="color:var(--bp-large);">LARGECAP</span></div>
@@ -1081,10 +1072,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
 <h1>Confluence</h1>
 <p class="subtitle">NSE Daily OHLC · RSI(4,6,8) Weekly Zones + Daily</p>
 <div class="controls">
-  <select id="catFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;min-width:180px;">
+  <select id="catFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;">
     <option value="ALL">All Categories</option>
   </select>
-  <select id="idxFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;min-width:200px;">
+  <select id="idxFilter" style="padding:6px 10px;border:1px solid #cccccc;border-radius:4px;font-size:13px;background:#fff;color:#000;">
     <option value="ALL">All Indices</option>
   </select>
   <label><input type="checkbox" id="rsi8Filter" checked> RSI(8) Weekly &ge; 45 only</label>
@@ -1517,7 +1508,7 @@ function ldTodayIstStr() {
   return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
 }
 
-const APP_VERSION = 'v5.3';
+const APP_VERSION = 'v5.4';
 
 // Reads the deep weekly/daily/monthly history straight from IndexedDB —
 // the primary store for this data. The localStorage mirror (BB.deepCacheV4)
@@ -1626,7 +1617,7 @@ async function ldApplyBackupJson(text) {
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       throw new Error('Not a valid backup file');
     }
-    const restored = BB.restoreAll(data);
+    const restoreResult = BB.restoreAll(data);
     // Deep 10-year history (daily/weekly/monthly) lives in IndexedDB, not
     // localStorage — restore it separately via the same path deepSaveCache
     // uses, so a fresh browser/profile gets the full history back, not just
@@ -1639,7 +1630,15 @@ async function ldApplyBackupJson(text) {
         console.warn('[LD] deep cache restore failed', e);
       }
     }
-    ldShowBackupMsg(`✓ Restored ${restored} keys${deepRestored ? ' + deep history' : ''} — reloading…`);
+    if (restoreResult.failed.length > 0) {
+      // At least one key didn't fit (most likely storage quota) — say so
+      // explicitly instead of quietly reporting a lower count with no
+      // explanation, so the user knows something is actually missing.
+      console.warn('[LD] Backup restore: these keys failed to save:', restoreResult.failed);
+      ldShowBackupMsg(`⚠ Restored ${restoreResult.restored} keys, but ${restoreResult.failed.length} failed (storage full?) — see console for which ones. Reloading…`, true);
+    } else {
+      ldShowBackupMsg(`✓ Restored ${restoreResult.restored} keys${deepRestored ? ' + deep history' : ''} — reloading…`);
+    }
     setTimeout(() => window.location.reload(), 900);
   } catch (err) {
     console.error('[LD] backup restore failed', err);
@@ -2311,13 +2310,31 @@ var BB = (function() {
     return dump;
   }
 
+  // Keys from older app versions that are no longer read anywhere in the
+  // current code (superseded by a renamed/versioned key below). Restoring
+  // them from an old backup just leaves inert clutter in localStorage, so
+  // restoreAll() skips them. Safe to extend this list; safe to shrink it
+  // too — it only affects what an OLD backup repopulates, never current data.
+  var LEGACY_SKIP_KEYS_ON_RESTORE = {
+    'hm_tf_days': 'superseded by hm_tf_days_v2',
+    'gemini_key_1': 'superseded by ld_scanner_gemini_key1',
+    'gemini_key_2': 'superseded by ld_scanner_gemini_key2'
+  };
+
   function restoreAll(data) {
     var restored = 0;
-    if (!data || typeof data !== 'object') return 0;
+    var failed = [];
+    if (!data || typeof data !== 'object') return { restored: 0, failed: [] };
     Object.keys(data).forEach(function(k) {
-      try { localStorage.setItem(k, data[k]); restored++; } catch(_) {}
+      if (LEGACY_SKIP_KEYS_ON_RESTORE.hasOwnProperty(k)) return;
+      // Route through set() (not localStorage.setItem directly) so a
+      // restore that hits the storage quota shares the same one-time
+      // warning path as every other write in the app, instead of failing
+      // silently through a separate, less-informative code path.
+      if (set(k, data[k])) restored++;
+      else failed.push(k);
     });
-    return restored;
+    return { restored: restored, failed: failed };
   }
 
   function clear() {
@@ -2468,6 +2485,14 @@ var BB = (function() {
     return set('ld_backup_last_date', val);
   }
 
+  // Market Breadth history: [{date:"YYYY-MM-DD", large, mid, small}, ...]
+  // Appended once per scan by Container M; capped at 26 weekly points.
+  function breadthHistory(data) {
+    if (data === undefined) return getJSON('ld_breadth_history_v1', []);
+    if (data === null) return remove('ld_breadth_history_v1');
+    return setJSON('ld_breadth_history_v1', data);
+  }
+
   // Session warning flag
   function storageWarned(val) {
     try {
@@ -2509,6 +2534,7 @@ var BB = (function() {
     hmTfDays: hmTfDays,
     hmPeriod: hmPeriod,
     backupLastDate: backupLastDate,
+    breadthHistory: breadthHistory,
     storageWarned: storageWarned
   };
 })();
@@ -3512,7 +3538,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
         for (var k in baSnap) {
           if (baSnap[k].status !== 'loading') snapBa[k] = baSnap[k];
         }
-        BB.scannerCache({
+        const cacheSaved = BB.scannerCache({
           results: slimResults,
           baResults: snapBa,
           indexList: (window._ldScannerData && window._ldScannerData.indexList) || null
@@ -3529,7 +3555,22 @@ Reasoning: [One-line explanation tying data to the rule]`;
             console.log('[LD] dailyMap in memory:', Object.keys(dmSrc).length, 'indices (persisted via IndexedDB deep cache)');
           }
         } catch(_dmErr) {}
-        console.log('[LD] Cache saved:', Object.keys(slimResults).length, 'indices,', Object.keys(snapBa).length, 'BA entries');
+        if (cacheSaved) {
+          console.log('[LD] Cache saved:', Object.keys(slimResults).length, 'indices,', Object.keys(snapBa).length, 'BA entries');
+        } else {
+          // scannerCache() returned false — this scan's results did NOT
+          // actually get saved (most likely storage full). Other tabs
+          // (Confluence, RS Scanner, Portfolio Snapshot, Market Breadth)
+          // would silently keep showing stale/empty data with no
+          // indication why, so surface this clearly instead.
+          console.warn('[LD] Cache save FAILED — this scan\'s results were not saved (storage full?). Other tabs may show stale data.');
+          setLiveDetail('⚠ Scan finished but results could not be saved (storage full) — other tabs may not reflect this scan.');
+        }
+        // Refresh Market Breadth (Container M) with this scan's live sector
+        // RSI / breadth data — see audit fix: was previously hardcoded.
+        if (typeof window.M !== 'undefined' && window.M.refresh) {
+          try { window.M.refresh(); } catch(_mErr) {}
+        }
       } catch (e) {
         console.warn('[LD] Cache save failed:', e);
       }
@@ -3703,8 +3744,16 @@ Reasoning: [One-line explanation tying data to the rule]`;
     className: "brand"
   }, React.createElement("div", {
     className: "brand-text"
-  }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Index Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
+  }, React.createElement("h1", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#000",margin:"0 0 6px 0",textTransform:"uppercase"}}, "Nifty Scanner"), React.createElement("p", {style:{fontFamily:"'Segoe UI',Arial,sans-serif",fontSize:11,color:"#000",margin:0}}, "NSE Official Index Close Files · Two-Pass RSI · BA · HA Band Signals"))), React.createElement("div", {
     className: "header-right"
+  }, React.createElement("input", {
+    type: "file",
+    id: "ld-restore-input",
+    accept: "application/json,.json",
+    style: { display: "none" },
+    onChange: ldOnRestoreFileChosen
+  }), React.createElement("span", { className: "ld-backup-msg" }))), React.createElement("div", {
+    className: "ld-toolbar"
   }, React.createElement("button", {
     className: "ld-backup-btn",
     type: "button",
@@ -3715,19 +3764,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
     type: "button",
     title: "Restore from 'Scanner data.json'. Uses the linked file automatically if one is set up; otherwise asks you to pick it.",
     onClick: function() { ldImportAllData(); }
-  }, "📂", React.createElement("span", { className: "ld-backup-label" }, " Restore Data")), React.createElement("button", {
-    className: "ld-backup-btn",
-    type: "button",
-    id: "ld-raw-dl-btn",
-    title: "Download the raw NSE deep-history cache (all indices' daily/weekly/monthly data) as a JSON file, so you can check what's actually stored.",
-    onClick: function() { ldDownloadRawCache(); }
-  }, "⬇", React.createElement("span", { className: "ld-backup-label" }, " Raw JSON")), React.createElement("input", {
-    type: "file",
-    id: "ld-restore-input",
-    accept: "application/json,.json",
-    style: { display: "none" },
-    onChange: ldOnRestoreFileChosen
-  }), React.createElement("span", { className: "ld-backup-msg" }))), React.createElement("div", {
+  }, "📂", React.createElement("span", { className: "ld-backup-label" }, " Restore Data"))), React.createElement("div", {
     className: "main-wrap"
   }, phase === 'done' && liveDetail && React.createElement("div", {
     style: {
@@ -4773,7 +4810,7 @@ function showInstallBanner() {
   `;
   bar.innerHTML = `
     <span style="color:#d4880f;font-weight:700;letter-spacing:1px;">⚡ INSTALL APP</span>
-    <span style="color:#000000;flex:1">Install Nifty Index Scanner for offline access & home screen icon.</span>
+    <span style="color:#000000;flex:1">Install Nifty Scanner for offline access & home screen icon.</span>
     <button id="pwa-install-btn" style="background:#d4880f;color:#fff;border:none;padding:7px 18px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;">Install</button>
     <button id="pwa-dismiss-btn" style="background:transparent;color:#000000;border:1px solid #cccccc;padding:7px 12px;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;cursor:pointer;">✕</button>
   `;
@@ -5061,15 +5098,21 @@ function runAllScans() {
 var M = (function() {
 
   // ── Data ──
-  var BP_WEEKS = ['Mar 1','Mar 8','Mar 15','Mar 22','Mar 29','Apr 5','Apr 12','Apr 19','Apr 26','May 3','May 10','May 17','May 24'];
+  // NOTE (fix, see audit): BP_DATA and BP_SECTORS below are SEED/FALLBACK
+  // values only, used before the first Scanner run in a session or if a
+  // scan fails. Once a scan exists (BB.scannerCache().results), sector RSI
+  // and breadth % are computed live from it — see _liveSectors() and
+  // _liveBreadthPoint() below. The 13-week BP_WEEKS trend fills in with
+  // real history over time via BB.breadthHistory(), one point per scan.
+  var BP_WEEKS_SEED = ['Mar 1','Mar 8','Mar 15','Mar 22','Mar 29','Apr 5','Apr 12','Apr 19','Apr 26','May 3','May 10','May 17','May 24'];
 
-  var BP_DATA = {
+  var BP_DATA_SEED = {
     large: [68, 71, 74, 72, 69, 65, 61, 58, 55, 54, 57, 59, 62],
     mid:   [55, 58, 62, 60, 54, 48, 44, 41, 38, 37, 40, 43, 47],
     small: [42, 45, 50, 48, 42, 36, 31, 28, 25, 24, 28, 32, 36]
   };
 
-  var BP_SECTORS = [
+  var BP_SECTORS_SEED = [
     {name:'IT',rsi:78,sma:71},{name:'PHARMA',rsi:74,sma:68},
     {name:'AUTO',rsi:68,sma:63},{name:'BANKING',rsi:63,sma:58},
     {name:'FMCG',rsi:61,sma:59},{name:'INFRA',rsi:58,sma:54},
@@ -5077,6 +5120,21 @@ var M = (function() {
     {name:'ENERGY',rsi:47,sma:45},{name:'TELECOM',rsi:44,sma:46},
     {name:'MEDIA',rsi:38,sma:42},{name:'PSU BANK',rsi:35,sma:39}
   ];
+
+  // Returns a fresh copy of the seed sectors, each explicitly tagged
+  // live:false so downstream code (renderBpSectors badges, M.isLive()
+  // consumers) can rely on that flag always being present.
+  function _seedSectors() {
+    return BP_SECTORS_SEED.map(function(s) {
+      return { name: s.name, rsi: s.rsi, sma: s.sma, live: false };
+    });
+  }
+
+  // Live containers — populated by _refreshLiveData(); UI reads these.
+  var BP_WEEKS = BP_WEEKS_SEED.slice();
+  var BP_DATA = { large: BP_DATA_SEED.large.slice(), mid: BP_DATA_SEED.mid.slice(), small: BP_DATA_SEED.small.slice() };
+  var BP_SECTORS = _seedSectors();
+  var _bpUsingLiveData = false;
 
   var BP_MACRO = [
     {icon:'📈',label:'GDP GROWTH',value:'7.2%',trend:'↑ Q4 FY25',status:'pos'},
@@ -5086,6 +5144,9 @@ var M = (function() {
     {icon:'💱',label:'USD/INR',value:'₹--',trend:'--',status:'neu'}
   ];
 
+  // Sector name → Scanner index name. Looked up via U.normalize() against
+  // BB.scannerCache().results, so the exact NSE display casing here doesn't
+  // matter as long as it matches an index that Scanner actually tracks.
   var BP_SECTOR_2_INDEX = {
     'IT':'NIFTY IT','PHARMA':'NIFTY PHARMA','AUTO':'NIFTY AUTO',
     'BANKING':'NIFTY BANK','FMCG':'NIFTY FMCG','INFRA':'NIFTY INFRASTRUCTURE',
@@ -5093,7 +5154,64 @@ var M = (function() {
     'TELECOM':'NIFTY TELECOM','MEDIA':'NIFTY MEDIA','PSU BANK':'NIFTY PSU BANK'
   };
 
+  // Breadth cap buckets → Scanner index name (same lookup mechanism as sectors).
+  var BP_CAP_2_INDEX = { large: 'NIFTY 100', mid: 'NIFTY MIDCAP 150', small: 'NIFTY SMALLCAP 250' };
+
   var _chartInst = null;
+
+  // ── Live data helpers ──
+  // Reads BB.scannerCache().results (populated by the Scanner tab) and
+  // returns { name, rsi, sma-proxy-flag } per sector, or null if no scan
+  // has been run yet / the sector's index wasn't found in the last scan.
+  function _liveSectorRow(sectorName) {
+    try {
+      var snap = BB.scannerCache();
+      if (!snap || !snap.results) return null;
+      var idxName = BP_SECTOR_2_INDEX[sectorName];
+      if (!idxName) return null;
+      var key = (typeof U !== 'undefined' && U.normalize) ? U.normalize(idxName) : idxName.toLowerCase();
+      var r = snap.results[key];
+      if (!r || r.wRsi8 == null) return null;
+      // "sma" field here is displayed as a simple trend reference (20-week
+      // price MA-derived), not a second RSI — we approximate it as the
+      // prior day's RSI reading isn't stored, so use wma20Price-vs-price
+      // as the up/down signal instead (see renderBpSectors below).
+      return { rsi: r.wRsi8, price: r.price, wma20Price: r.wma20Price, regime: r.regime };
+    } catch(_) { return null; }
+  }
+
+  // Rebuilds BP_SECTORS from live scan data where available; sectors with
+  // no matching index in the last scan keep their seed value (and are
+  // visually flagged in renderBpSectors via s.live === false).
+  function _liveSectors() {
+    var any = false;
+    var out = BP_SECTORS_SEED.map(function(seed) {
+      var live = _liveSectorRow(seed.name);
+      if (live) {
+        any = true;
+        return { name: seed.name, rsi: Math.round(live.rsi * 10) / 10, sma: seed.sma, live: true, price: live.price, wma20Price: live.wma20Price };
+      }
+      return { name: seed.name, rsi: seed.rsi, sma: seed.sma, live: false };
+    });
+    return { sectors: out, any: any };
+  }
+
+  // Live breadth % for one cap bucket = 100 if that bucket's index is in
+  // Regime A (W-RSI8 >= 50 and price > 20W MA), scaled down toward 0 as
+  // W-RSI8 falls, giving a continuous reading rather than a binary flag.
+  // This mirrors the app's existing Regime A definition (computeRegime).
+  function _liveBreadthPoint(capKey) {
+    try {
+      var snap = BB.scannerCache();
+      if (!snap || !snap.results) return null;
+      var idxName = BP_CAP_2_INDEX[capKey];
+      var key = (typeof U !== 'undefined' && U.normalize) ? U.normalize(idxName) : idxName.toLowerCase();
+      var r = snap.results[key];
+      if (!r || r.wRsi8 == null) return null;
+      return Math.max(0, Math.min(100, Math.round(r.wRsi8)));
+    } catch(_) { return null; }
+  }
+
 
   // ── Helpers ──
   function bpRegime(pct) {
@@ -5123,13 +5241,20 @@ var M = (function() {
       {k:'m',label:'MIDCAP',desc:'NIFTY MIDCAP 150',cls:'mid'},
       {k:'s',label:'SMALLCAP',desc:'NIFTY SMALLCAP 250',cls:'small'}
     ];
+    var noteEl = document.getElementById('bpDataSourceNote');
+    if (noteEl) {
+      noteEl.textContent = _bpUsingLiveData
+        ? '● Live — from your last Scanner run'
+        : '○ Placeholder data — run a Scanner scan to populate real breadth %';
+      noteEl.style.color = _bpUsingLiveData ? 'var(--bp-bull)' : 'var(--bp-muted)';
+    }
     document.getElementById('bpCards').innerHTML = caps.map(function(c) {
       var pct = latest[c.k], chg = (pct - prev[c.k]).toFixed(1);
       var reg = bpRegime(pct), pos = bpPosSize(reg.cls);
       return '<div class="bp-card ' + c.cls + ' ' + (reg.cls === 'BULL' ? 'bull' : reg.cls === 'BEAR' ? 'bear' : 'side') + '">' +
         '<div class="bp-chead"><div><div class="bp-cname ' + c.cls + '">' + c.label + '</div><div style="font-size:10px;color:var(--bp-muted);font-family:\'Segoe UI\',Arial,sans-serif;">' + c.desc + '</div></div><div class="bp-rbadge ' + reg.cls + '">' + reg.label + '</div></div>' +
         '<div style="display:flex;align-items:flex-end;justify-content:space-between;">' +
-          '<div><div class="bp-pct-big ' + reg.color + '">' + pct + '<span style="font-size:0.6em;">%</span></div><div class="bp-pct-lbl">above 40W EMA</div></div>' +
+          '<div><div class="bp-pct-big ' + reg.color + '">' + pct + '<span style="font-size:0.6em;">%</span></div><div class="bp-pct-lbl">' + (_bpUsingLiveData ? 'W-RSI(8) reading' : 'above 40W EMA (seed)') + '</div></div>' +
           '<div style="text-align:right;"><div class="bp-chip ' + (parseFloat(chg)>=0?'up':'dn') + '">' + (parseFloat(chg)>=0?'▲':'▼') + ' ' + Math.abs(chg) + '% WoW</div><div class="bp-pslbl" style="margin-top:6px;">Position Size</div><div class="bp-psval ' + pos.color + '">' + pos.pct + '</div></div>' +
         '</div>' +
         '<div class="bp-ptrack"><div class="bp-pfill ' + reg.color + '" style="width:' + pct + '%;"></div></div></div>';
@@ -5166,7 +5291,10 @@ var M = (function() {
       else if (s.rsi >= 50) { tag='WATCH'; cls=''; rsiCls='cool'; fill='var(--bp-accent)'; }
       else { tag='AVOID'; cls=''; rsiCls='cold'; fill='var(--bp-bear)'; }
       var up = s.rsi > s.sma;
-      return '<div class="bp-scard2 ' + cls + '"><div class="bp-sname">' + s.name + '</div><div class="bp-srsi ' + rsiCls + '">' + s.rsi + '</div><div style="font-size:9px;color:var(--bp-muted);font-family:\'Segoe UI\',Arial,sans-serif;">SMA:' + s.sma + ' ' + (up ? '<span style="color:var(--bp-bull)">▲</span>' : '<span style="color:var(--bp-bear)">▼</span>') + '</div><div class="bp-rbar"><div class="bp-rfill" style="width:' + s.rsi + '%;background:' + fill + ';"></div></div><div class="bp-stag" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--bp-muted);">' + tag + '</div></div>';
+      var srcBadge = s.live
+        ? '<span title="From your last Scanner run" style="font-size:8px;color:var(--bp-bull);border:1px solid var(--bp-bull);border-radius:3px;padding:0 3px;margin-left:4px;">LIVE</span>'
+        : '<span title="No matching index in last scan — showing placeholder" style="font-size:8px;color:var(--bp-muted);border:1px solid var(--bp-muted);border-radius:3px;padding:0 3px;margin-left:4px;">SEED</span>';
+      return '<div class="bp-scard2 ' + cls + '"><div class="bp-sname">' + s.name + srcBadge + '</div><div class="bp-srsi ' + rsiCls + '">' + s.rsi + '</div><div style="font-size:9px;color:var(--bp-muted);font-family:\'Segoe UI\',Arial,sans-serif;">SMA:' + s.sma + ' ' + (up ? '<span style="color:var(--bp-bull)">▲</span>' : '<span style="color:var(--bp-bear)">▼</span>') + '</div><div class="bp-rbar"><div class="bp-rfill" style="width:' + s.rsi + '%;background:' + fill + ';"></div></div><div class="bp-stag" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--bp-muted);">' + tag + '</div></div>';
     }).join('');
   }
 
@@ -5179,6 +5307,17 @@ var M = (function() {
   }
 
   function renderBpChart() {
+    var badge = document.getElementById('bpChartHistBadge');
+    if (badge) {
+      if (_bpUsingLiveData) {
+        var n = BP_WEEKS.length;
+        badge.textContent = n + (n === 1 ? ' DAY (LIVE)' : ' PTS (LIVE)');
+        badge.style.color = 'var(--bp-bull)';
+      } else {
+        badge.textContent = 'SEED — RUN A SCAN';
+        badge.style.color = 'var(--bp-muted)';
+      }
+    }
     if (_chartInst) { _chartInst.destroy(); _chartInst = null; }
     var canvas = document.getElementById('bpChart');
     if (!canvas) return;
@@ -5339,16 +5478,78 @@ var M = (function() {
     } catch(_) {}
   }
 
-  function _doInit() {
-    updateBpPrices();
-    fetchBpMacroLive();
+  // Pulls live sector RSI + breadth from the last Scanner run (if any),
+  // updates BP_SECTORS/BP_DATA/BP_WEEKS in place, appends today's breadth
+  // reading to persisted history (capped at 26 weekly points), and
+  // re-renders every panel that depends on this data. Safe to call
+  // repeatedly — if no scan exists yet it just keeps the seed values.
+  function _refreshLiveData() {
+    var liveResult = _liveSectors();
+    if (liveResult.any) {
+      BP_SECTORS = liveResult.sectors;
+    } else {
+      BP_SECTORS = _seedSectors();
+    }
+
+    var large = _liveBreadthPoint('large');
+    var mid = _liveBreadthPoint('mid');
+    var small = _liveBreadthPoint('small');
+
+    if (large != null && mid != null && small != null) {
+      _bpUsingLiveData = true;
+      var todayIso = new Date().toISOString().slice(0, 10);
+      var hist = [];
+      try { hist = BB.breadthHistory() || []; } catch(_) { hist = []; }
+      if (!Array.isArray(hist)) hist = [];
+      // One point per calendar day — overwrite if we already logged today
+      // (e.g. user reran the scan), otherwise append.
+      var existingIdx = hist.findIndex(function(h) { return h && h.date === todayIso; });
+      var point = { date: todayIso, large: large, mid: mid, small: small };
+      if (existingIdx >= 0) hist[existingIdx] = point;
+      else hist.push(point);
+      if (hist.length > 26) hist = hist.slice(hist.length - 26);
+      try { BB.breadthHistory(hist); } catch(_) {}
+
+      if (hist.length >= 2) {
+        BP_WEEKS = hist.map(function(h) {
+          var d = new Date(h.date);
+          return isNaN(d.getTime()) ? h.date : d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+        });
+        BP_DATA = {
+          large: hist.map(function(h) { return h.large; }),
+          mid: hist.map(function(h) { return h.mid; }),
+          small: hist.map(function(h) { return h.small; })
+        };
+      } else {
+        // Only one real data point so far — show it as the latest entry
+        // next to one seed point so the chart still renders sensibly
+        // instead of a single dot.
+        BP_WEEKS = ['Seed', BP_WEEKS_SEED.length ? 'Today' : 'Today'];
+        BP_DATA = {
+          large: [BP_DATA_SEED.large.at(-1), large],
+          mid: [BP_DATA_SEED.mid.at(-1), mid],
+          small: [BP_DATA_SEED.small.at(-1), small]
+        };
+      }
+    } else {
+      _bpUsingLiveData = false;
+      BP_WEEKS = BP_WEEKS_SEED.slice();
+      BP_DATA = { large: BP_DATA_SEED.large.slice(), mid: BP_DATA_SEED.mid.slice(), small: BP_DATA_SEED.small.slice() };
+    }
+
     renderBpCards();
-    renderBpStrats();
     renderBpSectors();
-    renderBpMacro();
     renderBpChart();
     updateBpVerdict();
     renderBpRecommendations();
+  }
+
+  function _doInit() {
+    updateBpPrices();
+    fetchBpMacroLive();
+    _refreshLiveData();
+    renderBpStrats();
+    renderBpMacro();
     bpClock();
     setInterval(bpClock, 1000);
     setTimeout(function() {
@@ -5362,16 +5563,21 @@ var M = (function() {
   // ── Public API ──
   return {
     init: _doInit,
+    refresh: _refreshLiveData,
     fetchMacro: fetchBpMacroLive,
     updatePrices: updateBpPrices,
     data: function() { return BP_DATA; },
-    sectors: function() { return BP_SECTORS; }
+    sectors: function() { return BP_SECTORS; },
+    isLive: function() { return _bpUsingLiveData; }
   };
 
 })();
+// Expose M globally so other containers (Scanner completion hook) can call M.refresh()
+window.M = M;
 
 // Auto-init on page load (pre-warm Breadth in background so it's ready when clicked)
 M.init();
+
 </script>
 
 <!-- ════════════════════════════════════════════════ -->
@@ -6035,10 +6241,10 @@ function classifyIndex(n)  { var s=n.toLowerCase(); if (/g[- ]?sec|bond|aaa|t[- 
       </div>
     </div>
     <div class="rs-fb-signals">
-      <span class="rs-pill rs-pill-LEADER">LEADER</span> RS_1M &gt; 0 &amp; RS_3M &gt; 0 &nbsp;·&nbsp;
-      <span class="rs-pill rs-pill-IMPROVING">IMPROVING</span> RS_1M &gt; 0 (any 3M) &nbsp;·&nbsp;
-      <span class="rs-pill rs-pill-WATCH">WATCH</span> RS_1M near 0 (±0.5%) &nbsp;·&nbsp;
-      <span class="rs-pill rs-pill-LAGGARD">LAGGARD</span> RS_1M &lt; 0 &amp; RS_3M &lt; 0
+      <div class="rs-fb-sig-row"><span class="rs-pill rs-pill-LEADER">LEADER</span><span class="rs-fb-sig-txt">RS_1M &gt; 0 &amp; RS_3M &gt; 0</span></div>
+      <div class="rs-fb-sig-row"><span class="rs-pill rs-pill-IMPROVING">IMPROVING</span><span class="rs-fb-sig-txt">RS_1M &gt; 0 (any 3M)</span></div>
+      <div class="rs-fb-sig-row"><span class="rs-pill rs-pill-WATCH">WATCH</span><span class="rs-fb-sig-txt">RS_1M near 0 (±0.5%)</span></div>
+      <div class="rs-fb-sig-row"><span class="rs-pill rs-pill-LAGGARD">LAGGARD</span><span class="rs-fb-sig-txt">RS_1M &lt; 0 &amp; RS_3M &lt; 0</span></div>
     </div>
   </div>
 
@@ -6230,7 +6436,10 @@ function classifyIndex(n)  { var s=n.toLowerCase(); if (/g[- ]?sec|bond|aaa|t[- 
 .rs-fb-label { font-family:'Segoe UI Mono','Courier New',monospace; font-size:10px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
 .rs-fb-val { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); font-weight:600; margin-bottom:3px; }
 .rs-fb-note { font-size:10px; color:#000000; font-family:'Segoe UI Mono','Courier New',monospace; }
-.rs-fb-signals { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.rs-fb-signals { font-family:'Segoe UI Mono','Courier New',monospace; font-size:11px; color:var(--text); display:flex; flex-direction:column; gap:6px; }
+.rs-fb-sig-row { display:flex; align-items:center; gap:10px; }
+.rs-fb-sig-row .rs-pill { flex:0 0 90px; text-align:center; }
+.rs-fb-sig-txt { white-space:nowrap; }
 
 /* Summary */
 .rs-summary-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
@@ -7309,19 +7518,12 @@ window.rsToggleWL=rsToggleWL;
 <div id="pt-wrap" style="font-family:'Segoe UI',Arial,sans-serif;font-size:12px;max-width:100%;padding:10px;background:#fff;color:#111;min-height:100vh">
 
 <h2 style="font-family:'Segoe UI',Arial,sans-serif;font-size:18px;font-weight:900;letter-spacing:3px;color:#000;margin:0 0 6px 0;text-transform:uppercase">Portfolio Snapshot</h2>
-<p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin-bottom:8px">ALL indicators + MONTHLY | Rs 10,00,000 | 158 NSE indices</p>
+<p style="font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#000;margin-bottom:8px">Your tracked indices, tagged with purchase date/price — 158 NSE indices universe</p>
 
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0">
-  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Portfolio</div><div id="pt-pv" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 10,00,000</div></div>
-  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">P&amp;L</div><div id="pt-tp" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">Rs 0</div></div>
-  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Return</div><div id="pt-tr" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">+0.00%</div></div>
-  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Cash</div><div id="pt-cv" style="font-size:15px;font-weight:bold;margin-top:2px">Rs 10,00,000</div></div>
-</div>
-
-<div style="background:#f5f5f5;border:1px solid #ddd;padding:8px;margin:6px 0;font-size:9px;border-radius:4px">
-  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Entry:</span><span>Execution Tree (D-RSI 40-50)</span></div>
-  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Rebal:</span><span>MONTHLY</span></div>
-  <div style="display:flex;gap:4px;margin:2px 0"><span style="color:#b8860b;min-width:80px;font-size:8px">Universe:</span><span>158 NSE indices</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0">
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Portfolio Value</div><div id="pt-pv" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">—</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">P&amp;L</div><div id="pt-tp" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">—</div></div>
+  <div style="background:#f5f5f5;border:1px solid #ddd;padding:8px 4px;text-align:center;border-radius:4px"><div style="font-size:7px;color:#b8860b;text-transform:uppercase">Return</div><div id="pt-tr" style="font-size:15px;font-weight:bold;color:#1a8a1a;margin-top:2px">—</div></div>
 </div>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 3px">
@@ -7329,7 +7531,7 @@ window.rsToggleWL=rsToggleWL;
   <span id="pt-ts" style="font-size:8px;color:#666"></span>
 </div>
 <div style="display:flex;gap:5px;margin:6px 0">
-  <button onclick="ptReset()" style="background:#666;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">RESET</button>
+  <button onclick="PSnap.resetPortfolio()" style="background:#666;color:#fff;border:none;padding:10px 12px;cursor:pointer;font-weight:bold;font-size:11px;text-transform:uppercase;border-radius:4px;flex:1;min-height:40px">RESET</button>
 </div>
 
 <!-- ── Portfolio Snapshot Action Buttons ── -->
@@ -7337,20 +7539,8 @@ window.rsToggleWL=rsToggleWL;
   <button id="pt-btn-universe" onclick="PSnap.openUniverse()" style="background:#0055aa;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Index Universe</button>
   <button id="pt-btn-update" onclick="PSnap.toggleUpdateMode()" style="background:#1a6dd8;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Update Portfolio</button>
   <button id="pt-btn-summary" onclick="PSnap.showSummary()" style="background:#1a8a1a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 30%;min-height:36px">Portfolio Summary</button>
-  <button id="pt-btn-confluence" onclick="PSnap.addColumn('confluence')" style="background:#8855cc;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Confluence</button>
-  <button id="pt-btn-regime" onclick="PSnap.addColumn('regime')" style="background:#cc7a00;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Regime</button>
-  <button id="pt-btn-pwma" onclick="PSnap.addColumn('pwma')" style="background:#007a7a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">P&gt;WMA</button>
-  <button id="pt-btn-ba" onclick="PSnap.addColumn('ba')" style="background:#a3822f;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">BA Weightage</button>
-  <button id="pt-btn-rs" onclick="PSnap.addColumn('rs')" style="background:#b8390e;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">RS Score</button>
-  <button id="pt-btn-returns" onclick="PSnap.addColumn('returns')" style="background:#1a8a4a;color:#fff;border:none;padding:8px 10px;cursor:pointer;font-weight:bold;font-size:9px;text-transform:uppercase;border-radius:4px;flex:1 1 22%;min-height:36px">Returns</button>
 </div>
 
-<!-- Purchase date selector (shown while Update Portfolio mode is active) -->
-<div id="pt-datewrap" style="display:none;align-items:center;gap:6px;margin:4px 0 8px;background:#fff8e5;border:1px solid #e0c060;border-radius:4px;padding:6px 8px">
-  <span style="font-size:9px;color:#8a6d00;font-weight:bold">Purchase Date:</span>
-  <input type="date" id="pt-purchase-date" style="font-size:10px;padding:3px 4px;border:1px solid #ccc;border-radius:3px;flex:1">
-  <span style="font-size:8px;color:#888">Applies to indices added next</span>
-</div>
 
 <!-- Index Universe panel (lists all indices from Scanner tab) -->
 <div id="pt-universe-panel" style="display:none;margin:8px 0;border:1px solid #0055aa;border-radius:4px;background:#fff">
@@ -7392,20 +7582,7 @@ window.rsToggleWL=rsToggleWL;
   </div>
 </div>
 
-<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Positions</h3>
-<div style="background:#f5f5f5;border:1px solid #1a8a1a;padding:8px;margin:6px 0;border-radius:4px">
-  <div id="pt-pl"><div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div></div>
-</div>
-
-<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Trade Log</h3>
-<div id="pt-tl" style="background:#f5f5f5;padding:6px;max-height:150px;overflow-y:auto;font-size:8px;border-radius:4px;-webkit-overflow-scrolling:touch"><div style="color:#b8860b">Ready</div></div>
-
-<h3 style="color:#0055aa;font-size:12px;margin:12px 0 5px;border-bottom:1px solid #ccc;padding-bottom:3px">Equity Curve</h3>
-<div style="background:#f5f5f5;padding:6px;border-radius:4px;height:120px;position:relative">
-  <canvas id="pt-ec"></canvas>
-</div>
-
-</div>
+</div><!-- #pt-wrap -->
 </div><!-- #tab-pt -->
 
 <!-- ── 3.8 RSI Buy/Sell Signal Tab (v3 — progressive) ── -->
@@ -8360,14 +8537,17 @@ win.runBAsScan = runBAsScan;
 </script>
 
 <!-- ================================================================
-   SECTION 10: PAPER TRADE ENGINE (tab UI renamed "Portfolio Snapshot")
-   IIFE: simulated portfolio with buy/sell based on scanner signals.
-   Tracks P&L, allocation, trade history, equity curve.
-   Extended by SECTION 10.5 (PSnap) below, which adds the manual
-   watchlist/summary features now surfaced under the same tab.
-   Exposes: window.ptRunScan(), window.ptReset(), window.ptInit()
+   SECTION 10: SCAN DATA ENGINE for Portfolio Snapshot tab
+   IIFE: fetches/derives per-index price + RSI/WMA/MACD data (from the
+   Scanner tab's cache, or live NSE as a fallback) and renders it into
+   the tab's main index-mirror table. The formerly-separate simulated
+   buy/sell trade engine, Positions list, Trade Log, and Equity Curve
+   were removed — this tab is now a manual watchlist/tracking tool only.
+   Extended by SECTION 10.5 (PSnap) below, which adds the Index Universe,
+   Update Portfolio, and Portfolio Summary features on top of this data.
+   Exposes: window.ptRunScan(), window.ptGetScanR(), window.ptRerender()
    ============================================================ -->
-<!-- ── Paper Trade Tab JS (scoped under window.PT) ── -->
+<!-- ── Portfolio Snapshot Scan Data JS (scoped under this IIFE) ── -->
 <script>
 (function(win){
 'use strict';
@@ -8375,9 +8555,8 @@ win.runBAsScan = runBAsScan;
 // ── 10.1 Config ──
 var PT_BATCH=5,PT_DELAY=400,PT_FETCH_DAYS=300; // was 100 — deeper warm-up when run standalone without the shared Scanner cache
 
-// ── 10.2 Portfolio State ──
-// Initial portfolio: INR 10L cash, empty positions, empty trade log
-var ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
+// ── 10.2 Scan Results (mirrors Scanner tab; Portfolio Snapshot's Index
+// Universe / Update Portfolio / Summary / Matching Index all read this) ──
 var ptScanR=[];
 
 // ── 10.3 Helpers ──
@@ -8389,13 +8568,6 @@ function ptFmtDDMMYYYY(d){return ptPad(d.getDate())+ptPad(d.getMonth()+1)+d.getF
 function ptGenDays(n){var a=[],d=new Date();while(a.length<n){if(d.getDay()!==0&&d.getDay()!==6)a.push(new Date(d));d.setDate(d.getDate()-1)}return a}
 function ptFmt(n){return'Rs '+Math.round(n).toLocaleString('en-IN')}
 function ptFmtP(n){return(n>=0?'+':'')+n.toFixed(2)+'%'}
-function ptLog(m,t){
-  var l=ptEl('pt-tl'),e=document.createElement('div');
-  e.style.cssText='padding:2px 0;border-bottom:1px solid #eee;color:'+(t==='b'?'#1a8a1a':t==='s'?'#cc0000':'#b8860b');
-  e.textContent=new Date().toLocaleTimeString()+' - '+m;
-  l.insertBefore(e,l.firstChild);
-  if(l.children.length>60)l.removeChild(l.lastChild);
-}
 
 // ── 10.4 XHR Fetch → delegated to Container D (DD.fetchURLXHR) ──
 
@@ -8452,7 +8624,6 @@ function ptComputeRow(closes,name){
 // ── 10.6 Main Scan ──
 async function ptRunScan(){
   ptEl('pt-st').innerHTML='<span style="display:inline-block;width:10px;height:10px;border:2px solid #b8860b;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span> Loading Scanner data...';
-  ptLog('Starting scan...','i');
   ptScanR=[];
 
   // Step 1: Get data from Scanner tab first
@@ -8460,7 +8631,6 @@ async function ptRunScan(){
   var priceMap={},dailyMap={},useScanner=false;
   if(sd&&sd.priceMap&&Object.keys(sd.priceMap).length>10){
     priceMap=sd.priceMap;
-    ptLog('Prices from Scanner tab: '+Object.keys(priceMap).length+' indices','b');
     ptEl('pt-st').textContent='[Scanner] '+Object.keys(priceMap).length+' indices';
     useScanner=true;
   }
@@ -8477,7 +8647,6 @@ async function ptRunScan(){
       });
       if(closes.length>=5)dailyMap[key]=closes;
     });
-    ptLog('History from Scanner tab: '+Object.keys(dailyMap).length+' indices','b');
     ptEl('pt-st').textContent='[Scanner] '+Object.keys(dailyMap).length+' indices';
     useScanner=true;
   }
@@ -8485,7 +8654,6 @@ async function ptRunScan(){
   // Step 2: If Scanner data missing or incomplete, fetch NSE API for live prices
   var nseOk=false;
   if(!useScanner||Object.keys(priceMap).length<10){
-    ptLog('[NSE] Fetching live prices...','i');
     ptEl('pt-st').innerHTML='<span style="display:inline-block;width:10px;height:10px;border:2px solid #b8860b;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:4px;vertical-align:middle"></span> [NSE] Live prices...';
     try{
       var rn=await DD.fetchNSEIndices({ timeout: 20000, useXHR: true });
@@ -8498,9 +8666,8 @@ async function ptRunScan(){
         priceMap[nm]={price:idx.last||0,change:idx.percentChange||idx.pChange||0,name:idx.index||''};
       }
       nseOk=true;
-      ptLog('[NSE] '+allIdx.length+' indices via Container D','b');
       ptEl('pt-st').textContent='[NSE] '+allIdx.length+' indices';
-    }catch(e){ptLog('[NSE] Container D failed: '+e.message,'s');}
+    }catch(e){}
   }
 
   // Step 3: If historical data missing, fetch NSE CSV via Container D
@@ -8533,11 +8700,18 @@ async function ptRunScan(){
 
   // No Yahoo fallback — only NSE data sources
 
-  // Step 4: Compute
+  // Step 4: Compute (indices hidden via PSnap's "Hide from Portfolio
+  // Snapshot" feature — e.g. indices with no MF wrapper — are excluded here
+  // so they never surface in the main table, Universe defaults, or Matching
+  // Index list; a hidden index already sitting in someone's saved Portfolio
+  // is left alone in the Summary table, since that was an explicit prior add)
   var count=0;
+  var isHidden=(typeof PSnap!=='undefined'&&typeof PSnap.isHidden==='function')?PSnap.isHidden:function(){return false;};
   for(var key in priceMap){
     var pm=priceMap[key];
     if(!pm.price||pm.price<=0)continue;
+    var rowName=pm._nseName||pm.name||key;
+    if(isHidden(rowName))continue;
     var closes=dailyMap[key]||[];
     if(closes.length<5){
       for(var hk in dailyMap){
@@ -8546,20 +8720,19 @@ async function ptRunScan(){
     }
     if(pm.price>0)closes=closes.concat([pm.price]);
     if(closes.length<20)continue;
-    var row=ptComputeRow(closes,pm._nseName||pm.name||key);
+    var row=ptComputeRow(closes,rowName);
     if(!row)continue;
     row.change=pm.change||0;
     ptScanR.push(row);count++;
   }
   ptScanR.sort(function(a,b){return b.score-a.score});
   ptRender(ptScanR);
-  ptProcessScan(ptScanR);
   ptEl('pt-st').textContent=(useScanner?'[Scanner]':'[NSE]')+' '+count+' indices scanned';
   ptEl('pt-ts').textContent=new Date().toLocaleString();
-  ptLog('Done: '+count+' indices','b');
+  if(typeof PSnap!=='undefined')PSnap.onScanComplete();
 }
 
-// ── 10.8 Render Table ──
+// ── 10.7 Render Table ──
 // Portfolio Snapshot main table: # | Index | Price | Chg% | HM Status
 // Row "#" cell is clickable when PSnap update-mode is active (adds/removes
 // the index from the Portfolio Snapshot selection, toggling light-blue bg).
@@ -8577,101 +8750,8 @@ function ptRender(results){
   }).join('');
 }
 
-// ── 10.9 Trade Processing ──
-function ptProcessScan(results){
-  var now = new Date();
-  var thisMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  if (ptPf.lastRebalMonth === thisMonth) {
-    // Already rebalanced this calendar month — update current prices only,
-    // no new trades. The UI label says MONTHLY and this enforces it.
-    Object.keys(ptPf.pos).forEach(function(name){
-      var r = results.find(function(x){return x.name===name;});
-      if (r) ptPf.pos[name].cur = r.price;
-    });
-    var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
-    ptPf.eq.push({d:now.toISOString(),v:tv});if(ptPf.eq.length>365)ptPf.eq.shift();
-    ptSavePf();ptUpdateUI();
-    ptLog('Already rebalanced this month ('+thisMonth+'). Prices updated, no new trades.','i');
-    return;
-  }
-  var top3=results.filter(function(r){return r.regime==='A'&&r.score>=150}).slice(0,3);
-  var newNames={};top3.forEach(function(r){newNames[r.name]=true});
-  Object.keys(ptPf.pos).forEach(function(name){
-    if(!newNames[name]){
-      var p=ptPf.pos[name];ptPf.cash+=p.shares*p.cur;
-      ptPf.trades.push({t:'SELL',n:name,p:p.cur,s:p.shares,d:now.toISOString()});
-      ptLog('SELL '+name+' @ '+ptFmt(p.cur),'s');delete ptPf.pos[name];
-    }
-  });
-  top3.forEach(function(r){
-    if(!ptPf.pos[r.name]){
-      var alloc=ptPf.cash/Math.max(1,top3.length-Object.keys(ptPf.pos).length);
-      var shares=Math.floor(alloc/r.price);
-      if(shares>0){ptPf.cash-=shares*r.price;ptPf.pos[r.name]={shares:shares,avg:r.price,cur:r.price};
-        ptPf.trades.push({t:'BUY',n:r.name,p:r.price,s:shares,d:now.toISOString()});
-        ptLog('BUY '+r.name+' x'+shares+' @ '+ptFmt(r.price),'b');}
-    }else{ptPf.pos[r.name].cur=r.price;}
-  });
-  ptPf.lastRebalMonth = thisMonth;
-  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
-  ptPf.eq.push({d:now.toISOString(),v:tv});if(ptPf.eq.length>365)ptPf.eq.shift();
-  ptSavePf();ptUpdateUI();
-}
-
-function ptSavePf(){ldStorageSet('pt_v10_pf',JSON.stringify(ptPf));}
-function ptLoadPf(){try{var s=BB.ptPortfolio();if(s)ptPf=s;}catch(e){}}
-
-// ── 10.10 UI Update ──
-function ptUpdateUI(){
-  var tv=ptPf.cash;Object.values(ptPf.pos).forEach(function(p){tv+=p.shares*p.cur});
-  var pnl=tv-1000000,pnlP=pnl/10000;
-  var c=pnl>=0?'#1a8a1a':'#cc0000';
-  ptEl('pt-pv').textContent=ptFmt(tv);ptEl('pt-pv').style.color=c;
-  ptEl('pt-tp').textContent=ptFmt(pnl);ptEl('pt-tp').style.color=c;
-  ptEl('pt-tr').textContent=ptFmtP(pnlP);ptEl('pt-tr').style.color=c;
-  ptEl('pt-cv').textContent=ptFmt(ptPf.cash);
-  var pl=ptEl('pt-pl'),ps=Object.entries(ptPf.pos);
-  if(!ps.length){pl.innerHTML='<div style="color:#666;font-size:9px;text-align:center;padding:8px">No positions</div>';}
-  else{pl.innerHTML=ps.map(function(e){
-    var n=e[0],p=e[1],pn=(p.cur-p.avg)*p.shares,pp=(p.cur-p.avg)/p.avg*100;
-    return'<div style="background:#fff;border:1px solid #ddd;padding:6px;border-radius:4px;margin-bottom:4px;font-size:9px">'+
-      '<div style="font-weight:bold;color:#0055aa;margin-bottom:3px">'+n+'</div>'+
-      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px">'+
-      '<div><div style="font-size:7px;color:#888">Shares</div><div style="font-weight:bold">'+p.shares+'</div></div>'+
-      '<div><div style="font-size:7px;color:#888">Avg</div><div style="font-weight:bold">'+ptFmt(p.avg)+'</div></div>'+
-      '<div><div style="font-size:7px;color:#888">Now</div><div style="font-weight:bold">'+ptFmt(p.cur)+'</div></div>'+
-      '<div><div style="font-size:7px;color:#888">P&L</div><div style="font-weight:bold;color:'+(pn>=0?'#1a8a1a':'#cc0000')+'">'+ptFmt(pn)+'</div></div>'+
-      '<div><div style="font-size:7px;color:#888">%</div><div style="font-weight:bold;color:'+(pp>=0?'#1a8a1a':'#cc0000')+'">'+ptFmtP(pp)+'</div></div>'+
-      '</div></div>';
-  }).join('')}
-  ptDrawChart();
-}
-
-// ── 10.11 Equity Curve Chart ──
-function ptDrawChart(){
-  var c=ptEl('pt-ec'),ct=c.parentElement;
-  c.width=ct.clientWidth-12;c.height=ct.clientHeight-12;
-  var ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
-  if(ptPf.eq.length<2){ctx.fillStyle='#666';ctx.font='9px Courier New';ctx.textAlign='center';ctx.fillText('After trades',w/2,h/2);return}
-  var vals=ptPf.eq.map(function(e){return e.v}),mn=Math.min.apply(null,vals)*0.99,mx=Math.max.apply(null,vals)*1.01,rng=mx-mn;
-  ctx.strokeStyle='#1a8a1a';ctx.lineWidth=1.5;ctx.beginPath();
-  ptPf.eq.forEach(function(e,i){var x=(i/(ptPf.eq.length-1))*w,y=h-((e.v-mn)/rng)*h;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)});ctx.stroke();
-  ctx.strokeStyle='#b8860b';ctx.lineWidth=1;ctx.setLineDash([3,3]);
-  var by=h-((1000000-mn)/rng)*h;ctx.beginPath();ctx.moveTo(0,by);ctx.lineTo(w,by);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle='#666';ctx.font='7px Courier New';ctx.textAlign='left';ctx.fillText(ptFmt(mx),2,8);ctx.fillText(ptFmt(mn),2,h-2);
-}
-
-// ── 10.12 Reset & Exports ──
-function ptReset(){
-  if(!confirm('Reset Paper Trade portfolio?'))return;
-  ptPf={cash:1000000,pos:{},trades:[],eq:[{d:new Date().toISOString(),v:1000000}]};
-  ptSavePf();ptUpdateUI();ptLog('Portfolio reset','i');
-}
-
-// ── 10.7 Tab Activation ──
+// ── 10.8 Tab Activation ──
 win.onPTTabActivated=function(){
-  if(!win._ptInited){win._ptInited=true;ptLoadPf();ptUpdateUI();}
-  setTimeout(ptDrawChart,100);
   var sd=win._ldScannerData;
   if(sd&&sd.indexList&&sd.indexList.length){
     ptEl('pt-st').textContent=sd.indexList.length+' indices from Scanner tab. Use ⚡ SCAN ALL to refresh.';
@@ -8687,7 +8767,6 @@ win.ptRerender=function(){if(ptScanR&&ptScanR.length)ptRender(ptScanR);};
 
 // Expose globals
 win.ptRunScan=ptRunScan;
-win.ptReset=ptReset;
 
 })(window);
 </script>
@@ -8707,13 +8786,13 @@ win.ptReset=ptReset;
 (function(win){
 'use strict';
 
-var PS_STORE_KEY='ld_pt_snapshot_v1'; // {names:[...], purchases:{name:{date,price}}, cols:[...]}
-var PState={names:[],purchases:{},cols:[]}; // cols: subset of ['confluence','regime','pwma','ba','rs','returns']
+var PS_STORE_KEY='ld_pt_snapshot_v1'; // {names:[...], purchases:{name:{date,price}}, hidden:[...]}
+var PState={names:[],purchases:{},cols:[],hidden:[]}; // cols kept only for backward-compat with older saves; hidden = index names excluded from Portfolio Snapshot (e.g. no MF wrapper available)
 var updateMode=false;
 
 function psEl(id){return document.getElementById(id);}
 function psSave(){try{localStorage.setItem(PS_STORE_KEY,JSON.stringify(PState));}catch(e){}}
-function psLoad(){try{var raw=localStorage.getItem(PS_STORE_KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p==='object'){PState.names=p.names||[];PState.purchases=p.purchases||{};PState.cols=p.cols||[];}}}catch(e){}}
+function psLoad(){try{var raw=localStorage.getItem(PS_STORE_KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p==='object'){PState.names=p.names||[];PState.purchases=p.purchases||{};PState.cols=p.cols||[];PState.hidden=p.hidden||[];}}}catch(e){}}
 
 // ── RSI helper (Wilder/RMA, matches Scanner methodology) ──
 function psRSI(closes,period){
@@ -8786,26 +8865,85 @@ function hmStatusCell(name){
 }
 
 // ── Index Universe ──
+var _psShowHidden=false; // local UI toggle for the Universe panel's "show hidden" view
+var _psUniverseDateDraft={}; // name -> date string, holds the picked date until "Add" is tapped (so re-renders don't lose it)
+function setUniverseDateDraft(name,dateVal){
+  _psUniverseDateDraft[name]=dateVal;
+  // If already in the portfolio, update its stored purchase date immediately
+  // (this is an edit, not a draft for a future add).
+  if(PState.purchases[name]){
+    PState.purchases[name].date=dateVal;
+    psSave();
+    var sumWrap=psEl('pt-summary-wrap');
+    if(sumWrap&&sumWrap.style.display!=='none'){renderSummary();renderMatchingIndex();}
+  }
+}
+
 function openUniverse(){
   var sd=win._ldScannerData;
   var list=(sd&&sd.indexList)||[];
   var panel=psEl('pt-universe-panel'),listEl=psEl('pt-universe-list');
   if(!panel||!listEl)return;
   hideSummary(); // per spec: only the summary table shows while viewing it; universe/main table returns here
-  if(!list.length){
-    listEl.innerHTML='<div style="padding:10px;color:#666;text-align:center">No index list yet — run ⚡ SCAN ALL first.</div>';
-  }else{
-    var names=list.map(function(idx){return idx.name;}).sort();
-    listEl.innerHTML=names.map(function(n){
-      var inP=PState.names.indexOf(n)>=0;
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #eee;'+(inP?'background:#cfe8ff':'')+'">'+
-        '<span style="word-break:break-word">'+n+'</span>'+
-        '<button onclick="PSnap.toggleName(\''+n.replace(/'/g,"\\'")+'\')" style="background:'+(inP?'#cc0000':'#1a8a1a')+';color:#fff;border:none;padding:3px 8px;border-radius:3px;font-size:8px;cursor:pointer">'+(inP?'Remove':'Add')+'</button>'+
-        '</div>';
-    }).join('');
-  }
+  renderUniverseList(list);
   panel.style.display='block';
 }
+function renderUniverseList(list){
+  var listEl=psEl('pt-universe-list');
+  if(!listEl)return;
+  if(!list.length){
+    listEl.innerHTML='<div style="padding:10px;color:#666;text-align:center">No index list yet — run ⚡ SCAN ALL first.</div>';
+    return;
+  }
+  var allNames=list.map(function(idx){return idx.name;}).sort();
+  var toggleBar='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#f5f5f5;border-bottom:1px solid #ddd;font-size:8px">'+
+    '<span>'+(PState.hidden.length?PState.hidden.length+' hidden (e.g. no MF wrapper available)':'No indices hidden')+'</span>'+
+    '<button onclick="PSnap.toggleShowHidden()" style="background:'+(_psShowHidden?'#666':'#0055aa')+';color:#fff;border:none;padding:3px 8px;border-radius:3px;font-size:8px;cursor:pointer">'+(_psShowHidden?'Back to Active List':'Show Hidden ('+PState.hidden.length+')')+'</button>'+
+    '</div>';
+  if(_psShowHidden){
+    var hiddenNames=allNames.filter(function(n){return PState.hidden.indexOf(n)>=0;});
+    listEl.innerHTML=toggleBar+(hiddenNames.length?hiddenNames.map(function(n){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #eee;background:#fff3f3">'+
+        '<span style="word-break:break-word;color:#888;text-decoration:line-through">'+n+'</span>'+
+        '<button onclick="PSnap.unhideName(\''+n.replace(/'/g,"\\'")+'\')" style="background:#1a8a1a;color:#fff;border:none;padding:3px 8px;border-radius:3px;font-size:8px;cursor:pointer">Unhide</button>'+
+        '</div>';
+    }).join(''):'<div style="padding:10px;color:#666;text-align:center">No hidden indices</div>');
+    return;
+  }
+  var visNames=allNames.filter(function(n){return PState.hidden.indexOf(n)<0;});
+  var todayIso=new Date().toISOString().slice(0,10);
+  listEl.innerHTML=toggleBar+visNames.map(function(n){
+    var inP=PState.names.indexOf(n)>=0;
+    var existingDate=(PState.purchases[n]&&PState.purchases[n].date)||_psUniverseDateDraft[n]||todayIso;
+    return '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:5px 8px;border-bottom:1px solid #eee;'+(inP?'background:#cfe8ff':'')+'">'+
+      '<span style="word-break:break-word;flex:1 1 100%;">'+n+'</span>'+
+      '<input type="date" value="'+existingDate+'" onchange="PSnap.setUniverseDateDraft(\''+n.replace(/'/g,"\\'")+'\',this.value)" title="Purchase date for this index" style="font-size:9px;padding:3px 4px;border:1px solid #ccc;border-radius:3px;flex:1 1 120px;min-width:0;">'+
+      '<button onclick="PSnap.toggleName(\''+n.replace(/'/g,"\\'")+'\')" style="background:'+(inP?'#cc0000':'#1a8a1a')+';color:#fff;border:none;padding:3px 7px;border-radius:3px;font-size:8px;cursor:pointer;white-space:nowrap">'+(inP?'Remove':'Add')+'</button>'+
+      '<button onclick="PSnap.hideName(\''+n.replace(/'/g,"\\'")+'\')" title="Hide from Portfolio Snapshot (e.g. no MF offers this index)" style="background:#888;color:#fff;border:none;padding:3px 7px;border-radius:3px;font-size:8px;cursor:pointer;white-space:nowrap">Hide</button>'+
+      '</div>';
+  }).join('');
+}
+function toggleShowHidden(){
+  _psShowHidden=!_psShowHidden;
+  var sd=win._ldScannerData;
+  renderUniverseList((sd&&sd.indexList)||[]);
+}
+function hideName(name){
+  if(PState.hidden.indexOf(name)<0)PState.hidden.push(name);
+  psSave();
+  if(typeof win.ptRunScan==='function')win.ptRunScan(); // re-run so the main table drops it immediately
+  var sd=win._ldScannerData;
+  renderUniverseList((sd&&sd.indexList)||[]);
+}
+function unhideName(name){
+  var i=PState.hidden.indexOf(name);
+  if(i>=0)PState.hidden.splice(i,1);
+  psSave();
+  if(typeof win.ptRunScan==='function')win.ptRunScan();
+  var sd=win._ldScannerData;
+  renderUniverseList((sd&&sd.indexList)||[]);
+}
+function isHidden(name){return PState.hidden.indexOf(name)>=0;}
 function closeUniverse(){
   var panel=psEl('pt-universe-panel');
   if(panel)panel.style.display='none';
@@ -8820,8 +8958,7 @@ function toggleName(name){
     delete PState.purchases[name];
   }else{
     PState.names.push(name);
-    var dateInput=psEl('pt-purchase-date');
-    var pdate=dateInput&&dateInput.value?dateInput.value:new Date().toISOString().slice(0,10);
+    var pdate=_psUniverseDateDraft[name]||new Date().toISOString().slice(0,10);
     PState.purchases[name]={date:pdate,price:priceRow?priceRow.price:null};
   }
   psSave();
@@ -8837,14 +8974,8 @@ function has(name){return PState.names.indexOf(name)>=0;}
 function toggleUpdateMode(){
   updateMode=!updateMode;
   var btn=psEl('pt-btn-update');
-  var dateWrap=psEl('pt-datewrap');
   if(btn)btn.style.background=updateMode?'#0033aa':'#1a6dd8';
   if(btn)btn.textContent=updateMode?'Done Updating':'Update Portfolio';
-  if(dateWrap)dateWrap.style.display=updateMode?'flex':'none';
-  if(dateWrap&&updateMode){
-    var di=psEl('pt-purchase-date');
-    if(di&&!di.value)di.value=new Date().toISOString().slice(0,10);
-  }
   if(updateMode)hideSummary(); // show the clickable main table while updating
   if(typeof win.ptRerender==='function')win.ptRerender();
 }
@@ -8860,7 +8991,11 @@ function onRowNumClick(i){
 function scannerRowFor(name){
   var cache=win.BB&&win.BB.scannerCache?win.BB.scannerCache():null;
   if(!cache||!cache.results)return null;
-  return cache.results[name]||null;
+  // scannerCache().results is keyed by normalized index name (see U.normalize),
+  // not the raw display name — this lookup must match that convention, same
+  // as baPctFor/rsScoreFor/etc. do elsewhere in this file.
+  var key=(typeof win.U!=='undefined'&&win.U.normalize)?win.U.normalize(name):name;
+  return cache.results[key]||cache.results[name]||null;
 }
 function confluenceStatusFor(name){
   var cache=win.BB&&win.BB.ttfCache?win.BB.ttfCache():null;
@@ -8907,17 +9042,6 @@ var COL_DEFS={
 };
 // Fixed column order used everywhere "all columns" are requested
 var ALL_COL_KEYS=['confluence','regime','pwma','ba','rs','returns','hmchart'];
-
-function addColumn(key){
-  if(!COL_DEFS[key])return;
-  // Columns are always-on in the Summary table now; the button just jumps
-  // there and gives a brief highlight pulse on the matching header cell.
-  showSummary();
-  setTimeout(function(){
-    var th=psEl('pt-col-'+key);
-    if(th){th.style.background='#c8f7c8';setTimeout(function(){th.style.background='';},900);}
-  },50);
-}
 
 // ── Navigate to Hilega Milega chart (Monthly, 3Y) for a given index ──
 function viewHMChart(name){
@@ -8998,7 +9122,16 @@ function renderSummary(){
   }
   var scanR=(typeof win.ptGetScanR==='function')?win.ptGetScanR():[];
   var priceOf={};scanR.forEach(function(r){priceOf[r.name]={price:r.price,change:r.change};});
-  tbEl.innerHTML=PState.names.map(function(name,i){
+  // Sort by BA Wt% (Regime A weightage) descending; indices with no BA
+  // reading yet (null) sink to the bottom rather than sorting as 0.
+  var sortedNames=PState.names.slice().sort(function(a,b){
+    var pa=baPctFor(a),pb=baPctFor(b);
+    if(pa==null&&pb==null)return 0;
+    if(pa==null)return 1;
+    if(pb==null)return -1;
+    return pb-pa;
+  });
+  tbEl.innerHTML=sortedNames.map(function(name,i){
     var pr=priceOf[name]||{};
     var cells='<td style="padding:5px 4px;font-size:9px">'+(i+1)+'</td>'+
       '<td style="font-family:\'Segoe UI\',Arial,sans-serif;padding:4px 8px;font-size:10px;font-weight:600;color:#000;word-break:break-word;white-space:normal">'+name+'</td>'+
@@ -9021,7 +9154,7 @@ function updateHeaderStats(){
   var priceOf={};scanR.forEach(function(r){priceOf[r.name]=r.price;});
   var withPurchase=PState.names.filter(function(n){return PState.purchases[n]&&PState.purchases[n].price!=null;});
   var pvEl=psEl('pt-pv'),tpEl=psEl('pt-tp'),trEl=psEl('pt-tr');
-  if(!withPurchase.length)return; // leave the underlying paper-trade engine's own figures untouched
+  if(!withPurchase.length)return; // nothing tagged with a purchase yet — leave the "—" placeholders as-is
   var investedTotal=0,curTotal=0;
   withPurchase.forEach(function(n){
     var pur=PState.purchases[n].price;
@@ -9063,7 +9196,7 @@ function renderMatchingIndex(){
     return;
   }
   var portfolioAvg=PState.names.reduce(function(s,n){return s+compositeScoreFor(n);},0)/PState.names.length;
-  var candidates=allNames.filter(function(n){return PState.names.indexOf(n)<0;})
+  var candidates=allNames.filter(function(n){return PState.names.indexOf(n)<0&&PState.hidden.indexOf(n)<0;})
     .map(function(n){return {name:n,score:compositeScoreFor(n)};})
     .filter(function(c){return c.score>=portfolioAvg;})
     .sort(function(a,b){return b.score-a.score;})
@@ -9095,19 +9228,49 @@ function onTabActivated(){
   else hideSummary();
 }
 
+// Called once per ⚡ SCAN ALL / Portfolio Snapshot scan completion — keeps
+// the header stat boxes and (if open) the Summary/Matching tables current.
+function onScanComplete(){
+  updateHeaderStats();
+  var sumWrap=psEl('pt-summary-wrap');
+  if(sumWrap&&sumWrap.style.display!=='none'){renderSummary();renderMatchingIndex();}
+}
+
+// Clears the saved Portfolio Snapshot selection (names/purchases) but keeps
+// the Hidden list intact, since hidden indices are an ongoing curation
+// choice (e.g. "no MF offers this fund") rather than part of the portfolio.
+function resetPortfolio(){
+  if(!confirm('Reset Portfolio Snapshot? This clears your tracked indices and purchase dates (hidden indices stay hidden).'))return;
+  PState.names=[];
+  PState.purchases={};
+  psSave();
+  if(typeof win.ptRerender==='function')win.ptRerender();
+  hideSummary();
+  var pvEl=psEl('pt-pv'),tpEl=psEl('pt-tp'),trEl=psEl('pt-tr');
+  if(pvEl)pvEl.textContent='—';
+  if(tpEl){tpEl.textContent='—';tpEl.style.color='';}
+  if(trEl){trEl.textContent='—';trEl.style.color='';}
+}
+
 win.PSnap={
   openUniverse:openUniverse,
   closeUniverse:closeUniverse,
   toggleName:toggleName,
   toggleUpdateMode:toggleUpdateMode,
   onRowNumClick:onRowNumClick,
-  addColumn:addColumn,
   showSummary:showSummary,
   hideSummary:hideSummary,
   viewHMChart:viewHMChart,
   has:has,
   hmStatusCell:hmStatusCell,
   onTabActivated:onTabActivated,
+  onScanComplete:onScanComplete,
+  resetPortfolio:resetPortfolio,
+  hideName:hideName,
+  unhideName:unhideName,
+  toggleShowHidden:toggleShowHidden,
+  isHidden:isHidden,
+  setUniverseDateDraft:setUniverseDateDraft,
   get updateMode(){return updateMode;}
 };
 
@@ -9819,15 +9982,12 @@ function fetchDeepWeeklyHistory(onProgress){
 }
 
 // ── 11.7b On-demand raw cache download ──
-// Unlike the auto-popup button in fetchDeepWeeklyHistory (which only
-// appears for 60s right after a Step 1 run), this works any time — it
-// loads whatever is currently in the IndexedDB deep cache and downloads
-// it as JSON, so the cache can be inspected/verified without re-running
-// Step 1 or waiting for it to finish.
+// Loads whatever is currently in the IndexedDB deep cache and downloads it
+// as JSON, so the cache can be inspected/verified. The header button for
+// this was removed (per audit request) since it's a rarely-needed debug
+// tool; the function itself is kept in case it's wired up elsewhere later.
 function ldDownloadRawCache() {
-  var btn = document.getElementById('ld-raw-dl-btn');
-  var setLabel = function(txt) { if (btn) btn.querySelector('.ld-backup-label').textContent = ' ' + txt; };
-  setLabel('Loading…');
+  var setLabel = function(txt) { /* no-op: UI button removed */ };
   _deepLoadAsync(function(cache) {
     try {
       if (!cache || !cache.dailyMap || Object.keys(cache.dailyMap).length === 0) {
@@ -10547,7 +10707,7 @@ function BuySellTriggers() {
       }
     }
     if (!sd || !sd.dailyMap || Object.keys(sd.dailyMap).length === 0) {
-      setProgress({ done: 0, total: 0, label: "No data \u2014 run Nifty Index Scanner first" });
+      setProgress({ done: 0, total: 0, label: "No data \u2014 run Nifty Scanner first" });
       setScanning(false);
       return;
     }
@@ -10667,10 +10827,10 @@ function BuySellTriggers() {
   // leaving the remaining columns reachable. Width is expressed as 30% of
   // viewport width (not a fixed px) so it scales sensibly across phone
   // sizes, paired with a smaller font so more of each name fits per line.
-  const FROZEN_COL_W = "30vw";
+  const FROZEN_COL_W = "45vw";
   const th1S = { ...thS, position: "sticky", left: 0, top: 0, zIndex: 20, background: surf2, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, fontSize: 9 };
   const tdS = { padding: "6px 9px", borderBottom: `1px solid ${surf2}`, borderRight: `1px solid ${surf2}`, whiteSpace: "nowrap", fontFamily: "'Space Mono','Courier New',monospace", fontSize: 11, color: "#000" };
-  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 400, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.25, zIndex: 5, fontSize: 9 };
+  const td1S = { ...tdS, position: "sticky", left: 0, background: "#fff", borderRight: `2px solid ${bdr}`, fontWeight: 700, width: FROZEN_COL_W, maxWidth: FROZEN_COL_W, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.25, zIndex: 5, fontSize: 9 };
   return React.createElement("div", { style: { background: "#fff", minHeight: "100vh", ...F } },
     React.createElement("div", { style: { background: surf, borderBottom: `1px solid ${bdr}`, padding: "3px 6px", position: "sticky", top: 0, zIndex: 99, display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" } },
       React.createElement("select", { style: { fontSize: 9, padding: "2px 3px", background: "#fff", border: `1px solid ${bdr}`, fontFamily: "'Space Mono','Courier New',monospace", flexShrink: 0, maxWidth: 80 }, value: regF, onChange: e => setRegF(e.target.value) },
@@ -10788,8 +10948,8 @@ function BuySellTriggers() {
               React.createElement("td", { style: { ...tdS, borderRight: "3px solid #9333ea", background: _mfTriggerBg(r.mTrigger?.rank ?? 4), textAlign: "center" } }, React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: r.mTrigger?.color || "#999", ...F } }, r.mTrigger?.label ?? "-")));
              }))))) : !scanning && React.createElement("div", { style: { padding: 50, textAlign: "center" } },
         React.createElement("div", { style: { fontSize: 34, marginBottom: 6 } }, "\uD83D\uDCE1"),
-        React.createElement("div", { style: { fontSize: 14, fontWeight: 700, marginBottom: 4, ...F } }, scannerDataExists ? "Loading RSI/TSI for " + sd.indexList.length + " NSE indices…" : "Run \u26A1 Nifty Index Scanner first to load data"),
-        React.createElement("div", { style: { fontSize: 10, color: "#888", ...F } }, scannerDataExists ? "Index data ready \u00B7 " + sd.indexList.length + " NSE indices" : "The Nifty Index Scanner tab must be run first to populate scanner data"))));
+        React.createElement("div", { style: { fontSize: 14, fontWeight: 700, marginBottom: 4, ...F } }, scannerDataExists ? "Loading RSI/TSI for " + sd.indexList.length + " NSE indices…" : "Run \u26A1 Nifty Scanner first to load data"),
+        React.createElement("div", { style: { fontSize: 10, color: "#888", ...F } }, scannerDataExists ? "Index data ready \u00B7 " + sd.indexList.length + " NSE indices" : "The Nifty Scanner tab must be run first to populate scanner data"))));
 }
 window._mfMounted = false;
 window.BuySellTriggers = BuySellTriggers;
@@ -11186,14 +11346,40 @@ function hmParseDate(dateStr) { var sep = dateStr.includes('/') ? '/' : '-'; var
 // so the in-progress current week's bar looked dated days behind where its
 // price actually was, making the chart look like it stopped short of today.
 // ── 13.4 Aggregation (Weekly/Monthly) ──
-function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var day = (dt.getDay() + 6) % 7; var refMonday = new Date(dt); refMonday.setDate(dt.getDate() - day); var wid = refMonday.toISOString().slice(0, 10); if (!cur || cur.wid !== wid) { if (cur) weeks.push(cur); cur = { wid: wid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; cur.date = d.date; } } if (cur) weeks.push(cur); return weeks; }
+function hmAggregateWeeks(hist) { var weeks = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var day = (dt.getDay() + 6) % 7; var refMonday = new Date(dt); refMonday.setDate(dt.getDate() - day); var wid = refMonday.toISOString().slice(0, 10); var navOk = d.nav != null && !isNaN(d.nav); if (!cur || cur.wid !== wid) { if (cur) weeks.push(cur); cur = { wid: wid, nav: navOk ? d.nav : null, date: d.date }; } else { if (navOk) cur.nav = d.nav; cur.date = d.date; } } if (cur) weeks.push(cur); return weeks; }
 // Same fix as hmAggregateWeeks above, for monthly buckets.
-function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: d.nav, date: d.date }; } else { cur.nav = d.nav; cur.date = d.date; } } if (cur) months.push(cur); return months; }
+function hmAggregateMonths(hist) { var months = []; var cur = null; for (var i = 0; i < hist.length; i++) { var d = hist[i]; var dt = hmParseDate(d.date); if (isNaN(dt.getTime())) continue; var mid = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); var navOk = d.nav != null && !isNaN(d.nav); if (!cur || cur.mid !== mid) { if (cur) months.push(cur); cur = { mid: mid, nav: navOk ? d.nav : null, date: d.date }; } else { if (navOk) cur.nav = d.nav; cur.date = d.date; } } if (cur) months.push(cur); return months; }
 // ── 13.5 RSI / WMA / EMA Computation ──
 // NOTE: unlike U.calcRSI/ptCalcRSI/rsiCalc, this pre-fills with neutral 50
 // instead of returning [] on insufficient data — intentional for charting
 // (keeps array length aligned to `prices`), not a bug to "fix" into matching.
+// Fills any gaps (null/undefined/NaN) in a price series by carrying the
+// last known-good value forward. Unlike calcRSI's filter-and-shrink
+// approach, hmCalcRSI/WMA/EMA must keep the SAME array length and index
+// positions as the input (the chart zips these back up with dates by
+// index), so a single bad reading can't just be dropped — it has to be
+// patched so the cumulative math (Wilder smoothing, EMA) doesn't get
+// poisoned for every point after it. Leading gaps carry forward the
+// first good value found.
+function hmSanitizeSeries(arr) {
+  var out = new Array(arr.length);
+  var lastGood = null;
+  for (var i = 0; i < arr.length; i++) {
+    var v = arr[i];
+    if (v != null && !isNaN(v)) { lastGood = v; out[i] = v; }
+    else { out[i] = lastGood; }
+  }
+  // Any leading gap (no good value seen yet) — back-fill from the first
+  // good value once we know what it is.
+  if (out[0] == null) {
+    var firstGood = null;
+    for (var j = 0; j < out.length; j++) { if (out[j] != null) { firstGood = out[j]; break; } }
+    for (var k = 0; k < out.length && out[k] == null; k++) out[k] = firstGood;
+  }
+  return out;
+}
 function hmCalcRSI(prices, period) {
+    prices = hmSanitizeSeries(prices);
     var rsi = new Array(prices.length).fill(50);
     if (prices.length < period + 1) return rsi;
     var ag = 0, al = 0;
@@ -11203,8 +11389,8 @@ function hmCalcRSI(prices, period) {
     for (var i = period + 1; i < prices.length; i++) { var d = prices[i] - prices[i - 1]; ag = (ag * (period - 1) + (d > 0 ? d : 0)) / period; al = (al * (period - 1) + (d < 0 ? -d : 0)) / period; rsi[i] = ag === 0 && al === 0 ? 50 : al === 0 ? 100 : ag === 0 ? 0 : 100 - (100 / (1 + ag / al)); }
     return rsi;
 }
-function hmCalcWMA(data, period) { var out = new Array(data.length).fill(null); var denom = period * (period + 1) / 2; for (var i = period - 1; i < data.length; i++) { var num = 0; for (var j = 0; j < period; j++) num += data[i - j] * (period - j); out[i] = num / denom; } return out; }
-function hmCalcEMA(data, period) { var out = new Array(data.length).fill(null); var k = 2 / (period + 1); var sum = 0; for (var i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k); return out; }
+function hmCalcWMA(data, period) { data = hmSanitizeSeries(data); var out = new Array(data.length).fill(null); var denom = period * (period + 1) / 2; for (var i = period - 1; i < data.length; i++) { var num = 0; for (var j = 0; j < period; j++) num += data[i - j] * (period - j); out[i] = num / denom; } return out; }
+function hmCalcEMA(data, period) { data = hmSanitizeSeries(data); var out = new Array(data.length).fill(null); var k = 2 / (period + 1); var sum = 0; for (var i = 0; i < period; i++) sum += data[i]; out[period - 1] = sum / period; for (var i = period; i < data.length; i++) out[i] = data[i] * k + out[i - 1] * (1 - k); return out; }
 function hmHideOv() {
   var ov = document.getElementById('ov');
   if (ov) ov.style.display = 'none';
@@ -11549,12 +11735,12 @@ async function drawHilegaMilega() {
         ctx.clearRect(0, 0, W, H);
         var pad = { t: 24, b: 20, l: 36, r: 8 };
         var cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
-        var minY = 15, maxY = 90;
+        var minY = 18, maxY = 90;
         var xStep = cW / Math.max(n - 1, 1);
         var toX = function(i) { return pad.l + i * xStep; };
         var toY = function(v) { return pad.t + cH - ((v - minY) / (maxY - minY)) * cH; };
         ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
-        for (var v = 0; v <= 100; v += 10) { ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke(); ctx.fillStyle = '#9ca3af'; ctx.font = '9px monospace'; ctx.textAlign = 'right'; ctx.fillText(v, pad.l - 4, toY(v) + 3); }
+        for (var v = 20; v <= 90; v += 10) { ctx.beginPath(); ctx.moveTo(pad.l, toY(v)); ctx.lineTo(W - pad.r, toY(v)); ctx.stroke(); ctx.fillStyle = '#9ca3af'; ctx.font = '9px monospace'; ctx.textAlign = 'right'; ctx.fillText(v, pad.l - 4, toY(v) + 3); }
         var drawHLine = function(val, color, dash) { ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; if (dash) ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(pad.l, toY(val)); ctx.lineTo(W - pad.r, toY(val)); ctx.stroke(); ctx.restore(); };
         drawHLine(20, '#16a34a', [4, 3]);
         drawHLine(88, '#ef4444', [4, 3]);
