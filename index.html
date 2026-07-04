@@ -955,7 +955,7 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
   <div class="app-tabs-right">
     <span id="runAllStatus"></span>
-    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.4</span>
+    <span style="font-size:9px;color:#666;margin-right:6px;font-family:monospace;" id="appVersionBadge">v5.5</span>
 
     <button id="runAllBtn" onclick="runAllScans()" title="Scan All: Scanner → Confluence → RS → BA → Paper Trade → RSI Bias">⚡ SCAN<span id="scanTimestamp" style="display:block;font-size:7px;font-weight:400;color:#000;line-height:1.2;margin-top:1px"></span></button>
   </div>
@@ -990,10 +990,10 @@ th.ha-sep,td.ha-sep{border-left:3px solid var(--orange)!important}
   </div>
 
   <div class="bp-ath">
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY 50 ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-bull);">24,198</div><div class="bp-ath-bdg no">-1.45% BELOW</div></div></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY MIDCAP ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-mid);">53,742</div><div class="bp-ath-bdg no">-3.2% BELOW</div></div></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY SMALLCAP ATH</div><div class="bp-ath-right"><div class="bp-ath-val" style="color:var(--bp-small);">17,290</div><div class="bp-ath-bdg no">-8.1% BELOW</div></div></div>
-    <div class="bp-ath-item"><div class="bp-ath-lbl">BULLISH TRIGGER<br><span style="font-size:9px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">All 3 ATH + Breadth &gt;60% + Macro Green</span></div><div class="bp-ath-right"><div class="bp-ath-bdg no">NOT YET</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY 50 · 52W HIGH</div><div class="bp-ath-right"><div class="bp-ath-val" id="bpAth50Val" style="color:var(--bp-bull);">—</div><div class="bp-ath-bdg no" id="bpAth50Bdg">—</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY MIDCAP · 52W HIGH</div><div class="bp-ath-right"><div class="bp-ath-val" id="bpAthMidVal" style="color:var(--bp-mid);">—</div><div class="bp-ath-bdg no" id="bpAthMidBdg">—</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">NIFTY SMALLCAP · 52W HIGH</div><div class="bp-ath-right"><div class="bp-ath-val" id="bpAthSmallVal" style="color:var(--bp-small);">—</div><div class="bp-ath-bdg no" id="bpAthSmallBdg">—</div></div></div>
+    <div class="bp-ath-item"><div class="bp-ath-lbl">BULLISH TRIGGER<br><span style="font-size:9px;color:var(--bp-muted);font-family:'Segoe UI',Arial,sans-serif;">All 3 near 52W High + Breadth &gt;60% + Macro Green</span></div><div class="bp-ath-right"><div class="bp-ath-bdg no" id="bpAthTrigger">NOT YET</div></div></div>
   </div>
 
   <div id="bpDataSourceNote" style="font-size:10px;font-family:'Segoe UI',Arial,sans-serif;margin:6px 2px 4px;"></div>
@@ -1508,7 +1508,7 @@ function ldTodayIstStr() {
   return new Date(Date.now() + 5.5 * 3600000).toISOString().slice(0, 10);
 }
 
-const APP_VERSION = 'v5.4';
+const APP_VERSION = 'v5.5';
 
 // Reads the deep weekly/daily/monthly history straight from IndexedDB —
 // the primary store for this data. The localStorage mirror (BB.deepCacheV4)
@@ -1622,11 +1622,22 @@ async function ldApplyBackupJson(text) {
     // localStorage — restore it separately via the same path deepSaveCache
     // uses, so a fresh browser/profile gets the full history back, not just
     // whatever fit in the (often-truncated) localStorage mirror.
+    //
+    // IMPORTANT: this is awaited (deepSaveCache now returns a promise that
+    // only resolves once the IndexedDB writes genuinely complete) before
+    // reloading below. The previous version fired the save and reloaded
+    // after a fixed 900ms guess — on a slower device or with a large
+    // history, the save could still be mid-flight when the reload hit,
+    // so the app would come back up finding no data and silently start a
+    // full fresh download, even though a restore had just "succeeded".
     let deepRestored = false;
     if (parsed && parsed.deepCache && parsed.deepCache.dailyMap
         && Object.keys(parsed.deepCache.dailyMap).length > 0
         && typeof window.deepSaveCache === 'function') {
-      try { window.deepSaveCache(parsed.deepCache); deepRestored = true; } catch (e) {
+      try {
+        await window.deepSaveCache(parsed.deepCache);
+        deepRestored = true;
+      } catch (e) {
         console.warn('[LD] deep cache restore failed', e);
       }
     }
@@ -1639,7 +1650,10 @@ async function ldApplyBackupJson(text) {
     } else {
       ldShowBackupMsg(`✓ Restored ${restoreResult.restored} keys${deepRestored ? ' + deep history' : ''} — reloading…`);
     }
-    setTimeout(() => window.location.reload(), 900);
+    // Short delay here is now just so the message above is visible for a
+    // moment — the actual save is already guaranteed complete by the
+    // await above, not by this timeout.
+    setTimeout(() => window.location.reload(), 400);
   } catch (err) {
     console.error('[LD] backup restore failed', err);
     ldShowBackupMsg('⚠ Invalid backup file', true);
@@ -2241,8 +2255,8 @@ window._buildProxyUrl = DD._buildProxyUrl;
 //   BB.baCSV(dateStr)          — get/set ba_csv_<date>
 //   BB.baGold(symbol)          — get/set ba_gold_<sym>
 //   BB.ptPortfolio()           — get/set pt_v10_pf
-//   BB.deepCacheV4()           — get/set ld_deep_weekly_history_v4
-//   BB.deepCacheV3()           — get ld_deep_weekly_history_v3 (read-only)
+//   BB.deepCacheV4()           — get ld_deep_weekly_history_v4 (read-only, legacy migration)
+//   BB.deepCacheV3()           — get ld_deep_weekly_history_v3 (read-only, legacy migration)
 //   BB.mfScanCache()           — get/set mf_scan_results_cache
 //   BB.mfScanDate()            — get/set mf_scan_results_date
 //   BB.mfScanISODate()         — get/set mf_scan_results_isodate
@@ -2431,10 +2445,14 @@ var BB = (function() {
   }
 
   // Deep cache v4: {lastDate, dailyMap, weeklyMap, monthlyMap}
-  function deepCacheV4(data) {
-    if (data === undefined) return getJSON('ld_deep_weekly_history_v4', null);
-    if (data === null) return remove('ld_deep_weekly_history_v4');
-    return setJSON('ld_deep_weekly_history_v4', data);
+  // Read-only migration source — see storage audit. This used to also
+  // accept writes (a full duplicate copy of the IndexedDB deep cache,
+  // several MB, competing for space in the shared localStorage quota).
+  // IndexedDB is the single source of truth for deep history now; this
+  // key is only ever read, for anyone upgrading from a much older
+  // version of the app that still has data sitting here.
+  function deepCacheV4() {
+    return getJSON('ld_deep_weekly_history_v4', null);
   }
 
   // Deep cache v3: read-only migration source
@@ -2574,11 +2592,23 @@ var CC = (function() {
     });
   }
   function deepPut(key, val) {
-    deepOpen(function(db) {
-      if (!db) return;
-      try {
-        db.transaction('cache','readwrite').objectStore('cache').put(val, key);
-      } catch(e) {}
+    // Returns a promise that resolves once the write has actually
+    // completed (transaction.oncomplete), not just been requested. The
+    // previous fire-and-forget version gave callers no way to know when
+    // data genuinely landed in IndexedDB — which let a backup-restore
+    // reload the page before its own save had finished, making the app
+    // think no data existed and start a fresh download on the next load.
+    return new Promise(function(resolve) {
+      deepOpen(function(db) {
+        if (!db) { resolve(false); return; }
+        try {
+          var tx = db.transaction('cache', 'readwrite');
+          tx.objectStore('cache').put(val, key);
+          tx.oncomplete = function() { resolve(true); };
+          tx.onerror = function() { resolve(false); };
+          tx.onabort = function() { resolve(false); };
+        } catch(e) { resolve(false); }
+      });
     });
   }
 
@@ -2786,6 +2816,15 @@ return BB.watchlist();
   const [sortDir3, setSortDir3] = useState('asc');
   const [baResults, setBaResults] = useState({});
   useEffect(() => {
+    // Shared promise so any code that needs window._ldScannerData (e.g.
+    // HiLega's category dropdown) can wait for THIS restore to finish
+    // instead of racing ahead and building its own separate fallback with
+    // worse data (nseKey defaulting to 'Other' for everything) — that race
+    // was the root cause of HiLega's category/index mismatch, since
+    // whichever async chain finished last would silently overwrite the
+    // other's result in window._ldScannerData.
+    let resolveRestore;
+    window._ldRestorePromise = new Promise(function(res) { resolveRestore = res; });
     try {
       const snap = BB.scannerCache();
       if (snap) {
@@ -2808,6 +2847,7 @@ return BB.watchlist();
                 nseRaw: []
               };
               console.log('[LD] Restored dailyMap:', Object.keys(dm).length, 'indices');
+              resolveRestore(window._ldScannerData);
             } else {
               // localStorage copy missing (e.g. too large to fit the quota) —
               // fall back to the IndexedDB deep cache, which has no size cap.
@@ -2824,14 +2864,18 @@ return BB.watchlist();
                   };
                   console.log('[LD] Restored dailyMap from IndexedDB:', Object.keys(dc.dailyMap).length, 'indices');
                 }
+                resolveRestore(window._ldScannerData || null);
               });
             }
-          } catch(_) {}
+          } catch(_) { resolveRestore(window._ldScannerData || null); }
+        } else {
+          resolveRestore(null);
         }
       } else {
         console.log('[LD] No cache found');
+        resolveRestore(null);
       }
-    } catch (_) {}
+    } catch (_) { resolveRestore(null); }
     // Expose handleScan globally so runAllScans() can trigger the Scanner
     // phase directly — there is no longer a standalone Scan button on this
     // tab; the global "SCAN ALL" header button is the only trigger.
@@ -3520,6 +3564,7 @@ Reasoning: [One-line explanation tying data to the rule]`;
             open: r.open,
             high: r.high,
             low: r.low,
+            yearHigh: r.yearHigh,
             regime: r.regime,
             dRsi4: r.dRsi4,
             dRsi8: r.dRsi8,
@@ -4848,7 +4893,17 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector('.tab-btn[onclick*="' + name + '"]').classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'breadth' && !window._bpInited) { window._bpInited = true; M.init(); }
+  if (name === 'breadth' && !window._bpInited) {
+    window._bpInited = true;
+    // Defer to the next paint: switching display:none -> the .active
+    // class just above happens synchronously, but the browser hasn't
+    // necessarily laid out/painted the now-visible tab yet. Chart.js
+    // measures the canvas's size when it's created — if that happens
+    // before the tab is actually visible, it sizes the chart as 0x0 and
+    // nothing ever forces a redraw once the tab does become visible. This
+    // was the root cause of the Market Breadth chart appearing blank.
+    requestAnimationFrame(function() { M.init(); });
+  }
   if (name === 'ttf' && window.Confluence) { if (!window._ttfInited) { window._ttfInited = true; if (typeof Confluence._loadCache === 'function') Confluence._loadCache(); } if (typeof Confluence.run === 'function') Confluence.run(); }
   if (name === 'rs' && typeof window.onRSTabActivated === 'function') { window.onRSTabActivated(); }
   if (name === 'ba' && typeof window.onBATabActivated === 'function') { window.onBATabActivated(); }
@@ -5417,19 +5472,45 @@ var M = (function() {
         var nifty = results["nifty50"];
         if (nifty && nifty.price != null) {
           niftyEl.textContent = nifty.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-          var athEls = document.querySelectorAll('.bp-ath-item');
-          if (athEls.length >= 3) {
-            var midcap = results["niftymidcap150"];
-            var smallcap = results["niftysmallcap250"];
-            if (midcap && midcap.price != null) {
-              var midAthVal = athEls[1].querySelector('.bp-ath-val');
-              if (midAthVal) midAthVal.textContent = midcap.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-            }
-            if (smallcap && smallcap.price != null) {
-              var smAthVal = athEls[2].querySelector('.bp-ath-val');
-              if (smAthVal) smAthVal.textContent = smallcap.price.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-            }
+        }
+        // 52-week-high panel: real yearHigh data (persisted per audit fix),
+        // covering all 3 indices including Nifty 50, which this function
+        // previously skipped entirely — its box stayed stuck on a
+        // hardcoded placeholder value no matter what the actual scan found.
+        var athRows = [
+          { price: nifty, valId: 'bpAth50Val', bdgId: 'bpAth50Bdg' },
+          { price: results["niftymidcap150"], valId: 'bpAthMidVal', bdgId: 'bpAthMidBdg' },
+          { price: results["niftysmallcap250"], valId: 'bpAthSmallVal', bdgId: 'bpAthSmallBdg' }
+        ];
+        var allNearHigh = true;
+        athRows.forEach(function(row) {
+          var valEl = document.getElementById(row.valId);
+          var bdgEl = document.getElementById(row.bdgId);
+          if (!valEl || !bdgEl) return;
+          var r = row.price;
+          if (!r || r.yearHigh == null || r.price == null) {
+            valEl.textContent = '—';
+            bdgEl.textContent = 'NO DATA';
+            bdgEl.className = 'bp-ath-bdg no';
+            allNearHigh = false;
+            return;
           }
+          valEl.textContent = r.yearHigh.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+          var pctBelow = ((r.yearHigh - r.price) / r.yearHigh) * 100;
+          if (pctBelow <= 0.05) {
+            // At or within a hair of the 52-week high.
+            bdgEl.textContent = 'AT 52W HIGH';
+            bdgEl.className = 'bp-ath-bdg yes';
+          } else {
+            bdgEl.textContent = '-' + pctBelow.toFixed(2) + '% BELOW';
+            bdgEl.className = 'bp-ath-bdg no';
+            allNearHigh = false;
+          }
+        });
+        var triggerEl = document.getElementById('bpAthTrigger');
+        if (triggerEl) {
+          triggerEl.textContent = allNearHigh ? 'YES' : 'NOT YET';
+          triggerEl.className = 'bp-ath-bdg ' + (allNearHigh ? 'yes' : 'no');
         }
       }
     } catch(_) {}
@@ -9314,7 +9395,7 @@ var DEEP_CSV_URL_LIST = ['https://nsearchives.nseindia.com/content/indices/ind_c
 // ── 11.2 IndexedDB Helpers ──
 // Delegates to Container C (CC)
 function _idbGet(key, cb) { CC.deepGet(key, cb); }
-function _idbPut(key, val) { CC.deepPut(key, val); }
+function _idbPut(key, val) { return CC.deepPut(key, val); }
 
 // Fetch one CSV day; proxySlot is the starting proxy index for load balancing
 // NOTE: Uses DD._proxies directly (not DD.fetchURL) because this needs to try
@@ -9434,15 +9515,29 @@ function _deepLoadAsync(cb) {
   });
 }
 
-// Save to the 3 separate IDB containers (primary store, no size limit),
-// plus a combined localStorage backup for environments where IDB is
-// unavailable. Each container is put independently so a save of one
-// doesn't require touching the other two.
+// Save to the 3 separate IDB containers (primary store, no size limit).
+// Each container is put independently so a save of one doesn't require
+// touching the other two.
+//
+// NOTE: this used to also write a full combined copy of the same data to
+// a localStorage key ('ld_deep_weekly_history_v4') as a fallback for the
+// rare case IndexedDB is unavailable. That was removed (see storage
+// audit) — the combined copy could be several MB, competing for space in
+// a shared quota with everything else the app saves in localStorage, and
+// most of the time either failed silently or risked crowding out other,
+// smaller saves. IndexedDB is the single source of truth for deep
+// history now; reading still checks the old v4/v3 localStorage keys as a
+// one-time migration path for anyone upgrading from a much older version
+// (see _deepLoadAsync below), it's just never written to going forward.
 function deepSaveCache(cache){
-  _idbPut(DEEP_CACHE_KEY_DAILY,   { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
-  _idbPut(DEEP_CACHE_KEY_WEEKLY,  { weeklyMap: cache.weeklyMap || {} });
-  _idbPut(DEEP_CACHE_KEY_MONTHLY, { monthlyMap: cache.monthlyMap || {} });
-  try { BB.deepCacheV4(cache); } catch(e) {}
+  // Returns a promise resolving once all 3 containers have genuinely
+  // finished writing to IndexedDB — callers that need to know the data
+  // actually landed (e.g. before reloading the page after a backup
+  // restore) should await this instead of assuming it's done.
+  var p1 = _idbPut(DEEP_CACHE_KEY_DAILY,   { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
+  var p2 = _idbPut(DEEP_CACHE_KEY_WEEKLY,  { weeklyMap: cache.weeklyMap || {} });
+  var p3 = _idbPut(DEEP_CACHE_KEY_MONTHLY, { monthlyMap: cache.monthlyMap || {} });
+  return Promise.all([p1, p2, p3]);
 }
 
 // ── 11.5 Floating Progress Overlay ─────────────────────────────────────────
@@ -9771,6 +9866,41 @@ function _buildWeeklyMonthlyMapsAsync(cache, onProgress, cb) {
 // Old history is compressed to monthly summaries before every save to keep
 // storage small (~2.3 MB total vs ~12 MB raw).
 var _deepDownloadInProgress = false;
+// Checks whether the cached daily history is actually complete, not just
+// whether its newest entry is recent.
+//
+// IMPORTANT: a fully-downloaded cache does NOT have DEEP_WINDOW_DAYS
+// (2500) raw entries per index. History older than DEEP_KEEP_RAW_MONTHS
+// (36 months) gets compressed into one synthetic entry per calendar
+// month to save storage (see _compressOldHistory above) — so the
+// genuinely "complete" array length is approximately:
+//   (36 months × ~21 trading days) + (~84 remaining months × 1 entry)
+//   ≈ 756 + 84 ≈ 840 entries
+// The very first version of this check compared against the raw
+// 2500-day target, which a compressed cache can never reach — so a
+// fully-downloaded, correctly-compressed cache always looked
+// "incomplete" and triggered a top-up download on every single app
+// open. This version compares against the realistic post-compression
+// target instead, with the same 90% tolerance for legitimate small
+// gaps (market holidays, a handful of failed days).
+function _deepExpectedEntryCount() {
+  var rawMonths = (typeof DEEP_KEEP_RAW_MONTHS === 'number') ? DEEP_KEEP_RAW_MONTHS : 36;
+  var totalMonths = Math.round((DEEP_WINDOW_DAYS / 252) * 12); // ~252 trading days/year
+  var rawDays = rawMonths * 21; // ~21 trading days/month
+  var compressedMonths = Math.max(0, totalMonths - rawMonths);
+  return rawDays + compressedMonths;
+}
+function _deepIsComplete(cache) {
+  if (!cache || !cache.dailyMap) return false;
+  var keys = Object.keys(cache.dailyMap);
+  if (keys.length === 0) return false;
+  var maxLen = 0;
+  for (var i = 0; i < keys.length; i++) {
+    var len = cache.dailyMap[keys[i]] ? cache.dailyMap[keys[i]].length : 0;
+    if (len > maxLen) maxLen = len;
+  }
+  return maxLen >= _deepExpectedEntryCount() * 0.9;
+}
 function fetchDeepWeeklyHistory(onProgress){
   if (_deepDownloadInProgress) {
     return win._deepDownloadPromise || Promise.resolve(win._deepWeeklyCache || deepLoadCache());
@@ -9781,7 +9911,7 @@ function fetchDeepWeeklyHistory(onProgress){
     var _ld = _existing.lastDate;
     var _eDate = new Date(parseInt(_ld.substring(4,8),10), parseInt(_ld.substring(2,4),10)-1, parseInt(_ld.substring(0,2),10));
     var _eDiff = Math.floor((Date.now() - _eDate.getTime()) / 86400000);
-    if (_eDiff <= 1) return Promise.resolve(_existing);
+    if (_eDiff <= 1 && _deepIsComplete(_existing)) return Promise.resolve(_existing);
   }
   // 2) In-memory stale — async IDB load (handles localStorage quota overflow)
   return new Promise(function(resolveOuter){
@@ -9792,7 +9922,7 @@ function fetchDeepWeeklyHistory(onProgress){
         var _ld2 = cache.lastDate;
         var _eDate2 = new Date(parseInt(_ld2.substring(4,8),10), parseInt(_ld2.substring(2,4),10)-1, parseInt(_ld2.substring(0,2),10));
         var _eDiff2 = Math.floor((Date.now() - _eDate2.getTime()) / 86400000);
-        if (_eDiff2 <= 1) { resolveOuter(cache); return; }
+        if (_eDiff2 <= 1 && _deepIsComplete(cache)) { resolveOuter(cache); return; }
       }
       // 3) IDB also stale — start download using the loaded cache
       _deepDownloadInProgress = true;
@@ -9856,21 +9986,29 @@ function fetchDeepWeeklyHistory(onProgress){
           _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
           _phaseTxt('\uD83D\uDCC2 Saving raw daily data to IDB', 1, 1);
           console.log('[DEEP] Raw daily saved — lastDate: ' + cache.lastDate);
-          // ── Phase 3: Compress old history ──
-          _compressOldHistoryAsync(cache, function(d, t){ _phaseTxt('\u2699\uFE0F Compressing old history', d, t); }, function(){
-            var _postCompressRows = 0;
-            Object.keys(cache.dailyMap).forEach(function(k){ _postCompressRows += cache.dailyMap[k].length; });
-            console.log('[DEEP] Compress done — rows: ' + _totalRows + ' -> ' + _postCompressRows);
-            // ── Phase 4: Build weekly + monthly maps ──
-            var _wkKeys = Object.keys(cache.dailyMap);
-            _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', 0, _wkKeys.length);
-            _buildWeeklyMonthlyMapsAsync(cache, function(d, t){ _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', d, t); }, function(){
-              var _wkCount = cache.weeklyMap ? Object.keys(cache.weeklyMap).length : 0;
-              var _moCount = cache.monthlyMap ? Object.keys(cache.monthlyMap).length : 0;
-              var _wkRows = 0, _moRows = 0;
-              if (cache.weeklyMap) Object.keys(cache.weeklyMap).forEach(function(k){ _wkRows += cache.weeklyMap[k].length; });
-              if (cache.monthlyMap) Object.keys(cache.monthlyMap).forEach(function(k){ _moRows += cache.monthlyMap[k].length; });
-              console.log('[DEEP] Build done — daily:' + _nIndices + ' weekly:' + _wkCount + '(' + _wkRows + ' rows) monthly:' + _moCount + '(' + _moRows + ' rows)');
+          // ── Phase 3: Build weekly + monthly maps FROM THE FULL, UNCOMPRESSED
+          // daily data. This must happen BEFORE compression (previously it
+          // ran after, which meant anything older than DEEP_KEEP_RAW_MONTHS
+          // had already been collapsed to one row per month — so grouping
+          // that into "weeks" produced roughly one week per month instead
+          // of four or five, leaving Weekly/Monthly far shallower than the
+          // real underlying history actually supports). ──
+          var _wkKeys = Object.keys(cache.dailyMap);
+          _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', 0, _wkKeys.length);
+          _buildWeeklyMonthlyMapsAsync(cache, function(d, t){ _phaseTxt('\uD83D\uDCC9 Building weekly & monthly maps', d, t); }, function(){
+            var _wkCount = cache.weeklyMap ? Object.keys(cache.weeklyMap).length : 0;
+            var _moCount = cache.monthlyMap ? Object.keys(cache.monthlyMap).length : 0;
+            var _wkRows = 0, _moRows = 0;
+            if (cache.weeklyMap) Object.keys(cache.weeklyMap).forEach(function(k){ _wkRows += cache.weeklyMap[k].length; });
+            if (cache.monthlyMap) Object.keys(cache.monthlyMap).forEach(function(k){ _moRows += cache.monthlyMap[k].length; });
+            console.log('[DEEP] Build done (pre-compression) — daily:' + _nIndices + ' weekly:' + _wkCount + '(' + _wkRows + ' rows) monthly:' + _moCount + '(' + _moRows + ' rows)');
+            // ── Phase 4: Compress old history (Daily only — Weekly/Monthly
+            // were already built above from the full detail, so they are
+            // NOT affected by this compression step). ──
+            _compressOldHistoryAsync(cache, function(d, t){ _phaseTxt('\u2699\uFE0F Compressing old history', d, t); }, function(){
+              var _postCompressRows = 0;
+              Object.keys(cache.dailyMap).forEach(function(k){ _postCompressRows += cache.dailyMap[k].length; });
+              console.log('[DEEP] Compress done — rows: ' + _totalRows + ' -> ' + _postCompressRows);
               // ── Phase 5: Slice daily to window ──
               var _sKeys = Object.keys(cache.dailyMap);
               _phaseTxt('\u2702 Slicing daily data', 0, _sKeys.length);
@@ -9883,15 +10021,13 @@ function fetchDeepWeeklyHistory(onProgress){
                 cache.lastDate = deepFmtDate(gapDays[0] || new Date());
               }
               // ── Phase 6: Save to each container ──
-              _phaseTxt('\uD83D\uDCBE Saving Daily container', 0, 4);
+              _phaseTxt('\uD83D\uDCBE Saving Daily container', 0, 3);
               _idbPut(DEEP_CACHE_KEY_DAILY, { lastDate: cache.lastDate, dailyMap: cache.dailyMap });
-              _phaseTxt('\uD83D\uDCBE Saving Weekly container', 1, 4);
+              _phaseTxt('\uD83D\uDCBE Saving Weekly container', 1, 3);
               _idbPut(DEEP_CACHE_KEY_WEEKLY, { weeklyMap: cache.weeklyMap || {} });
-              _phaseTxt('\uD83D\uDCBE Saving Monthly container', 2, 4);
+              _phaseTxt('\uD83D\uDCBE Saving Monthly container', 2, 3);
               _idbPut(DEEP_CACHE_KEY_MONTHLY, { monthlyMap: cache.monthlyMap || {} });
-              _phaseTxt('\uD83D\uDCBE Saving localStorage backup', 3, 4);
-              try { BB.deepCacheV4(cache); } catch(e) {}
-              _phaseTxt('\uD83D\uDCBE Saving localStorage backup', 4, 4);
+              _phaseTxt('\uD83D\uDCBE Saving Monthly container', 3, 3);
               // ── Phase 7: Verify ──
               console.log('[DEEP] ===== ALL CONTAINERS SAVED =====');
               console.log('[DEEP] Daily: ' + _nIndices + ' indices, lastDate: ' + cache.lastDate);
@@ -10117,9 +10253,9 @@ function rsiFillMonthly(el,name){
   try{
     var sd=win._ldScannerData;
     var entries=null;
-    if(sd&&sd.dailyMap){entries=sd.dailyMap[(name||'').toLowerCase()];}
+    if(sd&&sd.dailyMap){entries=sd.dailyMap[normalize(name)]||sd.dailyMap[(name||'').toLowerCase()];}
     if(!entries||entries.length<200){
-      var histKey=rsNormalize(name);
+      var histKey=normalize(name);
       var histArr=typeof EMBEDDED_HISTORICAL!=='undefined'?EMBEDDED_HISTORICAL[histKey]:null;
       if(histArr&&histArr.length>=200){
         var tDays=genTradingDays(histArr.length);
@@ -10164,10 +10300,10 @@ function rsiFillWeekly(el,name){
     else if(rd.entries&&rd.entries.length>=20){ wc=deepToWeeklyCloses(rd.entries); src='SCANNER('+rd.entries.length+')'; }
     else if(rd.c&&rd.c.length>=20){
       var sd2=win._ldScannerData;
-      var rawEntries=sd2&&sd2.dailyMap?sd2.dailyMap[(name||'').toLowerCase()]:null;
+      var rawEntries=sd2&&sd2.dailyMap?(sd2.dailyMap[normalize(name)]||sd2.dailyMap[(name||'').toLowerCase()]):null;
       if(rawEntries&&rawEntries.length>=20){ wc=deepToWeeklyCloses(rawEntries); src='EXACT'; }
       else {
-        var histKey=rsNormalize(name);
+        var histKey=normalize(name);
         var histArr=typeof EMBEDDED_HISTORICAL!=='undefined'?EMBEDDED_HISTORICAL[histKey]:null;
         if(histArr&&histArr.length>=20){
           var tDays=genTradingDays(histArr.length);
@@ -10464,7 +10600,7 @@ win.DEEP_CACHE_KEY_MONTHLY = DEEP_CACHE_KEY_MONTHLY;
     var last=new Date(yy,mm,dd);
     var diffMs=Date.now()-last.getTime();
     var diffDays=Math.floor(diffMs/86400000);
-    if(diffDays>=1){
+    if(diffDays>=1 || !_deepIsComplete(cache)){
       fetchDeepWeeklyHistory(function(done,total){
         var st=document.getElementById('rsi-st');
         if(st) st.textContent='⏳ Auto-refresh: '+done+'/'+total+' days...';
@@ -10979,7 +11115,19 @@ async function hmPopulateIndexDropdown() {
   var idxSel = document.getElementById('hmIndexSelect');
   if (!catSel || !idxSel) return;
   var sd = window._ldScannerData;
+  // If the page-load restore (see the useEffect that sets
+  // window._ldRestorePromise) is still in flight, wait for it instead of
+  // racing ahead and building our own indexList from raw IndexedDB keys.
+  // That race — whichever of the two finished last silently overwrote
+  // window._ldScannerData — was the root cause of categories and indices
+  // going out of sync (every index defaulting to nseKey:'Other' here vs.
+  // the real category from a completed scan).
+  if ((!sd || !sd.indexList) && window._ldRestorePromise) {
+    try { sd = await window._ldRestorePromise; } catch(_) {}
+    sd = sd || window._ldScannerData;
+  }
   // Fallback: build indexList from deep cache keys if Scanner hasn't run yet
+  // (genuinely no scan this session AND no cache to restore from).
   if (!sd || !sd.indexList) {
     var dc = window._deepWeeklyCache;
     if (!dc || !dc.dailyMap || Object.keys(dc.dailyMap).length === 0) {
@@ -10993,7 +11141,14 @@ async function hmPopulateIndexDropdown() {
         return { name: display, key: k.replace(/[^a-z0-9]/gi, '').toLowerCase(), nseKey: 'Other' };
       });
       sd = { dailyMap: dc.dailyMap, indexList: idxList, priceMap: {}, nseRaw: [] };
-      window._ldScannerData = sd;
+      // Only write this fallback into the shared global if nothing better
+      // has shown up in the meantime (the restore chain may have finished
+      // between the await above and here).
+      if (!window._ldScannerData || !window._ldScannerData.indexList) {
+        window._ldScannerData = sd;
+      } else {
+        sd = window._ldScannerData;
+      }
     }
   }
   if (!sd || !sd.indexList) return;
